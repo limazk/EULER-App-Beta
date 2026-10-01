@@ -31,8 +31,7 @@
 aprovação científica**. Testes passando mostram que o código faz o que foi especificado, não
 que a especificação esteja certa.
 
-- Versão examinada no diagnóstico: `97ad0c6`. Versão final da fase: registrada no commit que
-  traz esta linha (mensagem "Fase R (parte 3)"; ver `git log`).
+- Versão examinada no diagnóstico: `97ad0c6`. Versão final da fase: `01c2a4b`.
 - `pytest -q`: 243 testes passando; `ruff check .` e `ruff format --check .` sem erros;
   `tests/golden/` e tolerâncias sem alteração.
 - Sites bloqueados na sessão (para liberar na rede do ambiente, se quiser que a próxima

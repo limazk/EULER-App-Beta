@@ -7,7 +7,7 @@
 > especificado, não que a especificação esteja certa.
 
 - **Versão examinada (diagnóstico):** commit `97ad0c6` (branch `claude/new-session-xytynj`).
-- **Versão após as correções:** ver a seção 5 (registrada no fim da fase).
+- **Versão após as correções:** commit `01c2a4b` (seção 5).
 - **Spec v0.3:** **não encontrada** (repositório, branches, arquivos enviados; o conector do
   Google Drive desta sessão não tem permissão de leitura). Requisitos que **não puderam ser
   conferidos** contra ela: tabela de capacidades (seção 4 → D30), formato do JSON de
@@ -225,8 +225,10 @@ explícito como dependente de hipótese.
 
 ## 5. Versão após as correções
 
-- **Commit:** ver `PROGRESSO.md` (linha "Fase R"), que registra o commit final desta fase.
-- Testes, lint e formatação: ver a mesma linha.
+- **Commit:** `01c2a4b` (branch `claude/new-session-xytynj`), sobre `8465ecc` e `a22ba1a`.
+- `pytest -q`: 243 testes passando (53 em `tests/test_validacao_*.py`); `ruff check .` e
+  `ruff format --check .` sem erros.
+- `tests/golden/` e `lab/` sem nenhuma alteração desde `97ad0c6` (conferido com `git diff`).
 
 ---
 
