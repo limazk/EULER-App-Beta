@@ -96,3 +96,33 @@ def test_extrato_sem_dados_orienta_a_importar():
     at = abrir("extrato.py")
     assert not at.exception
     assert any("Nenhum dado importado" in i.value for i in at.info)
+
+
+def test_dados_e_limites_com_demo_libera_tudo():
+    at = abrir_com_demo("limites.py")
+    assert not at.exception, at.exception
+    valores = {m.label: m.value for m in at.metric}
+    assert valores["Bloqueadas"] == "0"
+
+
+def test_dados_e_limites_com_modelos_mostra_bloqueios():
+    at = clicar(abrir("importar.py"), "Modelos")
+    at.switch_page("paginas/limites.py").run()
+    assert not at.exception
+    assert int({m.label: m.value for m in at.metric}["Bloqueadas"]) > 0
+    assert any("Por quê" in m.value for m in at.markdown)
+
+
+def test_investigacao_com_demo_sustenta_temperatura_dos_gases():
+    at = abrir_com_demo("investigacao.py")
+    assert not at.exception, at.exception
+    assert any("Os dados sustentam" in s.value for s in at.success)
+    assert any("Mais calor saindo pela chaminé" in m.value for m in at.markdown)
+    assert any(c.value == RODAPE_SEGURANCA for c in at.caption)
+
+
+def test_investigacao_semana_sem_vapor_abstem():
+    at = abrir_com_demo("investigacao.py")
+    at.select_slider[1].set_value((6, 6)).run()  # semana 7: medidor de vapor fora
+    assert not at.exception, at.exception
+    assert any(w.value.startswith("Não dá para concluir") for w in at.warning)

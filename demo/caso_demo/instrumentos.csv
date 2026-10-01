@@ -4,3 +4,4 @@ TERMO-01,termopar_gases,CHAMINE-1,c,1,2,2026-06-10,sintetico
 MANOM-01,manometro,TUBULAO,bar,0.1,0.2,2026-05-02,sintetico
 MED-VAPOR-01,medidor_vazao_vapor,LINHA-VAPOR,pct_da_leitura,0.1,2,2026-09-21,sintetico
 BALANCA-01,balanca_rodoviaria,PORTARIA,kg,10,50,2026-03-15,sintetico
+ESTOQUE-01,levantamento_estoque,PATIO,pct_da_leitura,100,3,2026-08-03,sintetico

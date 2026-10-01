@@ -122,3 +122,62 @@ def linhas_semanais(
         .encode(x="semana:T", y=f"{campo}:Q", text="fornecedor_id:N")
     )
     return _configurar((linhas + pontos + rotulos).properties(height=300))
+
+
+FAIXA_REFERENCIA = "#e6e5e1"
+FAIXA_COMPARACAO = "#fde7d9"
+
+
+def serie_diaria_com_periodos(
+    df: pd.DataFrame,
+    titulo: str,
+    formato: str,
+    faixas: list[tuple[pd.Timestamp, pd.Timestamp, str]],
+) -> alt.Chart:
+    """Uma série diária (linha de 2 px) com os períodos comparados em faixas de fundo.
+
+    df: colunas `dia` (data) e `valor`. faixas: (início, fim, rótulo) — referência e comparação.
+    Uma única série: sem legenda, o título diz o que é.
+    """
+    cores = [FAIXA_REFERENCIA, FAIXA_COMPARACAO]
+    minimo, maximo = float(df["valor"].min()), float(df["valor"].max())
+    amplitude = max(maximo - minimo, 1.0)
+    bandas = pd.DataFrame(
+        [
+            {
+                "inicio": a.tz_localize(None),
+                "fim": b.tz_localize(None),
+                "rotulo": r,
+                "cor": cores[i % 2],
+            }
+            for i, (a, b, r) in enumerate(faixas)
+        ]
+    )
+    fundo = (
+        alt.Chart(bandas)
+        .mark_rect(opacity=0.9)
+        .encode(x="inicio:T", x2="fim:T", color=alt.Color("cor:N", scale=None, legend=None))
+    )
+    rotulos = (
+        alt.Chart(bandas)
+        .mark_text(align="left", baseline="top", dx=4, dy=4, color=TINTA_SECUNDARIA, fontSize=12)
+        .encode(x="inicio:T", y=alt.value(0), text="rotulo:N")
+    )
+    base = alt.Chart(df).encode(
+        x=alt.X("dia:T", title=None, axis=alt.Axis(format="%d/%m", tickCount="week")),
+        # folga acima dos dados para os rótulos das faixas não encostarem na linha
+        y=alt.Y(
+            "valor:Q",
+            title=None,
+            axis=alt.Axis(format=formato),
+            scale=alt.Scale(domain=[minimo - 0.05 * amplitude, maximo + 0.3 * amplitude]),
+        ),
+    )
+    linha = base.mark_line(strokeWidth=2, color=CORES[0])
+    pontos = base.mark_point(size=30, filled=True, color=CORES[0]).encode(
+        tooltip=[
+            alt.Tooltip("dia:T", title="Dia", format="%d/%m/%Y"),
+            alt.Tooltip("valor:Q", title=titulo, format=formato),
+        ]
+    )
+    return _configurar((fundo + rotulos + linha + pontos).properties(title=titulo, height=260))

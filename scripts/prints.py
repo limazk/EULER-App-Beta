@@ -77,6 +77,8 @@ TELAS: list[Tela] = [
         "importar",
         _com_demo("Extrato por fornecedor", "Custo por energia"),
     ),
+    Tela("05_dados_e_limites", "importar", _com_demo("Dados e limites", "Análises liberadas")),
+    Tela("06_investigacao", "importar", _com_demo("Investigação", "Próxima verificação")),
 ]
 
 

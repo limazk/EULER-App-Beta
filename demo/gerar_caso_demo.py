@@ -96,9 +96,7 @@ def gerar() -> dict[str, str]:
             t_gases += 32
         leituras.append((t, vapor, t_gases))
 
-        if LACUNA[0] <= t < LACUNA[1]:
-            continue  # período sem registro no diário
-
+        # o totalizador conta sempre que está instalado, mesmo sem anotação no diário
         if VAPOR_FORA[0] <= t < VAPOR_FORA[1]:
             leitura_tot = ""
             medidor_novo = True
@@ -109,6 +107,10 @@ def gerar() -> dict[str, str]:
             totalizador += vapor
             leitura_tot = f"{totalizador:.1f}"
             ocorrencia = ""
+
+        if LACUNA[0] <= t < LACUNA[1]:
+            continue  # período sem registro no diário
+
         if t == LIMPEZA:
             ocorrencia = "parada para limpeza dos tubos de fumaça"
 
@@ -169,7 +171,7 @@ def gerar() -> dict[str, str]:
             queimado += vapor * 1000 * DELTA_H_MJ_KG / (rendimento * _pci_umido(w_pilha))
 
         # entregas: repõem o consumo previsto e puxam o estoque para ~260 t
-        caminhoes = max(2, round((queimado + (260_000 - estoque_real) * 0.3) / 30_000))
+        caminhoes = int(np.clip(round((queimado + (260_000 - estoque_real) * 0.15) / 30_000), 2, 6))
         for k in range(caminhoes):
             n_lote += 1
             forn = rng.choice(list(PARTICIPACAO), p=list(PARTICIPACAO.values()))
@@ -177,7 +179,8 @@ def gerar() -> dict[str, str]:
             w = float(np.clip(w0 + (w1 - w0) * dia / (DIAS - 1) + rng.normal(0, 0.015), 0.25, 0.65))
             massa = float(round(rng.normal(30_000, 1_500), -1))
             preco = round(massa / 1000 * (preco_t + rng.normal(0, 2)), 2)
-            chegada = manha + timedelta(hours=1 + 3 * k, minutes=int(rng.integers(0, 50)))
+            # todas as entregas dentro do dia (antes da medição de estoque do dia seguinte)
+            chegada = manha + timedelta(hours=1 + 3.5 * k, minutes=int(rng.integers(0, 50)))
             lote = f"L-{n_lote:04d}"
             combustivel.append(
                 [
@@ -255,6 +258,7 @@ def gerar() -> dict[str, str]:
         ["MANOM-01", "manometro", "TUBULAO", "bar", "0.1", "0.2", "2026-05-02", "sintetico"],
         ["MED-VAPOR-01", "medidor_vazao_vapor", "LINHA-VAPOR", "pct_da_leitura", "0.1", "2", "2026-09-21", "sintetico"],
         ["BALANCA-01", "balanca_rodoviaria", "PORTARIA", "kg", "10", "50", "2026-03-15", "sintetico"],
+        ["ESTOQUE-01", "levantamento_estoque", "PATIO", "pct_da_leitura", "100", "3", "2026-08-03", "sintetico"],
     ]  # fmt: skip
 
     return {

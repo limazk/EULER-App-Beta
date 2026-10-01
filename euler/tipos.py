@@ -1,5 +1,6 @@
 """Tipos comuns do motor EULER."""
 
+from dataclasses import dataclass
 from typing import Literal
 
 Origem = Literal["medido", "estimado", "assumido"]
@@ -18,3 +19,18 @@ class AnaliseBloqueada(Exception):
         super().__init__(motivo)
         self.motivo = motivo
         self.falta = list(falta or [])
+
+
+@dataclass(frozen=True)
+class Grandeza:
+    """Um número mostrado ao usuário, sempre com unidade e origem.
+
+    incerteza: incerteza expandida (k = 2, ~95%) na mesma unidade, ou None se não declarada.
+    nota: de onde veio o número, em linguagem simples.
+    """
+
+    valor: float
+    unidade: str
+    origem: Origem
+    incerteza: float | None = None
+    nota: str = ""
