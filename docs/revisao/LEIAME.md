@@ -7,7 +7,7 @@ Gerado por `python scripts/gerar_pdfs_revisao.py` a partir dos arquivos `.md` de
 | Arquivo | Conteúdo | Páginas |
 |---|---|---|
 | `fisica_para_revisao.pdf` | Equações e valores de referência E1–E15, com campo para o parecer de cada item | 5 |
-| `perguntas_revisores.pdf` | **Três decisões prioritárias** (com exemplo numérico e efeito no relatório) + perguntas Q1–Q17 | 8 |
+| `perguntas_revisores.pdf` | **Três decisões prioritárias** (com exemplo numérico e efeito no relatório) + perguntas Q1–Q17 | 7 |
 
 Material de apoio (no repositório, se o revisor quiser aprofundar):
 `docs/revisao_motor_fisico.md` (diagnóstico e correções), `docs/matriz_validacao_fisica.md`

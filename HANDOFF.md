@@ -1,6 +1,6 @@
 # HANDOFF · EULER (protótipo Fase 0) → equipe de desenvolvimento
 
-**Versão examinada:** commit `VERSAO_EXAMINADA`, branch `claude/new-session-xytynj`, 01/10/2026.
+**Versão examinada:** commit `e49338d`, branch `claude/new-session-xytynj`, 01/10/2026.
 **Escrito por:** agente de programação (Claude), a pedido do Adryan (fundador). Este documento
 é sincero sobre o que está pronto, o que é provisório e o que falta. **Nada da física tem
 aprovação científica**, e **nada foi validado com dados reais de caldeira**.

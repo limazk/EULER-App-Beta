@@ -79,10 +79,11 @@ ficam para fases posteriores. Dados do demo **não** foram alterados e nenhuma i
 acrescentada: o caso continua mostrando a EULER explicando por que não conclui (D53, decisão
 do Adryan).
 
-**Falhas de uso encontradas e corrigidas** (cada uma com teste em `tests/test_app.py`):
-relatório usando a investigação dos dados anteriores; escolha de períodos voltando ao
-padrão ao trocar de tela; relatório sumindo depois de baixar; barra lateral com a origem
-errada dos dados; PDF com páginas quase vazias. Textos: plural, unidades, nome do arquivo
+**Falhas de uso encontradas e corrigidas:** relatório usando a investigação dos dados
+anteriores; escolha de períodos voltando ao padrão ao trocar de tela; relatório sumindo
+depois de baixar; barra lateral com a origem errada dos dados (estas quatro com teste em
+`tests/test_app.py`); PDF do relatório com páginas quase vazias (conferido à mão: 4
+páginas). Textos: plural, unidades, nome do arquivo
 nos avisos, motivo quando o valor em jogo não é estimado, selo **DADOS SINTÉTICOS** em todas
 as telas e no relatório, quadro "Em que pé está a EULER" (verificado · em revisão · não feito).
 
@@ -91,12 +92,12 @@ as telas e no relatório, quadro "Em que pé está a EULER" (verificado · em re
 | **Testes automáticos** | `pytest -q` (inclui telas pelo AppTest, fluxo completo do demo, verbos proibidos, golden) e `ruff check .` / `ruff format --check .` | 308 passando; lint sem erros; `tests/golden/` e tolerâncias sem alteração |
 | **Instalação do zero** | ambiente novo, só `pip install -e ".[dev]"` | 275 passando, 33 pulados (CoolProp/Cantera, extra `validacao`) |
 | **Conferência manual (navegador real)** | fluxo inteiro como usuário novo: demonstração, avisos, análises bloqueadas, troca de períodos, extrato, relatório, baixar HTML e PDF, trocar os arquivos depois, ir e voltar entre telas | sem resultado antigo nos dados novos; PDF baixado (4 páginas A4) |
-| **Conferência manual (materiais)** | 8 prints, quadros do vídeo em cada cena, PDF do relatório, PDFs dos revisores (5 e 8 páginas) | legíveis em 1280 px, 1280 × 720 e A4 |
+| **Conferência manual (materiais)** | 8 prints, quadros do vídeo em cada cena, PDF do relatório, PDFs dos revisores (5 e 7 páginas) | legíveis em 1280 px, 1280 × 720 e A4 |
 | **Depende do notebook da apresentação** | ensaio com o guia ao vivo; Chromium para o botão "Baixar PDF" (ou plano B com HTML); zoom no projetor; Windows não testado | **a fazer** (Adryan + 1 dev) |
 | **Depende de pessoas** | narração do vídeo (rascunho atual não tem som); revisão do texto dos exemplos de relatório | **a fazer** (Adryan) |
 | **Revisão humana e validação externa** | três decisões prioritárias + Q1–Q17 (`docs/revisao/`); golden; piloto com dados reais autorizados; T17 em repositório separado | **pendentes**: nenhuma proposta foi marcada como aprovada sem resposta humana |
 
-- Versão examinada nesta etapa: `VERSAO_EXAMINADA` (a mesma da capa dos PDFs de
+- Versão examinada nesta etapa: `e49338d` (a mesma da capa dos PDFs de
   `docs/revisao/` e do `HANDOFF.md`).
 - **Repositório ainda público** (a API do GitHub responde sem login em 01/10/2026).
 
