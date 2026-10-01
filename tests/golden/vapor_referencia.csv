@@ -1,0 +1,2 @@
+caso,p_vapor_bar_abs,estado_vapor,t_agua_alim_c,delta_h_mj_kg_esperado,t_sat_c_esperado,tolerancia,status_revisao
+V01_10bar_saturado_agua80,10,saturado_seco,80,2.4414,179.89,0.001,pendente

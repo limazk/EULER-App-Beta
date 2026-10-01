@@ -1,0 +1,2 @@
+data,tipo,fornecedor_id,lote_id,massa_kg,volume_m3,densidade_kg_m3,origem_densidade,preco_brl,origem_dado
+2026-10-05T10:30:00-03:00,recebimento,F1,L-0001,30000,,,,5400.00,sintetico

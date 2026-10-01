@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "euler-core"
+version = "0.0.1"
+description = "EULER · investigação física para caldeiras industriais (protótipo, Fase 0)"
+requires-python = ">=3.11"
+dependencies = [
+    "pandas>=2.0",
+    "numpy>=1.26",
+    "iapws>=1.5",
+    "streamlit>=1.30",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.5",
+]
+
+[tool.setuptools.packages.find]
+include = ["euler*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+# lab/ guarda a calculadora de referência para os revisores, copiada exatamente
+# como veio do arquivo mestre; não é código do produto.
+extend-exclude = ["lab"]
+
+[tool.ruff.format]
+# tests/golden/ é somente leitura para agentes (regra 6 do AGENTS.md).
+exclude = ["tests/golden/*"]

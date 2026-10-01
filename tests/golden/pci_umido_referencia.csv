@@ -1,0 +1,6 @@
+caso,pci_seco_mj_kg,umidade_bu_frac,pci_umido_mj_kg_esperado,tolerancia,status_revisao
+P01,18.5,0.30,12.217,0.001,pendente
+P02,18.5,0.35,11.170,0.001,pendente
+P03,18.5,0.40,10.123,0.001,pendente
+P04,18.5,0.45,9.076,0.001,pendente
+P05,18.5,0.50,8.029,0.001,pendente
