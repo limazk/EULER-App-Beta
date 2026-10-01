@@ -83,6 +83,19 @@ header[data-testid="stHeader"] {{ background: transparent; }}
 .st-key-euler-proximo [data-testid="stPageLink"] a p {{ color: var(--euler-ferrugem-escura);
   font-weight: 600; }}
 
+/* Envio de arquivos: o componente do Streamlit vem em inglês ("Upload", "200MB per file").
+   O texto original fica com tamanho zero e o português entra no lugar. */
+[data-testid="stFileUploaderDropzone"] button [data-testid="stMarkdownContainer"] p {{
+  font-size: 0; }}
+[data-testid="stFileUploaderDropzone"] button [data-testid="stMarkdownContainer"] p::after {{
+  content: "Escolher arquivos"; font-size: .875rem; }}
+[data-testid="stFileUploaderDropzoneInstructions"],
+[data-testid="stFileUploaderDropzoneInstructions"] * {{ white-space: normal;
+  overflow: visible; text-overflow: clip; }}
+[data-testid="stFileUploaderDropzoneInstructions"] span {{ font-size: 0; }}
+[data-testid="stFileUploaderDropzoneInstructions"] span::after {{
+  content: "ou arraste para cá · CSV ou planilha .xlsx"; font-size: .82rem; }}
+
 /* Linha do tempo dos períodos comparados (tela Investigação) */
 .euler-tempo {{ display: flex; gap: 4px; margin: .2rem 0 .3rem; }}
 .euler-tempo .p {{ flex: 1; text-align: center; font-size: .78rem; padding: .45rem 0;

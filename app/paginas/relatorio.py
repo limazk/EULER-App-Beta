@@ -56,10 +56,7 @@ def _pdf(html: str) -> bytes | None:
 
 def _sem_investigacao(motivo: str) -> None:
     if estado.pacote() is None:
-        st.info("Nenhum dado importado ainda.", icon=":material/upload_file:")
-        st.page_link(
-            "paginas/importar.py", label="Ir para Importar dados", icon=":material/arrow_forward:"
-        )
+        estado.sem_dados()
         return
     if not {c.id: c for c in avaliar(estado.pacote())}["comparacao"].habilitada:
         st.info(

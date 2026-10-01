@@ -42,7 +42,10 @@ with local, cartao("local"):
 with envio, cartao("arquivos"):
     st.markdown("**2. Arquivos da fábrica**")
     enviados = st.file_uploader(
-        "Arraste os arquivos aqui", type=["csv", "xlsx"], accept_multiple_files=True
+        "Arquivos (CSV ou planilha .xlsx)",
+        type=["csv", "xlsx"],
+        accept_multiple_files=True,
+        label_visibility="collapsed",
     )
     with st.container(horizontal=True, gap="small"):
         if st.button("Importar os arquivos enviados", type="primary", disabled=not enviados):

@@ -64,6 +64,8 @@ MEDICOES_INDIRETO = (
     "composição elementar",
 )
 STATUS = ("sustentada", "oposta", "possivel", "descartada", "nao_avaliavel")
+SUFIXO_CADASTRAR = ": cadastrar em instrumentos.csv, com o tipo da incerteza"
+"""Fim dos itens de "o que falta" que pedem cadastrar uma incerteza (a tela agrupa por ele)."""
 """oposta: mudou de forma detectável e relevante, mas empurra o consumo no sentido contrário
 ao medido — não explica a mudança, compensou parte dela (Fase R)."""
 CRITERIO_RELEVANCIA = 0.5
@@ -1090,11 +1092,7 @@ def investigar(
         i_ref.perda, i_comp.perda,
     ):  # fmt: skip
         if g is not None and g.orcamento is not None:
-            falta += [
-                f"{f.nome}: cadastrar em instrumentos.csv, com o tipo da incerteza"
-                for f in g.orcamento.faltam
-                if f.sistematica
-            ]
+            falta += [f"{f.nome}{SUFIXO_CADASTRAR}" for f in g.orcamento.faltam if f.sistematica]
     for g in (b_comp.eficiencia, b_comp.consumo_t_por_t):
         if g is not None and g.orcamento is not None:
             falta += [n for n in g.orcamento.nao_incluidos if n.startswith("título")]

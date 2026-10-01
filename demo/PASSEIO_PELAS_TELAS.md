@@ -6,13 +6,15 @@ inventados para teste). Para a apresentação com cliques e números exatos, use
 
 ## Como abrir
 
-- No seu computador: dois cliques em `ABRIR-EULER.cmd` (na pasta `euler`). O navegador abre em
-  http://127.0.0.1:8501.
+- No seu computador: dois cliques em `ABRIR-EULER.cmd`. O navegador abre sozinho em
+  http://localhost:8501 (ou 127.0.0.1:8501). A versão nova traz esse lançador dentro da
+  própria pasta do projeto; para fechar a EULER, feche a janela preta.
 - À esquerda fica o **menu** (faixa azul-escura com o logo EULER). As telas do fluxo são
   numeradas de 1 a 5. Em cada tela, no alto, aparece "Passo X de 5". No fim da tela, o botão
   **Próximo** leva à tela seguinte.
 - A linha cinza "Dados em uso" com o selo laranja **DADOS SINTÉTICOS** mostra quais dados
   estão carregados. Recarregar a página (F5) apaga os dados e volta ao começo.
+- Se abrir uma tela sem dados, ela oferece o botão **Carregar o caso de demonstração**.
 
 ## 1. Início
 
@@ -26,7 +28,8 @@ inventados para teste). Para a apresentação com cliques e números exatos, use
 - O que é: onde a fábrica envia os registros (CSV ou planilha).
 - O que dá para fazer:
   - informar a altitude do local;
-  - arrastar arquivos e clicar em **Importar os arquivos enviados**;
+  - clicar em **Escolher arquivos** (ou arrastar) e depois em **Importar os arquivos
+    enviados**;
   - baixar a planilha modelo;
   - escolher um dos três exemplos sintéticos nos cartões de baixo.
 - Experimente: **Exemplo com problemas (sintético)**. Aparecem os números de erros e avisos e,
@@ -65,11 +68,13 @@ inventados para teste). Para a apresentação com cliques e números exatos, use
   2. **O que os dados sustentam**: a explicação compatível (não comprovada) e quanto ela
      explica da mudança.
   3. **Explicações possíveis**: o que ainda não dá para confirmar nem descartar.
-  4. **O que falta saber**: a lista do que falta medir ou cadastrar.
+  4. **O que falta saber**: em dois grupos. **Cadastrar em instrumentos.csv** (as
+     incertezas que a fábrica precisa informar) e **Medir, registrar ou conferir**.
 - Experimente: no controle **Período de comparação**, arraste a bolinha da direita até
   **14/09 a 21/09**. O amarelo passa a dizer que o consumo não pode ser calculado, e os
   cartões mostram "—" e "não estimado": a EULER não inventa número. Arraste de volta até
-  **07/09 a 14/09**.
+  **07/09 a 14/09**. Voltar a uma comparação já vista é instantâneo: a EULER guarda o
+  cálculo.
 
 ## 5. Extrato por fornecedor (menu "4. Extrato por fornecedor")
 
@@ -112,6 +117,6 @@ sozinha. Escolha um caminho:
   2. Clique em **Code → Download ZIP** e descompacte.
   3. Copie tudo por cima da pasta `software-euler`. Não apague a pasta `.venv` dela.
 
-Depois, feche a janela preta do app (se estiver aberta), abra o `ABRIR-EULER.cmd` de novo e
-aperte F5 no navegador. Esta atualização **não** traz dependências novas: não precisa
-instalar nada.
+Depois, feche a janela preta do app (se estiver aberta), abra o `ABRIR-EULER.cmd` (o que vem
+dentro da pasta `software-euler`) e aperte F5 no navegador. Esta atualização **não** traz
+dependências novas: não precisa instalar nada.

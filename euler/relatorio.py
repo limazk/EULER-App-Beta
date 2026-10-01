@@ -43,6 +43,15 @@ ROTULO_STATUS = {
     "nao_avaliavel": "Não dá para avaliar com os dados atuais",
 }
 
+MARCA_SVG = (
+    '<svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" '
+    'fill="#C2410C"/><rect x="8" y="7.5" width="4" height="17" rx="1.5" fill="#fff"/>'
+    '<rect x="8" y="7.5" width="16" height="4" rx="1.5" fill="#fff"/><rect x="8" y="14" '
+    'width="11" height="4" rx="1.5" fill="#fff" fill-opacity=".85"/><rect x="8" y="20.5" '
+    'width="16" height="4" rx="1.5" fill="#fff"/></svg>'
+)
+"""Marca EULER (D58, a mesma de app/imagens/euler_marca.svg), embutida no relatório."""
+
 CSS = """
 @page { size: A4; margin: 18mm 16mm 20mm; }
 :root { --tinta: #1d1d1b; --tinta-2: #52514e; --linha: #e2e1dc; --fundo: #ffffff;
@@ -53,7 +62,9 @@ body { font-family: "Source Sans 3", "Segoe UI", Arial, sans-serif; color: var(-
        background: var(--fundo); margin: 0; line-height: 1.5; font-size: 15px; }
 main { max-width: 820px; margin: 0 auto; padding: 32px 24px 24px; }
 header { border-bottom: 3px solid var(--destaque); padding-bottom: 12px; margin-bottom: 20px; }
-.marca { font-weight: 800; letter-spacing: .08em; color: var(--destaque); font-size: 13px; }
+.marca { font-weight: 800; letter-spacing: .08em; color: var(--destaque); font-size: 13px;
+         display: flex; align-items: center; gap: 8px; }
+.marca svg { width: 22px; height: 22px; flex: none; }
 h1 { font-size: 26px; margin: 4px 0 6px; line-height: 1.2; }
 .meta { color: var(--tinta-2); font-size: 13px; margin: 2px 0; }
 .selo { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 8px;
@@ -250,7 +261,7 @@ def gerar_html(investigacao: dict, gerado_em: datetime | None = None) -> str:
 <body>
 <main>
 <header>
-  <div class="marca">EULER</div>
+  <div class="marca">{MARCA_SVG}EULER</div>
   <h1>Relatório de investigação · {_e(caldeira)}</h1>
   <p class="meta">Referência: {_e(ref["rotulo"])} · Comparação: {_e(comp["rotulo"])}</p>
   <p class="meta">Gerado em {gerado_em:%d/%m/%Y %H:%M} · EULER v{_e(j["versao_euler"])}</p>

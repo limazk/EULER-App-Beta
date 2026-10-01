@@ -98,7 +98,7 @@ TELAS: list[Tela] = [
     Tela(
         "05_dados_e_limites",
         "importar",
-        _com_demo("Dados e limites", "Período a período"),
+        _com_demo("Dados e limites", "21/09 a 28/09"),
     ),
     Tela("06_investigacao", "importar", _com_demo("Investigação", "Próxima verificação")),
     Tela("07_relatorio", "importar", _relatorio_demo),

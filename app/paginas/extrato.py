@@ -107,10 +107,11 @@ def mostrar(pacote) -> None:
             ],
             "Energia (GJ)": forn["energia_gj"].map(lambda v: num(v, 0)),
             "R$/GJ": forn["brl_gj"].map(num),
-            "Alertas": forn["alertas_umidade"],
+            "Lotes fora da faixa de umidade": forn["alertas_umidade"],
         }
     )
-    st.dataframe(tabela, hide_index=True, width="stretch")
+    # tabela simples: todas as colunas cabem na largura, sem rolagem lateral
+    st.table(tabela, hide_index=True, border="horizontal")
 
     semanal = extrato_semanal(lotes)
     if semanal["semana"].nunique() >= 2:

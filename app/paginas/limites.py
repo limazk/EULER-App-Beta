@@ -119,30 +119,14 @@ def _faixa_patio(cenarios: dict[str, float] | None) -> str:
     return f"{pct(cenarios['minimo'])} a {pct(cenarios['maximo'])}"
 
 
-def por_periodo(pacote) -> None:
-    periodos = periodos_entre_estoques(pacote)
-    if not periodos:
-        return
-    st.markdown("### Período a período")
-    st.caption(
-        "Cada linha vai de uma medição de estoque à seguinte. ✕ = não dá para concluir "
-        'naquele período; o motivo está na última coluna. "Incerteza incompleta": falta '
-        "cadastrar a incerteza de algum instrumento usado no cálculo (ver acima)."
-    )
-    with st.expander("Como ler as colunas de eficiência"):
-        st.markdown(
-            "A **eficiência direta** supõe que o combustível queimado tem a qualidade do "
-            "recebido no período. A coluna **Eficiência conforme o pátio** mostra os limites "
-            "possíveis conforme o uso do pátio (quanto maior o estoque perto do consumido, mais "
-            "larga a faixa). São cenários de contabilidade do pátio, não intervalo de confiança "
-            "nem desempenho validado: um limite acima de 100% menos a perda nos gases calculada "
-            "para o mesmo período (mesma fronteira e base PCI) é incompatível com ela e só "
-            "mostra quanto o pátio pode pesar no resultado. Os limites não são cortados."
-        )
-    p_gases = pacote.p_atm_bar or P_ATM_NIVEL_DO_MAR_BAR
+@st.cache_data(show_spinner="Calculando período a período…", max_entries=16)
+def _linhas_por_periodo(assinatura: str, _pacote) -> list[dict]:
+    """Uma linha por período entre medições de estoque. Guardada pela assinatura dos dados
+    (arquivos + altitude): voltar a esta tela não recalcula as semanas."""
+    p_gases = _pacote.p_atm_bar or P_ATM_NIVEL_DO_MAR_BAR
     linhas = []
-    for inicio, fim in periodos:
-        r = resumir_periodo(pacote, inicio, fim)
+    for inicio, fim in periodos_entre_estoques(_pacote):
+        r = resumir_periodo(_pacote, inicio, fim)
         b = balanco_direto(r)
         ind = indireto_periodo(r, p_gases)
         bloqueios = [x.motivo for x in b.bloqueios] + (
@@ -170,8 +154,32 @@ def por_periodo(pacote) -> None:
                 "Por que não dá": " ".join(dict.fromkeys(bloqueios)) or "—",
             }
         )
+    return linhas
+
+
+def por_periodo(pacote) -> None:
+    periodos = periodos_entre_estoques(pacote)
+    if not periodos:
+        return
+    st.markdown("### Período a período")
+    st.caption(
+        "Cada linha vai de uma medição de estoque à seguinte. ✕ = não dá para concluir "
+        'naquele período; o motivo está na última coluna. "Incerteza incompleta": falta '
+        "cadastrar a incerteza de algum instrumento usado no cálculo (ver acima)."
+    )
+    with st.expander("Como ler as colunas de eficiência"):
+        st.markdown(
+            "A **eficiência direta** supõe que o combustível queimado tem a qualidade do "
+            "recebido no período. A coluna **Eficiência conforme o pátio** mostra os limites "
+            "possíveis conforme o uso do pátio (quanto maior o estoque perto do consumido, mais "
+            "larga a faixa). São cenários de contabilidade do pátio, não intervalo de confiança "
+            "nem desempenho validado: um limite acima de 100% menos a perda nos gases calculada "
+            "para o mesmo período (mesma fronteira e base PCI) é incompatível com ela e só "
+            "mostra quanto o pátio pode pesar no resultado. Os limites não são cortados."
+        )
+    linhas = _linhas_por_periodo(estado.assinatura(), pacote)
     # tabela simples: quebra o texto e mostra o motivo inteiro
-    st.table(pd.DataFrame(linhas).set_index("Período"))
+    st.table(pd.DataFrame(linhas), hide_index=True, border="horizontal")
 
 
 pacote = estado.exigir_pacote()

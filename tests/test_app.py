@@ -299,3 +299,53 @@ def test_investigacao_sem_vapor_nao_mostra_numero_de_consumo_nem_valor():
     metricas = {m.label: m.value for m in at.metric}
     assert metricas["Consumo por tonelada de vapor"] == "—"
     assert metricas["Valor em jogo"] == "não estimado"
+
+
+def test_o_que_falta_saber_agrupa_sem_perder_itens():
+    """Bloco 4 na tela: incertezas a cadastrar num grupo, o resto em outro, todos os itens."""
+    from euler.investigacao import SUFIXO_CADASTRAR
+
+    at = abrir_com_demo("investigacao.py")
+    falta = at.session_state["investigacao"]["json"]["o_que_falta"]
+    texto = " ".join(m.value for m in at.markdown)
+    assert "**Cadastrar em instrumentos.csv**" in texto
+    assert "**Medir, registrar ou conferir**" in texto
+    assert any(f.endswith(SUFIXO_CADASTRAR) for f in falta)
+    for f in falta:
+        item = f.removesuffix(SUFIXO_CADASTRAR)
+        assert item[0].upper() + item[1:] in texto, item
+
+
+def test_tela_sem_dados_oferece_carregar_o_demo():
+    at = abrir("investigacao.py")
+    assert any("Nenhum dado importado" in i.value for i in at.info)
+    clicar(at, "Carregar o caso de demonstração")
+    assert not at.exception, at.exception
+    assert any(w.value.startswith("Não dá para concluir") for w in at.warning)
+
+
+def test_investigacao_guardada_nao_serve_para_outra_altitude():
+    """A investigação fica guardada por dados e períodos; mudar a altitude muda os dados
+    (pressão absoluta) e a conta tem de ser refeita, não reaproveitada."""
+
+    def energia_por_kg(at):
+        j = at.session_state["investigacao"]["json"]
+        return next(
+            c["referencia"]
+            for c in j["o_que_mudou"]["indicadores"]
+            if c["nome"] == "energia por kg de vapor"
+        )
+
+    at = abrir_com_demo("investigacao.py")
+    com_1000_m = energia_por_kg(at)
+    at.switch_page("paginas/importar.py").run()
+    at.number_input[0].set_value(0.0).run()
+    at.switch_page("paginas/investigacao.py").run()
+    assert not at.exception, at.exception
+    assert energia_por_kg(at) != com_1000_m
+
+
+def test_lancador_do_windows_abre_o_app():
+    lancador = (APP.parent / "ABRIR-EULER.cmd").read_bytes()
+    assert b"\r\n" in lancador
+    assert b"-m streamlit run app\\main.py" in lancador

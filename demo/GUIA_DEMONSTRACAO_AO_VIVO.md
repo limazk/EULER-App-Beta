@@ -34,16 +34,18 @@ sem alterar dados.
 | 7 | Aba **1. O que mudou** (já aberta) | Frase **subiu 10,1% (… incerteza ±3,6%)**. Gráfico da temperatura dos gases com as faixas dos dois períodos (botões para ver O₂, CO, ar e água). Tabela: **Temperatura dos gases +31,9 °C (± 3,3) · Sim**; **Umidade +3,2 p.p. (incerteza incompleta) · Condicional**. | "A temperatura dos gases subiu 32 °C de forma detectável. A umidade subiu, mas só seria uma mudança real com uma condição." |
 | 8 | Aba **2. O que os dados sustentam (1)** | **Mais calor saindo pela chaminé** · selo azul "Compatível com os dados (não comprovada)", efeito +3,1%. Frases: "explicam +3,1% de +10,1%… sobra cerca de +6,6%" e "Contando também umidade… explicariam +11,2%: fechariam dentro da incerteza". | "Compatível não é comprovado. A umidade fecharia a conta — mas ainda não está confirmada." |
 | 9 | Aba **3. Explicações possíveis (2)** | **Combustível mais úmido** · selo laranja "Continua possível" | "É por isso que ela não conclui: falta um número que a fábrica precisa cadastrar." |
+| 9b | (opcional) Aba **4. O que falta saber (10)** | Dois grupos: **Cadastrar em instrumentos.csv** (4 incertezas, entre elas a do método de umidade) e **Medir, registrar ou conferir** (6 itens) | "A lista de tarefas para a fábrica sair do 'não dá para concluir'." |
 | 10 | Voltar ao topo; no controle **Período de comparação**, arrastar o fim até **14/09 a 21/09** | Amarelo: **o consumo por tonelada de vapor não pode ser calculado**; cartões: consumo **—** e valor em jogo **não estimado** | "Quando falta o dado do vapor, ela nem tenta — e não inventa número." |
-| 11 | Arrastar o fim de volta até **07/09 a 14/09** | Volta o consumo **+10,1%** | — |
+| 11 | Arrastar o fim de volta até **07/09 a 14/09** | Volta o consumo **+10,1%**, na hora (a comparação já calculada fica guardada) | — |
 | 12 | Botão **Próximo** no fim da tela, ou menu **5. Relatório** → **Gerar relatório** | Linha "Comparação em uso: 03/08… × 31/08… a 14/09…"; botões **Baixar HTML** e **Baixar PDF** lado a lado; prévia com **DADOS SINTÉTICOS**, "Situação do modelo…" e o botão **Imprimir ou salvar como PDF** | "Tudo vira um relatório de cinco blocos, com o aviso de segurança." |
 | 13 | Rolar a prévia até **5. Próxima verificação** e o rodapé | Rodapé de segurança: "Não emite comandos operacionais…" | Fechar com a frase do produto. |
 
 ## Se algo der errado
 
-- **O app não abre:** usar os prints de `prints/` (visual anterior, mesmos números) ou o
-  vídeo gravado pelo Adryan.
-- **Tela esmaecida por alguns segundos:** é o recálculo depois de mudar o período; esperar.
+- **O app não abre:** usar os prints de `prints/` ou o vídeo gravado pelo Adryan.
+- **Tela esmaecida por alguns segundos:** é o cálculo de uma comparação nova (1 a 2 s) ou da
+  tabela período a período na primeira visita (cerca de 4 s); esperar. Na segunda vez é
+  instantâneo.
 - **Clicou em outra coisa e perdeu o caminho:** menu **Início** → **Começar com o caso de
   demonstração** recomeça do passo 2. A escolha de períodos é lembrada ao voltar para a
   Investigação.
@@ -58,6 +60,6 @@ sem alterar dados.
 - **"Isso controla a caldeira?"** Não. A EULER não emite comandos; indica verificações.
 
 ## Legibilidade (conferido em 01/10/2026)
-Visual novo conferido em 1280 px de largura e PDF A4 de 4 páginas: textos, tabelas e
-gráficos legíveis. Em projetor, usar zoom de 110% a 125%. Os prints de `prints/` e o
-rascunho de vídeo mostram o visual anterior (mesmos números e textos).
+Visual aprovado conferido em 1280 px de largura e PDF A4 de 4 páginas: textos, tabelas e
+gráficos legíveis. Em projetor, usar zoom de 110% a 125%. Os prints de `prints/` mostram o
+visual aprovado; o rascunho de vídeo mostra o visual anterior (mesmos números e textos).

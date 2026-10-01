@@ -16,7 +16,7 @@ from componentes import cabecalho, cartao, md, proximo_passo, secao
 
 from euler.capacidades import avaliar
 from euler.formato import num, pct, plural
-from euler.investigacao import investigar
+from euler.investigacao import SUFIXO_CADASTRAR, investigar
 from euler.periodos import periodos_entre_estoques
 from euler.relatorio import mudou_detectavel
 from euler.textos import PERGUNTA_CENTRAL
@@ -63,6 +63,41 @@ SERIES = {
     "t_ar_c": ("Ar de combustão", "Temperatura do ar de combustão", "°C", ".1f"),
     "t_agua_alim_c": ("Água de alimentação", "Temperatura da água de alimentação", "°C", ".1f"),
 }
+
+
+@st.cache_data(show_spinner="Investigando os dois períodos…", max_entries=64)
+def _investigar(assinatura: str, ref, comp, _pacote) -> dict:
+    """Investigação guardada por dados e períodos: voltar a uma comparação já vista não
+    recalcula. O pacote fica fora da chave; a assinatura (arquivos + altitude) o identifica."""
+    return investigar(_pacote, ref, comp)
+
+
+def _o_que_falta(falta: list[str]) -> None:
+    """Bloco 4 agrupado: incertezas a cadastrar e o que medir ou registrar (mesmos itens)."""
+    if not falta:
+        st.caption("Nada essencial faltando para esta comparação.")
+        return
+
+    def item(texto: str) -> str:
+        return f"- {md(texto[0].upper() + texto[1:])}"
+
+    cadastrar = [f.removesuffix(SUFIXO_CADASTRAR) for f in falta if f.endswith(SUFIXO_CADASTRAR)]
+    outros = [f for f in falta if not f.endswith(SUFIXO_CADASTRAR)]
+    if cadastrar:
+        with cartao("falta-cadastrar"):
+            st.markdown(
+                ":material/edit_note: **Cadastrar em instrumentos.csv** · "
+                f"{plural(len(cadastrar), 'incerteza', 'incertezas')}, cada uma com o tipo da "
+                "incerteza"
+            )
+            st.markdown("\n".join(item(c) for c in cadastrar))
+    if outros:
+        with cartao("falta-medir"):
+            st.markdown(
+                ":material/straighten: **Medir, registrar ou conferir** · "
+                f"{plural(len(outros), 'item', 'itens')}"
+            )
+            st.markdown("\n".join(item(o) for o in outros))
 
 
 def _rotulo_periodo(p) -> str:
@@ -312,7 +347,7 @@ def mostrar(pacote) -> None:
         st.warning("Os dois períodos se sobrepõem. Escolha períodos separados.")
         return
 
-    j = investigar(pacote, ref, comp)
+    j = _investigar(estado.assinatura(), ref, comp, pacote)
     estado.guardar_investigacao(j)
 
     # ---------------------------------------------------------------- resultado em resumo
@@ -374,10 +409,7 @@ def mostrar(pacote) -> None:
         _hipoteses(abertas, "Nenhuma outra explicação continua em aberto.")
 
     with aba4:
-        if j["o_que_falta"]:
-            st.markdown("\n".join(f"- {md(f)}" for f in j["o_que_falta"]))
-        else:
-            st.caption("Nada essencial faltando para esta comparação.")
+        _o_que_falta(j["o_que_falta"])
         st.caption(md(j["independencia"]["nota"]) + " (E12)")
 
     with st.container(horizontal=True, vertical_alignment="center"):

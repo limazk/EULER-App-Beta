@@ -120,6 +120,23 @@ def rotulo_dados() -> str:
     return st.session_state.get("rotulo_dados", "")
 
 
+def sem_dados() -> None:
+    """Tela que depende de dados, sem dados: importar os da fábrica ou carregar o demo."""
+    st.info("Nenhum dado importado ainda.", icon=":material/upload_file:")
+    with st.container(horizontal=True, gap="small", vertical_alignment="center"):
+        if st.button(
+            "Carregar o caso de demonstração",
+            type="primary",
+            icon=":material/play_circle:",
+            key="demo_sem_dados",
+        ):
+            usar_caso_demo()
+            st.rerun()
+        st.page_link(
+            "paginas/importar.py", label="Ir para Importar dados", icon=":material/arrow_forward:"
+        )
+
+
 def exigir_pacote() -> Pacote | None:
     """Para telas que dependem de dados: devolve o pacote ou mostra como importar.
 
@@ -127,10 +144,7 @@ def exigir_pacote() -> Pacote | None:
     """
     p = pacote()
     if p is None:
-        st.info("Nenhum dado importado ainda.", icon=":material/upload_file:")
-        st.page_link(
-            "paginas/importar.py", label="Ir para Importar dados", icon=":material/arrow_forward:"
-        )
+        sem_dados()
         return None
     selo = " · :orange-badge[:material/science: DADOS SINTÉTICOS]" if dados_sinteticos() else ""
     st.caption(f":material/database: Dados em uso: **{rotulo_dados()}**{selo}")
