@@ -12,6 +12,9 @@ st.set_page_config(page_title="EULER", page_icon=":material/local_fire_departmen
 
 paginas = [
     st.Page("paginas/inicio.py", title="Início", icon=":material/home:", default=True),
+    st.Page(
+        "paginas/calculadora.py", title="Calculadora de referência", icon=":material/calculate:"
+    ),
 ]
 
 navegacao = st.navigation(paginas)

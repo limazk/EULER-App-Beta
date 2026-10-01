@@ -36,8 +36,16 @@ class Tela:
     largura: int = 1280
 
 
+def _abrir_expansor(texto: str) -> Callable[[Page], None]:
+    def acao(pagina: Page) -> None:
+        pagina.get_by_text(texto).click()
+
+    return acao
+
+
 TELAS: list[Tela] = [
     Tela("01_inicio"),
+    Tela("02_calculadora", "calculadora", _abrir_expansor("Detalhes do cálculo")),
 ]
 
 
@@ -101,6 +109,13 @@ def tirar_prints(filtro: str = "") -> list[Path]:
                 if tela.acoes:
                     tela.acoes(pagina)
                 pagina.wait_for_timeout(800)
+                # O Streamlit rola o conteúdo dentro de um contêiner, não na página:
+                # aumenta a janela até caber tudo para o print sair inteiro.
+                altura = pagina.evaluate(
+                    "() => document.querySelector('[data-testid=\"stMain\"]').scrollHeight"
+                )
+                pagina.set_viewport_size({"width": tela.largura, "height": max(900, altura + 40)})
+                pagina.wait_for_timeout(500)
                 destino = PASTA_PRINTS / f"{tela.nome}.png"
                 pagina.screenshot(path=str(destino), full_page=True)
                 salvos.append(destino)
