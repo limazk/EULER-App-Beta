@@ -14,7 +14,7 @@ cabecalho(
     "**O fornecedor mais barato por tonelada nem sempre é o mais barato por energia.** "
     "A caldeira compra energia, não toneladas: quanto mais úmido o cavaco, menos energia "
     "cada tonelada entrega. Aqui cada lote vira energia (GJ) e custo por energia (R$/GJ).",
-    "Passo 4 de 5",
+    "Passo 5 de 6",
 )
 
 
@@ -220,4 +220,4 @@ def mostrar(pacote) -> None:
 pacote = estado.exigir_pacote()
 if pacote is not None:
     mostrar(pacote)
-    proximo_passo("paginas/relatorio.py", "5. Relatório")
+    proximo_passo("paginas/relatorio.py", "6. Relatório")

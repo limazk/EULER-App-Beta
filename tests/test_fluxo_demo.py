@@ -23,16 +23,27 @@ def test_fluxo_completo_do_caso_de_demonstracao():
     at = AppTest.from_file(str(APP), default_timeout=60).run()
     next(b for b in at.button if b.label.startswith("Ato 2")).click().run()
     assert not at.exception, at.exception
-    # o botão leva direto a "Dados e limites"; só a faixa de incerteza da eficiência fica
-    # bloqueada (o demo não cadastra todos os instrumentos; auditoria A3)
-    assert {m.label: m.value for m in at.metric}.get("Bloqueadas") == "1"
+    # o botão leva à Saúde da caldeira (D65): o consumo das semanas de setembro mudou
+    assert any("Mudou" in m.value for m in at.markdown)
+    assert {m.label: m.value for m in at.metric}["Mudança · 31/08 a 14/09"] == "0,353 t/t"
     assert _rodape_ok(at)
 
-    at.switch_page("paginas/investigacao.py").run()
+    # "Investigar esta mudança" abre a Investigação com os períodos já escolhidos. O AppTest
+    # não acompanha st.switch_page entre execuções: a página atual é fixada antes do clique.
+    at.switch_page("paginas/saude.py").run()
+    at.button(key="investigar_mudanca").click().run()
     assert not at.exception, at.exception
+    assert at.select_slider(key="periodo_ref").value == (0, 3)
+    assert at.select_slider(key="periodo_comp").value == (4, 5)
     # auditoria A3: abstenção com o que cadastrar (antes: "Explicações compatíveis")
     assert any("Não dá para concluir" in w.value for w in at.warning)
     assert _rodape_ok(at)
+
+    # só a faixa de incerteza da eficiência fica bloqueada (o demo não cadastra todos os
+    # instrumentos; auditoria A3)
+    at.switch_page("paginas/limites.py").run()
+    assert not at.exception, at.exception
+    assert {m.label: m.value for m in at.metric}.get("Bloqueadas") == "1"
 
     at.switch_page("paginas/extrato.py").run()
     assert not at.exception, at.exception
@@ -52,6 +63,7 @@ def test_ato_1_caso_completo_conclui():
     at = AppTest.from_file(str(APP), default_timeout=60).run()
     next(b for b in at.button if b.label.startswith("Ato 1")).click().run()
     assert not at.exception, at.exception
+    at.switch_page("paginas/limites.py").run()
     assert {m.label: m.value for m in at.metric}.get("Bloqueadas") == "0"
     at.switch_page("paginas/investigacao.py").run()
     assert not at.exception, at.exception

@@ -22,12 +22,13 @@ paginas = {
     "": [st.Page("paginas/inicio.py", title="Início", icon=":material/home:", default=True)],
     "Investigar": [
         st.Page("paginas/importar.py", title="1. Importar dados", icon=":material/upload_file:"),
-        st.Page("paginas/limites.py", title="2. Dados e limites", icon=":material/rule:"),
-        st.Page("paginas/investigacao.py", title="3. Investigação", icon=":material/troubleshoot:"),
+        st.Page("paginas/saude.py", title="2. Saúde da caldeira", icon=":material/monitor_heart:"),
+        st.Page("paginas/limites.py", title="3. Dados e limites", icon=":material/rule:"),
+        st.Page("paginas/investigacao.py", title="4. Investigação", icon=":material/troubleshoot:"),
         st.Page(
-            "paginas/extrato.py", title="4. Extrato por fornecedor", icon=":material/receipt_long:"
+            "paginas/extrato.py", title="5. Extrato por fornecedor", icon=":material/receipt_long:"
         ),
-        st.Page("paginas/relatorio.py", title="5. Relatório", icon=":material/description:"),
+        st.Page("paginas/relatorio.py", title="6. Relatório", icon=":material/description:"),
     ],
     "Referência": [
         st.Page(

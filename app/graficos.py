@@ -136,6 +136,99 @@ FAIXA_REFERENCIA = COR_REFERENCIA
 FAIXA_COMPARACAO = COR_COMPARACAO
 
 
+def consumo_por_periodo(
+    df: pd.DataFrame,
+    faixas: list[tuple[pd.Timestamp, pd.Timestamp, str, str]],
+    eventos: pd.DataFrame,
+    referencia: float | None,
+) -> alt.Chart:
+    """Consumo por tonelada de vapor de cada período, com incerteza, faixas e eventos.
+
+    df: uma linha por período com `inicio`, `fim`, `meio` (datas sem fuso), `valor` (t/t ou
+    NaN quando não há), `baixo`/`alto` (valor ∓ U, NaN sem incerteza) e textos `periodo`,
+    `texto` e `situacao` para a dica. Cada período é um traço horizontal de 2 px do início ao
+    fim (o consumo é a média do período), com a incerteza na vertical; período sem consumo
+    fica vazio. faixas: (início, fim, rótulo, cor) — referência e mudança. eventos: `instante`,
+    `numero` (rótulo curto, agrupado por dia), `tipo` e `descricao`. Uma série só: sem
+    legenda, o título diz o que é.
+    """
+    com_valor = df.dropna(subset=["valor"])
+    extremos = pd.concat([com_valor["valor"], com_valor["baixo"], com_valor["alto"]]).dropna()
+    minimo, maximo = float(extremos.min()), float(extremos.max())
+    amplitude = max(maximo - minimo, 0.01)
+    eixo_y = alt.Y(
+        "valor:Q",
+        title=None,
+        axis=alt.Axis(format=".3~f"),
+        scale=alt.Scale(domain=[minimo - 0.25 * amplitude, maximo + 0.35 * amplitude]),
+    )
+    eixo_x = alt.X("inicio:T", title=None, axis=alt.Axis(format="%d/%m", tickCount="week"))
+    camadas = []
+    if faixas:
+        bandas = pd.DataFrame(
+            [{"inicio": a, "fim": b, "rotulo": r, "cor": c} for a, b, r, c in faixas]
+        )
+        camadas += [
+            alt.Chart(bandas)
+            .mark_rect(opacity=0.9)
+            .encode(x=eixo_x, x2="fim:T", color=alt.Color("cor:N", scale=None, legend=None)),
+            alt.Chart(bandas)
+            .mark_text(
+                align="left", baseline="top", dx=4, dy=4, color=TINTA_SECUNDARIA, fontSize=12
+            )
+            .encode(x="inicio:T", y=alt.value(0), text="rotulo:N"),
+        ]
+    if referencia is not None:
+        camadas.append(
+            alt.Chart(pd.DataFrame({"valor": [referencia]}))
+            .mark_rule(strokeWidth=1, color=TINTA_SECUNDARIA, strokeDash=[2, 2])
+            .encode(y=eixo_y)
+        )
+    if not eventos.empty:
+        dica_evento = [
+            alt.Tooltip("instante:T", title="Evento", format="%d/%m/%Y %H:%M"),
+            alt.Tooltip("tipo:N", title="Tipo"),
+            alt.Tooltip("descricao:N", title="O que foi feito"),
+        ]
+        camadas += [
+            alt.Chart(eventos)
+            .mark_rule(strokeWidth=1.5, color=TINTA_SECUNDARIA, strokeDash=[5, 3])
+            .encode(x="instante:T", tooltip=dica_evento),
+            # número no alto, à direita da linha (abaixo dos rótulos das faixas)
+            alt.Chart(eventos.drop_duplicates("numero"))
+            .mark_text(
+                align="left",
+                baseline="top",
+                dx=4,
+                dy=22,
+                color=TINTA,
+                fontSize=12,
+                fontWeight="bold",
+            )
+            .encode(x="instante:T", y=alt.value(0), text="numero:N", tooltip=dica_evento),
+        ]
+    dica = [
+        alt.Tooltip("periodo:N", title="Período"),
+        alt.Tooltip("texto:N", title="Consumo (t/t)"),
+        alt.Tooltip("situacao:N", title="Situação"),
+    ]
+    base = alt.Chart(com_valor)
+    camadas += [
+        base.mark_rule(strokeWidth=2, color=CORES[0]).encode(x=eixo_x, x2="fim:T", y=eixo_y),
+        base.mark_rule(strokeWidth=1.5, color=CORES[0], opacity=0.8).encode(
+            x="meio:T", y="baixo:Q", y2="alto:Q"
+        ),
+        base.mark_point(
+            size=64, filled=True, color=CORES[0], stroke=SUPERFICIE, strokeWidth=2
+        ).encode(x="meio:T", y=eixo_y, tooltip=dica),
+    ]
+    return _configurar(
+        alt.layer(*camadas).properties(
+            title="Combustível por tonelada de vapor (t/t), período a período", height=280
+        )
+    )
+
+
 def serie_diaria_com_periodos(
     df: pd.DataFrame,
     titulo: str,

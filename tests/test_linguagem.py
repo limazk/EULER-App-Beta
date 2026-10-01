@@ -99,7 +99,7 @@ def _abrir(botao: str | None, paginas: list[str]) -> list[str]:
 
 
 TODAS = [
-    "inicio.py", "importar.py", "limites.py", "investigacao.py", "extrato.py",
+    "inicio.py", "importar.py", "saude.py", "limites.py", "investigacao.py", "extrato.py",
     "investigacao.py", "relatorio.py", "calculadora.py",
 ]  # fmt: skip
 

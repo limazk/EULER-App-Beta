@@ -95,8 +95,9 @@ def roteiro(p: Page, url: str) -> None:
     ate(16)
     p.get_by_role("button", name="Ato 2 · a EULER explica por que não conclui").click()
 
-    # 0:16 Dados e limites · qualidade dos registros
-    p.get_by_text("Qualidade dos registros").first.wait_for(timeout=60_000)
+    # 0:16 Saúde da caldeira (o botão abre aqui) e Dados e limites · qualidade dos registros
+    p.get_by_text("Investigar esta mudança").wait_for(timeout=60_000)
+    ir_para(p, "3. Dados e limites", "Qualidade dos registros")
     legenda(p, "A EULER lê os registros que a fábrica já tem e aponta os problemas.")
     p.wait_for_timeout(4500)
     legenda(p, "Lacuna no diário, medidor de vapor zerado: nada é corrigido em silêncio.")
@@ -104,7 +105,7 @@ def roteiro(p: Page, url: str) -> None:
 
     # 0:28 Extrato por fornecedor · valor do extrato por energia
     ate(28)
-    ir_para(p, "4. Extrato por fornecedor", "Custo por energia")
+    ir_para(p, "5. Extrato por fornecedor", "Custo por energia")
     legenda(p, "O mais barato por tonelada (F3) é o mais caro por energia: R$ 20/GJ × R$ 17/GJ.")
     p.wait_for_timeout(5500)
     rolar(p, 380, 4000)
@@ -116,7 +117,7 @@ def roteiro(p: Page, url: str) -> None:
 
     # 0:52 Investigação · a mudança de consumo
     ate(52)
-    ir_para(p, "3. Investigação", "Próxima verificação")
+    ir_para(p, "4. Investigação", "Próxima verificação")
     rolar(p, 450, 1500)
     legenda(p, "Agosto × as duas semanas seguintes: o consumo por tonelada de vapor subiu 10%.")
     p.wait_for_timeout(5500)
@@ -146,7 +147,7 @@ def roteiro(p: Page, url: str) -> None:
 
     # 1:38 Relatório e próxima verificação
     ate(98)
-    ir_para(p, "5. Relatório", "Gerar relatório")
+    ir_para(p, "6. Relatório", "Gerar relatório")
     legenda(p, "Tudo vira um relatório em linguagem simples, com cinco blocos fixos.")
     p.get_by_role("button", name="Gerar relatório").click()
     p.get_by_text("Prévia").wait_for(timeout=90_000)

@@ -15,7 +15,7 @@ cabecalho(
     "O que dá e o que não dá para concluir com os dados enviados, **e por quê**. "
     "Quando falta um dado, a análise fica bloqueada: a EULER não completa nada com "
     "porcentagens inventadas.",
-    "Passo 2 de 5",
+    "Passo 3 de 6",
 )
 
 ICONE = {
@@ -144,4 +144,4 @@ pacote = estado.exigir_pacote()
 if pacote is not None:
     mostrar(pacote)
     por_periodo(pacote)
-    proximo_passo("paginas/investigacao.py", "3. Investigação")
+    proximo_passo("paginas/investigacao.py", "4. Investigação")

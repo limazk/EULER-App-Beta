@@ -16,7 +16,7 @@ cabecalho(
     "amostras, eventos e cadastro de instrumentos), um arquivo CSV por registro, ou a "
     "**planilha modelo** preenchida. A EULER guarda o original e lista o que encontrou. "
     "**Nada é corrigido sem avisar.**",
-    "Passo 1 de 5",
+    "Passo 1 de 6",
 )
 
 local, envio = st.columns([1, 2], gap="medium")
@@ -177,4 +177,4 @@ def mostrar_resultado(pacote) -> None:
 pacote = estado.pacote()
 if pacote is not None:
     mostrar_resultado(pacote)
-    proximo_passo("paginas/limites.py", "2. Dados e limites")
+    proximo_passo("paginas/saude.py", "2. Saúde da caldeira")

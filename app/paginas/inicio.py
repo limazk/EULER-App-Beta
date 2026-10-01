@@ -24,12 +24,12 @@ with st.container(key="euler-abertura"):
             "Ato 1 · a EULER conclui", type="primary", icon=":material/play_circle:", key="ato1"
         ):
             estado.usar_caso_demo(completo=True)
-            st.switch_page("paginas/limites.py")
+            st.switch_page("paginas/saude.py")
         if st.button(
             "Ato 2 · a EULER explica por que não conclui", icon=":material/play_circle:", key="ato2"
         ):
             estado.usar_caso_demo(completo=False)
-            st.switch_page("paginas/limites.py")
+            st.switch_page("paginas/saude.py")
         st.page_link(
             "paginas/importar.py", label="Importar meus dados", icon=":material/upload_file:"
         )
@@ -41,16 +41,17 @@ st.info(
     icon=":material/science:",
 )
 
-st.markdown("### Como funciona, em 5 passos")
+st.markdown("### Como funciona, em 6 passos")
 passos = [
     (":material/upload_file:", "paginas/importar.py", "Importar", "Os registros que a fábrica já tem (CSV ou planilha). Nada é corrigido em silêncio."),
+    (":material/monitor_heart:", "paginas/saude.py", "Saúde da caldeira", "O consumo por tonelada de vapor semana a semana: mudou ou ficou estável?"),
     (":material/rule:", "paginas/limites.py", "Dados e limites", "O que dá e o que não dá para concluir com esses dados, e por quê."),
     (":material/troubleshoot:", "paginas/investigacao.py", "Investigação", "Dois períodos lado a lado: o que mudou, o que explica e o que verificar."),
     (":material/receipt_long:", "paginas/extrato.py", "Extrato", "Quanto custa a energia de cada fornecedor (R$/GJ), não só a tonelada."),
     (":material/description:", "paginas/relatorio.py", "Relatório", "Linguagem simples, 5 blocos fixos, pronto para compartilhar."),
 ]  # fmt: skip
 for n, ((icone, pagina, titulo, texto), coluna) in enumerate(
-    zip(passos, st.columns(5), strict=True), start=1
+    zip(passos, st.columns(6), strict=True), start=1
 ):
     with coluna, cartao(f"passo-{n}"):
         st.html(f'<div class="euler-sobrelinha">Passo {n}</div>')

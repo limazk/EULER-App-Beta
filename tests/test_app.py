@@ -354,3 +354,25 @@ def test_lancador_do_windows_abre_o_app():
     lancador = (APP.parent / "ABRIR-EULER.cmd").read_bytes()
     assert b"\r\n" in lancador
     assert b"-m streamlit run app\\main.py" in lancador
+
+
+def test_saude_investigar_esta_mudanca_escolhe_os_periodos():
+    """D65: o botão troca uma comparação já escolhida pelos períodos da mudança."""
+    at = abrir_com_demo("investigacao.py")
+    at.select_slider(key="periodo_comp").set_value((7, 7)).run()
+    assert at.select_slider(key="periodo_comp").value == (7, 7)
+    at.switch_page("paginas/saude.py").run()
+    assert not at.exception, at.exception
+    at.button(key="investigar_mudanca").click().run()
+    assert not at.exception, at.exception
+    assert at.select_slider(key="periodo_ref").value == (0, 3)
+    assert at.select_slider(key="periodo_comp").value == (4, 5)
+
+
+def test_saude_sem_periodos_suficientes_nao_tem_botao():
+    """Com os modelos (uma linha de cada), o selo é "Não dá para dizer" e não há mudança."""
+    at = clicar(abrir("importar.py"), "Modelos (1 linha de exemplo)")
+    at.switch_page("paginas/saude.py").run()
+    assert not at.exception, at.exception
+    assert any("Não dá para dizer" in m.value for m in at.markdown)
+    assert not [b for b in at.button if b.key == "investigar_mudanca"]
