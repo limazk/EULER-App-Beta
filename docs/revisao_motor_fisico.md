@@ -347,4 +347,5 @@ explicações compatíveis. O que separa as duas histórias é esse cadastro.
 
 ### 7.6 Versão
 
-Registrada em `PROGRESSO.md` (seção "Revisão de confiabilidade").
+Commit `b124c76` (branch `claude/new-session-xytynj`): 299 testes passando, `ruff` sem
+erros, `tests/golden/` e `lab/` sem alteração desde `97ad0c6`.

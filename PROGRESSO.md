@@ -61,8 +61,7 @@ golden nem nos dados do demo.
 | Demo: história mudou (umidade só condicional, abstenção) sem alterar dados | **feito**; gabarito, exemplos de relatório, roteiro e prints 05/06 atualizados | — | D53 (**decisão do Adryan**) |
 | Comparação externa e piloto com dados autorizados | **não feita** | — | matriz, P-4 e P-7 |
 
-- Versão examinada pela auditoria: `2cd4dc3`. Versão desta revisão: ver `git log` (commit
-  "Revisão de confiabilidade").
+- Versão examinada pela auditoria: `2cd4dc3`. Versão desta revisão: `b124c76`.
 - `pytest -q`: 299 testes passando; `ruff check .` e `ruff format --check .` sem erros;
   `tests/golden/` e `lab/` sem alteração.
 
