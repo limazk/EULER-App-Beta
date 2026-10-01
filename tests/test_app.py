@@ -93,7 +93,7 @@ def test_importar_exemplo_com_problemas_mostra_avisos():
 
 
 def abrir_com_demo(pagina: str) -> AppTest:
-    at = clicar(abrir("importar.py"), "Caso de demonstração")
+    at = clicar(abrir("importar.py"), "Ato 2 · dados insuficientes")
     at.switch_page(f"paginas/{pagina}").run()
     return at
 
@@ -152,7 +152,7 @@ def test_relatorio_sem_dados_manda_importar():
 
 
 def test_relatorio_com_dados_mas_sem_investigacao_orienta():
-    at = clicar(abrir("importar.py"), "Caso de demonstração")
+    at = clicar(abrir("importar.py"), "Ato 2 · dados insuficientes")
     at.switch_page("paginas/relatorio.py").run()
     assert not at.exception
     assert any("Investigação" in i.value for i in at.info)
@@ -258,7 +258,7 @@ def test_escolha_de_periodos_volta_ao_padrao_com_dados_novos():
     at = abrir_com_demo("investigacao.py")
     at.select_slider[1].set_value((6, 6)).run()
     at.switch_page("paginas/importar.py").run()
-    clicar(at, "Caso de demonstração")  # recarregar os dados também é "dados novos"
+    clicar(at, "Ato 2 · dados insuficientes")  # recarregar os dados também é "dados novos"
     at.number_input[0].set_value(900.0).run()
     at.switch_page("paginas/investigacao.py").run()
     assert at.select_slider[1].value == (4, 5)
@@ -319,7 +319,7 @@ def test_o_que_falta_saber_agrupa_sem_perder_itens():
 def test_tela_sem_dados_oferece_carregar_o_demo():
     at = abrir("investigacao.py")
     assert any("Nenhum dado importado" in i.value for i in at.info)
-    clicar(at, "Carregar o caso de demonstração")
+    clicar(at, "Ato 2 · dados insuficientes")
     assert not at.exception, at.exception
     assert any(w.value.startswith("Não dá para concluir") for w in at.warning)
 

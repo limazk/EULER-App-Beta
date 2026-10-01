@@ -14,6 +14,14 @@ Modelo simplificado do gerador (independente do motor `euler`, AGENTS.md regra 7
   rendimento = 0,80 − 0,00076·(T_g − 186) − 0,10·(w − 0,42) (sensibilidades do doc de física);
   PCI úmido = (1 − w)·18,5 − 2,442·w; combustível queimado = energia útil / (rendimento · PCI).
 
+Dois casos com os MESMOS registros de operação (D62, pedido do Adryan):
+  - demo/caso_demo/            ato 2: o cadastro de instrumentos não traz a incerteza da
+                               estufa de umidade, do calorímetro e de dois termômetros; a
+                               EULER explica por que não conclui (D53);
+  - demo/caso_demo_completo/   ato 1: o mesmo, com a incerteza de todos os instrumentos
+                               cadastrada (valores de especificação típica, do lado
+                               conservador, declarados como limite ±a).
+
 Uso: python demo/gerar_caso_demo.py      (sempre gera os mesmos arquivos: semente fixa)
 """
 
@@ -27,6 +35,16 @@ from pathlib import Path
 import numpy as np
 
 PASTA = Path(__file__).resolve().parent / "caso_demo"
+PASTA_COMPLETO = Path(__file__).resolve().parent / "caso_demo_completo"
+
+# Ato 1: incertezas que faltam no ato 2, com valores de especificação típica (assumidos, do
+# lado conservador; D62). Nenhum valor foi escolhido para produzir uma conclusão.
+INSTRUMENTOS_QUE_FALTAM = [
+    ["TERMO-AGUA-01", "termometro_agua_alimentacao", "DESAERADOR", "c", "1", "1", "2026-06-10", "sintetico"],
+    ["TERMO-AR-01", "temperatura_ar_combustao", "VENTILADOR", "c", "1", "1", "2026-06-10", "sintetico"],
+    ["ESTUFA-01", "estufa_umidade", "LABORATORIO", "pct", "0.1", "1", "2026-07-01", "sintetico"],
+    ["CALOR-01", "calorimetro_pci", "LABORATORIO", "pct_da_leitura", "0.1", "1.5", "2026-07-01", "sintetico"],
+]  # fmt: skip
 FUSO = timezone(timedelta(hours=-3))
 INICIO = datetime(2026, 8, 3, 8, 0, tzinfo=FUSO)
 DIAS = 56
@@ -282,8 +300,24 @@ def gerar() -> dict[str, str]:
     }  # fmt: skip
 
 
+def gerar_completo() -> dict[str, str]:
+    """Ato 1: os mesmos registros, com a incerteza de todos os instrumentos cadastrada.
+
+    Todos os instrumentos passam a declarar o tipo da incerteza (`limite`, ±a), o mesmo que a
+    EULER supõe quando o tipo falta (D35): os números dos instrumentos do ato 2 não mudam.
+    """
+    arquivos = gerar()
+    linhas = arquivos["instrumentos.csv"].strip("\n").split("\n")
+    corpo = [linha.split(",") for linha in linhas[1:]] + INSTRUMENTOS_QUE_FALTAM
+    arquivos["instrumentos.csv"] = _csv(
+        linhas[0].split(",") + ["incerteza_tipo"], [linha + ["limite"] for linha in corpo]
+    )
+    return arquivos
+
+
 if __name__ == "__main__":
-    PASTA.mkdir(exist_ok=True)
-    for nome, conteudo in gerar().items():
-        (PASTA / nome).write_text(conteudo, encoding="utf-8")
-        print(f"demo/caso_demo/{nome}: {conteudo.count(chr(10)) - 1} linhas")
+    for pasta, arquivos in ((PASTA, gerar()), (PASTA_COMPLETO, gerar_completo())):
+        pasta.mkdir(exist_ok=True)
+        for nome, conteudo in arquivos.items():
+            (pasta / nome).write_text(conteudo, encoding="utf-8")
+            print(f"demo/{pasta.name}/{nome}: {conteudo.count(chr(10)) - 1} linhas")

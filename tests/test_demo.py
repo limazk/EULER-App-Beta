@@ -20,9 +20,21 @@ def _gerador():
 
 
 def test_arquivos_do_demo_estao_em_dia_com_o_gerador():
-    for nome, conteudo in _gerador().gerar().items():
-        atual = (DEMO / "caso_demo" / nome).read_text(encoding="utf-8")
-        assert atual == conteudo, f"rode: python demo/gerar_caso_demo.py ({nome})"
+    g = _gerador()
+    for pasta, arquivos in (("caso_demo", g.gerar()), ("caso_demo_completo", g.gerar_completo())):
+        for nome, conteudo in arquivos.items():
+            atual = (DEMO / pasta / nome).read_text(encoding="utf-8")
+            assert atual == conteudo, f"rode: python demo/gerar_caso_demo.py ({pasta}/{nome})"
+
+
+def test_os_dois_atos_tem_os_mesmos_registros_de_operacao():
+    """Só o cadastro de instrumentos muda entre o ato 1 e o ato 2 (D62)."""
+    g = _gerador()
+    ato2, ato1 = g.gerar(), g.gerar_completo()
+    for nome in ato2:
+        if nome != "instrumentos.csv":
+            assert ato1[nome] == ato2[nome], nome
+    assert ato1["instrumentos.csv"].startswith(ato2["instrumentos.csv"].split("\n")[0])
 
 
 def test_gerador_nao_usa_o_motor_euler():
@@ -137,3 +149,26 @@ def test_demo_conta_a_historia_da_investigacao(pacote_demo):
     assert causas == set()
     assert umidade(j)["avaliacao"]["mudanca_detectavel"] == "condicional"
     assert j["o_que_mudou"]["fechamento"]["veredito_com_condicionais"] == "fecha"
+
+
+def test_ato_1_conta_a_historia_completa():
+    """Ato 1 (D62): com as incertezas cadastradas, a investigação conclui o que foi plantado.
+    Gases mais quentes e cavaco mais úmido são compatíveis; o excesso de ar é descartado; as
+    duas explicações fecham a mudança. Depois da limpeza, o consumo cai e os gases explicam."""
+    from euler.investigacao import investigar
+    from euler.periodos import periodos_entre_estoques
+
+    p = importar_pasta(DEMO / "caso_demo_completo", p_atm_bar=p_atm_por_altitude_bar(1000))
+    s = periodos_entre_estoques(p)
+    j = investigar(p, (s[0][0], s[3][1]), (s[4][0], s[5][1]))
+    status = {h["id"]: h["status"] for h in j["hipoteses"]}
+    assert j["conclusao"]["abstencao"] is False
+    assert status["temperatura_gases"] == status["umidade_combustivel"] == "sustentada"
+    assert status["excesso_ar"] == "descartada"
+    assert j["o_que_mudou"]["fechamento"]["veredito"] == "fecha"
+    depois = investigar(p, (s[4][0], s[5][1]), s[7])
+    assert depois["conclusao"]["abstencao"] is False
+    assert {h["id"] for h in depois["hipoteses"] if h["status"] == "sustentada"} == {
+        "temperatura_gases"
+    }
+    assert depois["o_que_mudou"]["consumo_especifico"]["variacao"] < 0

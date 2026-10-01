@@ -21,7 +21,7 @@ def _rodape_ok(at: AppTest) -> bool:
 def test_fluxo_completo_do_caso_de_demonstracao():
     inicio = time.perf_counter()
     at = AppTest.from_file(str(APP), default_timeout=60).run()
-    next(b for b in at.button if b.label.startswith("Começar com o caso")).click().run()
+    next(b for b in at.button if b.label.startswith("Ato 2")).click().run()
     assert not at.exception, at.exception
     # o botão leva direto a "Dados e limites"; só a faixa de incerteza da eficiência fica
     # bloqueada (o demo não cadastra todos os instrumentos; auditoria A3)
@@ -44,3 +44,17 @@ def test_fluxo_completo_do_caso_de_demonstracao():
     assert _rodape_ok(at)
 
     assert time.perf_counter() - inicio < 60
+
+
+def test_ato_1_caso_completo_conclui():
+    """Ato 1 (D62): os mesmos registros, com a incerteza de todos os instrumentos cadastrada.
+    Nada fica bloqueado e a investigação conclui, sem abstenção."""
+    at = AppTest.from_file(str(APP), default_timeout=60).run()
+    next(b for b in at.button if b.label.startswith("Ato 1")).click().run()
+    assert not at.exception, at.exception
+    assert {m.label: m.value for m in at.metric}.get("Bloqueadas") == "0"
+    at.switch_page("paginas/investigacao.py").run()
+    assert not at.exception, at.exception
+    assert not any(w.value.startswith("Não dá para concluir") for w in at.warning)
+    assert any("menos energia por tonelada" in s.value for s in at.success)
+    assert _rodape_ok(at)

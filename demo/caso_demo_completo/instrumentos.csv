@@ -1,0 +1,11 @@
+instrumento_id,tipo,ponto,unidade,resolucao,incerteza_declarada,ultima_verificacao,observacao,incerteza_tipo
+ANALIS-01,analisador_o2,CHAMINE-1,pct_seco,0.1,0.3,2026-08-17,sintetico,limite
+TERMO-01,termopar_gases,CHAMINE-1,c,1,2,2026-06-10,sintetico,limite
+MANOM-01,manometro,TUBULAO,bar,0.1,0.2,2026-05-02,sintetico,limite
+MED-VAPOR-01,medidor_vazao_vapor,LINHA-VAPOR,pct_da_leitura,0.1,2,2026-09-21,sintetico,limite
+BALANCA-01,balanca_rodoviaria,PORTARIA,kg,10,50,2026-03-15,sintetico,limite
+ESTOQUE-01,levantamento_estoque,PATIO,pct_da_leitura,100,3,2026-08-03,sintetico,limite
+TERMO-AGUA-01,termometro_agua_alimentacao,DESAERADOR,c,1,1,2026-06-10,sintetico,limite
+TERMO-AR-01,temperatura_ar_combustao,VENTILADOR,c,1,1,2026-06-10,sintetico,limite
+ESTUFA-01,estufa_umidade,LABORATORIO,pct,0.1,1,2026-07-01,sintetico,limite
+CALOR-01,calorimetro_pci,LABORATORIO,pct_da_leitura,0.1,1.5,2026-07-01,sintetico,limite

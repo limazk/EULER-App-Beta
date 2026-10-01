@@ -2,12 +2,12 @@
 
 **Para:** demonstração à banca e a investidores em **30/10/2026** (serve também para o vídeo
 do edital).
-**O que mostrar:** o app real rodando com o **caso de demonstração sintético**
-(`demo/caso_demo/`), sem alterar dados.
-**Rascunho gravado:** `python scripts/gravar_video_demo.py` grava o app seguindo estas
-cenas, **com legendas e sem narração** (`demo/video/rascunho_video_demo.mp4`, 2 min 8 s; o
-`.webm` original fica só na máquina que gravou). A narração abaixo deve ser gravada por cima
-(ou falada ao vivo).
+**O que mostrar:** o app real com o caso de demonstração **sintético**, em **dois atos** com
+os mesmos registros de operação (D62): no **ato 1** (`demo/caso_demo_completo/`) a fábrica
+cadastrou a incerteza de todos os instrumentos e a EULER **conclui**; no **ato 2**
+(`demo/caso_demo/`) falta esse cadastro e a EULER **explica por que não conclui**.
+**Rascunho gravado:** `demo/video/rascunho_video_demo.mp4` é da versão anterior (só o ato 2,
+visual antigo, sem narração). O vídeo final é gravado pelo Adryan seguindo as cenas abaixo.
 
 > Antes de gravar a versão final: `streamlit run app/main.py`, navegador em 1280 × 720,
 > zoom 100%. Fale devagar; cada cena tem alguns segundos de folga.
@@ -21,13 +21,14 @@ bastam para concluir.
 
 | Tempo | Tela e o que fazer | Narração | Ponto do roteiro |
 |---|---|---|---|
-| 0:00–0:16 | **Início** (mostrar o aviso de protótipo e o quadro "Em que pé está a EULER") → clicar **Começar com o caso de demonstração** | "Uma fábrica compra cavaco por tonelada. Um dia o consumo da caldeira sobe e o gestor não sabe dizer por quê. Este é um caso **sintético**, criado para demonstração." | 1 · problema do gestor |
-| 0:16–0:28 | **Dados e limites** (abre sozinha) → mostrar o quadro "Qualidade dos registros" | "A EULER lê os registros que a fábrica já tem e aponta os problemas — uma lacuna no diário, o medidor de vapor zerado — **sem corrigir nada em silêncio**." | 1 |
-| 0:28–0:52 | **4. Extrato por fornecedor** → mostrar a frase azul e os dois gráficos de barras → rolar até "Umidade do cavaco por semana" | "O fornecedor mais barato por tonelada, o F3, é o **mais caro por energia**: R$ 20 por gigajoule, contra R$ 17 do F1. O cavaco dele ficou mais úmido semana a semana. A caldeira compra energia, não toneladas." | 2 · extrato por energia |
-| 0:52–1:18 | **3. Investigação** (padrão: agosto × duas semanas seguintes) → rolar devagar pela tabela e pelo bloco 2 | "Comparando agosto com as duas semanas seguintes, o consumo por tonelada de vapor subiu **10%**. A temperatura dos gases subiu 32 °C: é uma explicação **compatível** com os dados — não uma causa comprovada. A umidade também subiu, mas…" | 3 · investigação |
-| 1:18–1:38 | Voltar ao topo (faixa amarela "Não dá para concluir") → arrastar o **fim** do período de comparação até **21/09** (inclui a semana sem medidor de vapor) → voltar para **14/09** | "…a fábrica não informou a incerteza do método de umidade. Por isso a EULER **não conclui**: mostra que a umidade fecharia a conta *se* fosse confirmada. E se a comparação inclui a semana em que o medidor de vapor estava fora, ela nem tenta: não dá para saber se o consumo mudou." | 4 · dados insuficientes |
-| 1:38–1:56 | **5. Relatório** → **Gerar relatório** → rolar até **5. Próxima verificação** | "Tudo vira um relatório em linguagem simples, com cinco blocos. A saída nunca é uma ordem para a caldeira: é a **próxima verificação** — aqui, cadastrar a incerteza da umidade e conferir a amostragem." | 5 · relatório e próxima verificação |
-| 1:56–2:02 | (tela parada no relatório) | "EULER: quanto de energia a fábrica comprou, quanto virou vapor e onde o resto foi parar." | fecho |
+| 0:00–0:12 | **Início** → clicar **Ato 1 · a EULER conclui** | "Uma fábrica compra cavaco por tonelada. Um dia o consumo da caldeira sobe 10% e o gestor não sabe dizer por quê. Este é um caso **sintético**, criado para demonstração." | 1 · problema do gestor |
+| 0:12–0:22 | **Dados e limites** (abre sozinha) → quadro "Qualidade dos registros" e **0 bloqueadas** | "A EULER lê os registros que a fábrica já tem e aponta os problemas, **sem corrigir nada em silêncio**. Aqui a fábrica cadastrou a incerteza de todos os instrumentos: nada fica bloqueado." | 1 |
+| 0:22–0:40 | **Extrato por fornecedor** → frase azul e os dois gráficos de barras | "O fornecedor mais barato por tonelada, o F3, é o **mais caro por energia**: R$ 20 por gigajoule, contra R$ 17 do F1. A caldeira compra energia, não toneladas." | 2 · extrato por energia |
+| 0:40–1:05 | **Investigação** (padrão: agosto × duas semanas seguintes) → resultado em verde no topo → aba **2. O que os dados sustentam** | "O consumo por tonelada de vapor subiu **10%**. Duas explicações são compatíveis com os dados: gases **mais quentes** na chaminé, sinal de sujeira, e o cavaco **mais úmido** do F3. O excesso de ar foi **descartado**: o oxigênio ficou estável. Juntas, as duas fecham a conta dentro da incerteza." | 3 · investigação |
+| 1:05–1:18 | Atalho/controles: referência **31/08 a 14/09** × comparação **21/09 a 28/09** (antes × depois da limpeza) | "Depois da limpeza dos tubos, a EULER confirma o efeito: o consumo **caiu 4,5%**, e a queda da temperatura dos gases explica a mudança." | 3 · intervenção |
+| 1:18–1:42 | **Início** → **Ato 2 · a EULER explica por que não conclui** → **Investigação** (faixa amarela) | "Agora, a mesma caldeira sem o cadastro de quatro instrumentos. A EULER **não conclui**: a umidade fecharia a conta, mas falta a incerteza do método de umidade. E na semana em que o medidor de vapor estava fora, ela nem tenta: não dá para saber se o consumo mudou." | 4 · dados insuficientes |
+| 1:42–1:56 | **Relatório** → **Gerar relatório** → rolar até **5. Próxima verificação** | "Tudo vira um relatório em linguagem simples. A saída nunca é uma ordem para a caldeira: é a **próxima verificação**." | 5 · relatório e próxima verificação |
+| 1:56–2:04 | (tela parada no relatório) | "EULER: ela conclui quando os dados bastam, e diz o que falta quando não bastam." | fecho |
 
 ## O que dizer se perguntarem
 - **Os dados são reais?** Não. São sintéticos, feitos para testar o fluxo. A EULER ainda não
@@ -37,6 +38,10 @@ bastam para concluir.
 - **Por que ela não concluiu?** Porque falta uma informação que a fábrica pode fornecer (a
   incerteza do método de umidade). Inventar esse número para fechar a conclusão seria
   exatamente o que a EULER se recusa a fazer.
+- **Então no ato 1 vocês inventaram as incertezas?** Os dois atos são sintéticos. No ato 1 as
+  incertezas são as de especificação típica de cada instrumento, do lado conservador (D62),
+  e nenhuma foi escolhida para produzir a conclusão. Numa fábrica real, elas vêm do
+  fabricante ou da calibração.
 
 ## Frases que **não** usar
 "A IA prevê", "economia garantida", "comprovado". O valor em jogo é **estimado** e

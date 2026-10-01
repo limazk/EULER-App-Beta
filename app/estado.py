@@ -89,13 +89,24 @@ def investigacao_atual() -> tuple[dict | None, str]:
 ALTITUDE_DEMO_M = 1000.0
 
 
-def usar_caso_demo() -> None:
-    """Carrega o caso de demonstração sintético (demo/caso_demo) e a altitude dele."""
-    definir_arquivos(
-        ler_pasta(RAIZ / "demo" / "caso_demo"),
-        "caso de demonstração (caldeira sintética de 20 t/h, 8 semanas)",
-        sinteticos=True,
-    )
+CASOS_DEMO = {
+    # ato 1: os mesmos registros, com a incerteza de todos os instrumentos (D62)
+    True: (
+        "caso_demo_completo",
+        "caso de demonstração · ato 1, completo (caldeira sintética de 20 t/h, 8 semanas)",
+    ),
+    # ato 2: sem a incerteza de quatro instrumentos; a EULER explica por que não conclui (D53)
+    False: (
+        "caso_demo",
+        "caso de demonstração · ato 2, dados insuficientes (a mesma caldeira sintética)",
+    ),
+}
+
+
+def usar_caso_demo(completo: bool = False) -> None:
+    """Carrega um dos dois atos do caso de demonstração sintético e a altitude dele."""
+    pasta, rotulo = CASOS_DEMO[completo]
+    definir_arquivos(ler_pasta(RAIZ / "demo" / pasta), rotulo, sinteticos=True)
     st.session_state["altitude_m"] = ALTITUDE_DEMO_M
 
 
@@ -125,12 +136,14 @@ def sem_dados() -> None:
     st.info("Nenhum dado importado ainda.", icon=":material/upload_file:")
     with st.container(horizontal=True, gap="small", vertical_alignment="center"):
         if st.button(
-            "Carregar o caso de demonstração",
-            type="primary",
-            icon=":material/play_circle:",
-            key="demo_sem_dados",
+            "Ato 1 · caso completo", type="primary", icon=":material/play_circle:", key="ato1_vazio"
         ):
-            usar_caso_demo()
+            usar_caso_demo(completo=True)
+            st.rerun()
+        if st.button(
+            "Ato 2 · dados insuficientes", icon=":material/play_circle:", key="ato2_vazio"
+        ):
+            usar_caso_demo(completo=False)
             st.rerun()
         st.page_link(
             "paginas/importar.py", label="Ir para Importar dados", icon=":material/arrow_forward:"

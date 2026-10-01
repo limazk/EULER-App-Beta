@@ -93,7 +93,7 @@ def roteiro(p: Page, url: str) -> None:
     p.wait_for_timeout(5000)
     p.evaluate(TOPO_JS)
     ate(16)
-    p.get_by_role("button", name="Começar com o caso de demonstração").click()
+    p.get_by_role("button", name="Ato 2 · a EULER explica por que não conclui").click()
 
     # 0:16 Dados e limites · qualidade dos registros
     p.get_by_text("Qualidade dos registros").first.wait_for(timeout=60_000)

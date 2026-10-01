@@ -55,7 +55,7 @@ def _com_demo(menu: str, esperar: str) -> Callable[[Page], None]:
     """Carrega o caso de demonstração e abre a tela pelo menu lateral (mesma sessão)."""
 
     def acao(pagina: Page) -> None:
-        pagina.get_by_role("button", name="Caso de demonstração").click()
+        pagina.get_by_role("button", name="Ato 2 · dados insuficientes").click()
         pagina.get_by_text("Resultado da importação").first.wait_for(timeout=30_000)
         pagina.get_by_role("link", name=menu).click()
         pagina.get_by_text(esperar).first.wait_for(timeout=30_000)

@@ -14,11 +14,21 @@ with st.container(key="euler-abertura"):
         f"{PERGUNTA_CENTRAL} Às vezes a resposta certa é **“não dá para concluir”**, junto com "
         "a próxima medição que resolveria a dúvida. Isso é uma funcionalidade, não uma falha."
     )
+    st.markdown(
+        "**A demonstração tem dois atos, com a mesma caldeira sintética.** No ato 1 a fábrica "
+        "cadastrou a incerteza de todos os instrumentos e a EULER conclui. No ato 2 falta esse "
+        "cadastro e a EULER explica por que não conclui."
+    )
     with st.container(horizontal=True, vertical_alignment="center", gap="medium"):
         if st.button(
-            "Começar com o caso de demonstração", type="primary", icon=":material/play_circle:"
+            "Ato 1 · a EULER conclui", type="primary", icon=":material/play_circle:", key="ato1"
         ):
-            estado.usar_caso_demo()
+            estado.usar_caso_demo(completo=True)
+            st.switch_page("paginas/limites.py")
+        if st.button(
+            "Ato 2 · a EULER explica por que não conclui", icon=":material/play_circle:", key="ato2"
+        ):
+            estado.usar_caso_demo(completo=False)
             st.switch_page("paginas/limites.py")
         st.page_link(
             "paginas/importar.py", label="Importar meus dados", icon=":material/upload_file:"
@@ -26,7 +36,8 @@ with st.container(key="euler-abertura"):
 
 st.info(
     f"{AVISO_PROTOTIPO} O caso de demonstração é uma caldeira **sintética** (dados inventados "
-    "para teste) de 20 t/h a cavaco, com 8 semanas de registros e 3 fornecedores.",
+    "para teste) de 20 t/h a cavaco, com 8 semanas de registros e 3 fornecedores. Os dois atos "
+    "têm os mesmos registros de operação; muda só o cadastro de instrumentos.",
     icon=":material/science:",
 )
 

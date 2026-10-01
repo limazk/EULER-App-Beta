@@ -61,14 +61,24 @@ with envio, cartao("arquivos"):
         )
 
 st.markdown("##### Ou comece com um exemplo sintético")
-exemplos = st.columns(3, gap="medium")
-with exemplos[0], cartao("exemplo-demo"):
-    st.markdown(":material/play_circle: **Caso de demonstração**")
-    st.caption("Caldeira de 20 t/h a cavaco, 8 semanas, 3 fornecedores. O consumo muda no meio.")
-    if st.button("Caso de demonstração", help="8 semanas, sintético", width="stretch"):
-        estado.usar_caso_demo()
+exemplos = st.columns(4, gap="small")
+with exemplos[0], cartao("exemplo-ato1"):
+    st.markdown(":material/play_circle: **Ato 1 · caso completo**")
+    st.caption(
+        "Caldeira de 20 t/h a cavaco, 8 semanas, 3 fornecedores, instrumentos com incerteza cadastrada: a EULER conclui."
+    )
+    if st.button("Ato 1 · caso completo", width="stretch", key="importar_ato1"):
+        estado.usar_caso_demo(completo=True)
         st.rerun()
-with exemplos[1], cartao("exemplo-modelos"):
+with exemplos[1], cartao("exemplo-ato2"):
+    st.markdown(":material/play_circle: **Ato 2 · dados insuficientes**")
+    st.caption(
+        "A mesma caldeira, sem a incerteza de quatro instrumentos: a EULER explica por que não conclui."
+    )
+    if st.button("Ato 2 · dados insuficientes", width="stretch", key="importar_ato2"):
+        estado.usar_caso_demo(completo=False)
+        st.rerun()
+with exemplos[2], cartao("exemplo-modelos"):
     st.markdown(":material/table_view: **Modelos**")
     st.caption("Uma linha de exemplo por arquivo: mostra o formato e o que fica bloqueado.")
     if st.button("Modelos (1 linha de exemplo)", width="stretch"):
@@ -77,7 +87,7 @@ with exemplos[1], cartao("exemplo-modelos"):
             "modelos de exemplo (sintéticos)",
             sinteticos=True,
         )
-with exemplos[2], cartao("exemplo-problemas"):
+with exemplos[3], cartao("exemplo-problemas"):
     st.markdown(":material/report: **Exemplo com problemas**")
     st.caption("Erros de propósito (unidades trocadas, lacunas, duplicatas) para ver os avisos.")
     if st.button("Exemplo com problemas (sintético)", width="stretch"):
