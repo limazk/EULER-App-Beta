@@ -4,7 +4,7 @@ import estado
 import pandas as pd
 import streamlit as st
 from componentes import cabecalho, cartao, proximo_passo
-from formatacao import linhas_por_periodo
+from formatacao import COLUNAS_RESUMO, SITUACAO_PERIODO, linhas_por_periodo
 
 from euler.capacidades import avaliar
 from euler.formato import plural
@@ -121,23 +121,30 @@ def por_periodo(pacote) -> None:
         return
     st.markdown("### Período a período")
     st.caption(
-        "Cada linha vai de uma medição de estoque à seguinte. ✕ = não dá para concluir "
-        'naquele período; o motivo está na última coluna. "Incerteza incompleta": falta '
-        "cadastrar a incerteza de algum instrumento usado no cálculo (ver acima)."
+        "Cada linha vai de uma medição de estoque à seguinte. **Com limites**: falta a "
+        "incerteza de algum instrumento ou a perda nos gases; **Não dá para concluir**: falta a "
+        "eficiência ou o consumo. O motivo de cada um está em “Ver detalhes de cada período”."
     )
-    with st.expander("Como ler as colunas de eficiência"):
-        st.markdown(
-            "A **eficiência direta** supõe que o combustível queimado tem a qualidade do "
-            "recebido no período. A coluna **Eficiência conforme o pátio** mostra os limites "
-            "possíveis conforme o uso do pátio (quanto maior o estoque perto do consumido, mais "
-            "larga a faixa). São cenários de contabilidade do pátio, não intervalo de confiança "
-            "nem desempenho validado: um limite acima de 100% menos a perda nos gases calculada "
-            "para o mesmo período (mesma fronteira e base PCI) é incompatível com ela e só "
-            "mostra quanto o pátio pode pesar no resultado. Os limites não são cortados."
-        )
     linhas = _linhas_por_periodo(estado.assinatura(), pacote)
-    # tabela simples: quebra o texto e mostra o motivo inteiro
-    st.table(pd.DataFrame(linhas), hide_index=True, border="horizontal")
+    resumo = pd.DataFrame(linhas)[list(COLUNAS_RESUMO)]
+    resumo["Situação"] = resumo["Situação"].map(
+        lambda s: f":{SITUACAO_PERIODO.get(s, 'gray')}-badge[{s}]"
+    )
+    st.table(resumo, hide_index=True, border="horizontal")
+    with st.expander("Ver detalhes de cada período"):
+        detalhes = pd.DataFrame(linhas).drop(columns=["Eficiência", "Situação"])
+        # tabela simples: quebra o texto e mostra o motivo inteiro
+        st.table(detalhes, hide_index=True, border="horizontal")
+        st.markdown(
+            "**Como ler as colunas de eficiência.** A **eficiência direta** supõe que o "
+            "combustível queimado tem a qualidade do recebido no período. A coluna "
+            "**Eficiência conforme o pátio** mostra os limites possíveis conforme o uso do pátio "
+            "(quanto maior o estoque perto do consumido, mais larga a faixa). São cenários de "
+            "contabilidade do pátio, não intervalo de confiança nem desempenho validado: um "
+            "limite acima de 100% menos a perda nos gases calculada para o mesmo período (mesma "
+            "fronteira e base PCI) é incompatível com ela e só mostra quanto o pátio pode pesar "
+            "no resultado. Os limites não são cortados."
+        )
 
 
 pacote = estado.exigir_pacote()

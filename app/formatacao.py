@@ -112,8 +112,39 @@ def faixa_patio(cenarios: dict[str, float] | None) -> str:
     return f"{pct(cenarios['minimo'])} a {pct(cenarios['maximo'])}"
 
 
+SITUACAO_PERIODO = {
+    "Dá para concluir": "green",
+    "Com limites": "orange",
+    "Não dá para concluir": "red",
+}
+"""Situação de cada período na tabela resumida (D66) e a cor do selo."""
+
+COLUNAS_RESUMO = ("Período", "Eficiência", "Consumo por t de vapor", "Situação")
+"""Colunas da tabela resumida; as demais ficam em "ver detalhes" (D66)."""
+
+
+def _curto(g, fmt) -> str:
+    """Valor ± U quando a incerteza está completa; senão só o valor (a situação diz o resto)."""
+    if g is None:
+        return "✕"
+    return fmt(g.valor) if g.incerteza is None else f"{fmt(g.valor)} ± {fmt(g.incerteza)}"
+
+
+def _situacao(eficiencia, consumo, sem_perda_gases: bool) -> str:
+    """Não dá: falta a eficiência ou o consumo. Com limites: falta a incerteza completa ou a
+    perda nos gases (o motivo fica nos detalhes). Dá para concluir: tudo calculado."""
+    if eficiencia is None or consumo is None:
+        return "Não dá para concluir"
+    if eficiencia.incerteza is None or consumo.incerteza is None or sem_perda_gases:
+        return "Com limites"
+    return "Dá para concluir"
+
+
 def linhas_por_periodo(pacote) -> list[dict]:
-    """Uma linha por período entre medições de estoque (tabela "Período a período")."""
+    """Uma linha por período entre medições de estoque (tabela "Período a período").
+
+    Cada linha traz as colunas da tabela resumida (`COLUNAS_RESUMO`) e as de detalhe.
+    """
     p_gases = pacote.p_atm_bar or P_ATM_NIVEL_DO_MAR_BAR
     linhas = []
     for inicio, fim in periodos_entre_estoques(pacote):
@@ -123,9 +154,15 @@ def linhas_por_periodo(pacote) -> list[dict]:
         bloqueios = [x.motivo for x in b.bloqueios] + (
             [ind.bloqueio.motivo] if ind.bloqueio else []
         )
+        consumo = b.consumo_t_por_t
         linhas.append(
             {
                 "Período": f"{inicio:%d/%m} a {fim:%d/%m}",
+                "Eficiência": _curto(b.eficiencia, pct),
+                "Consumo por t de vapor": "✕"
+                if consumo is None
+                else f"{_curto(consumo, lambda v: num(v, 3))} t/t",
+                "Situação": _situacao(b.eficiencia, consumo, ind.resultado is None),
                 "Vapor (t)": "✕" if r.vapor_t is None else num(r.vapor_t.valor, 0),
                 "Combustível (t)": "✕"
                 if r.combustivel_kg is None

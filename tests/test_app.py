@@ -376,3 +376,19 @@ def test_saude_sem_periodos_suficientes_nao_tem_botao():
     assert not at.exception, at.exception
     assert any("Não dá para dizer" in m.value for m in at.markdown)
     assert not [b for b in at.button if b.key == "investigar_mudanca"]
+
+
+def test_limites_tabela_por_periodo_resumida_com_detalhes():
+    """D66: a tabela mostra só período, eficiência, consumo por t de vapor e situação; o
+    resto (vapor, combustível, pátio, perda nos gases, motivo) fica em "ver detalhes"."""
+    at = abrir_com_demo("limites.py")
+    assert not at.exception, at.exception
+    resumo, detalhes = at.table[0].value, at.table[1].value
+    assert list(resumo.columns) == ["Período", "Eficiência", "Consumo por t de vapor", "Situação"]
+    linha = resumo.set_index("Período").loc["14/09 a 21/09"]
+    assert linha["Consumo por t de vapor"] == "✕"
+    assert "Não dá para concluir" in linha["Situação"]
+    # ato 2: falta a incerteza de quatro instrumentos, então a eficiência fica com limites
+    assert "Com limites" in resumo.set_index("Período").loc["03/08 a 10/08", "Situação"]
+    assert {"Vapor (t)", "Eficiência conforme o pátio", "Por que não dá"} <= set(detalhes.columns)
+    assert any(e.label == "Ver detalhes de cada período" for e in at.expander)
