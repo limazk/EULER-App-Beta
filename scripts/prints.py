@@ -55,7 +55,7 @@ def _com_demo(menu: str, esperar: str) -> Callable[[Page], None]:
     """Carrega o caso de demonstração e abre a tela pelo menu lateral (mesma sessão)."""
 
     def acao(pagina: Page) -> None:
-        pagina.get_by_role("button", name="Caso de demonstração", exact=True).click()
+        pagina.get_by_role("button", name="Caso de demonstração").click()
         pagina.get_by_text("Resultado da importação").first.wait_for(timeout=30_000)
         pagina.get_by_role("link", name=menu).click()
         pagina.get_by_text(esperar).first.wait_for(timeout=30_000)
@@ -71,6 +71,15 @@ def _relatorio_demo(pagina: Page) -> None:
     pagina.get_by_role("button", name="Gerar relatório").click()
     pagina.get_by_text("Prévia").wait_for(timeout=60_000)
     pagina.wait_for_timeout(2500)
+
+
+def _investigacao_sem_vapor(pagina: Page) -> None:
+    """Demo → Investigação → comparação estendida até 21/09 (semana sem medidor de vapor)."""
+    _com_demo("Investigação", "Próxima verificação")(pagina)
+    pagina.get_by_role("slider").nth(3).focus()
+    pagina.keyboard.press("ArrowRight")
+    pagina.get_by_text("Não dá para saber se o consumo").first.wait_for(timeout=60_000)
+    pagina.wait_for_timeout(1500)
 
 
 TELAS: list[Tela] = [
@@ -93,6 +102,7 @@ TELAS: list[Tela] = [
     ),
     Tela("06_investigacao", "importar", _com_demo("Investigação", "Próxima verificação")),
     Tela("07_relatorio", "importar", _relatorio_demo),
+    Tela("08_investigacao_sem_vapor", "importar", _investigacao_sem_vapor),
 ]
 
 

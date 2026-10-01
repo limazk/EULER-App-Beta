@@ -43,8 +43,9 @@ exemplo e a consequência no relatório. As perguntas Q1–Q17 ficam como apênd
   ±1,9 p.p., a mudança passa a "sim" e a umidade volta a ser explicação compatível. Título
   x = 0,98 em vez de 1 reduziria Δh em 1,65% (a 11 bar abs, água a 85 °C).
 - **No relatório:** "Não dá para concluir: o resto da mudança seria explicado por
-  combustível mais úmido, mas essa mudança ainda não está confirmada (falta incerteza do
-  método de umidade)"; próxima verificação: cadastrar essa incerteza.
+  combustível mais úmido (menos energia por tonelada), mas essa mudança ainda não está
+  confirmada, porque falta cadastrar a incerteza do método de umidade (estufa)"; próxima
+  verificação: cadastrar essa incerteza.
 - **Decidir:** que incerteza declarar para o método de umidade (e com que tipo)? Quantas
   amostras por lote? Medir o título?
 

@@ -9,8 +9,8 @@
 | 4 · Extrato por fornecedor | concluída | 2026-10-01 | `extrato_por_fornecedor` (E11): energia e R$/GJ por lote e fornecedor, origem de cada dado, ranking por energia × por tonelada, alerta neutro de umidade fora da faixa histórica, "energia não determinada" sem umidade medida. Reproduz a tabela F1–F3 do documento. Tela "Extrato por fornecedor" com gráficos (preço/t × custo/GJ; umidade por semana). **Dados do caso de demonstração (T18) adiantados:** `demo/caso_demo/` + `demo/gerar_caso_demo.py`, botão "Caso de demonstração" na importação. | Decisões D19–D21 aguardam aprovação. Roteiro do vídeo fica para a Etapa 7. |
 | 5 · Investigação | concluída | 2026-10-01 | `periodos.py` (resumo entre medições de estoque), `direto.py` (T10: eficiência com intervalo, E13 testado), `deteccao.py` (mudança detectável), `investigacao.py` (T13: JSON com o que mudou, hipóteses, independência E12, o que falta, próxima verificação, abstenção, valor em jogo só com base, custo E14), `capacidades.py` (T11, 11 análises). Testes: casos A, B, C, contraexemplo da purga e semana sem vapor. Telas "Dados e limites" (com período a período) e "Investigação" (5 blocos, gráfico e JSON). | T12 (detecção de degrau) não feito (extra). Decisões D22–D32 aguardam aprovação; formato do JSON e tabela de capacidades a conferir com a spec v0.3. |
 | 6 · Relatório | concluída | 2026-10-01 | `euler/relatorio.py`: JSON → HTML com os 5 blocos fixos, rodapé de segurança, selo "dados sintéticos", pronto para A4; PDF pelo Chromium quando disponível. Teste com lista de verbos proibidos (e trava no app). Tela "Relatório" com botão "Gerar relatório", prévia e downloads. **3 exemplos em `docs/exemplos_relatorio/`** (HTML + PDF) com guia de revisão. | **Adryan: revisar o texto dos 3 exemplos.** Decisões D33–D34. |
-| 7 · Demonstração | em andamento (pausada para a fase de revisão física) | 2026-10-01 | Tela inicial com "Começar com o caso de demonstração" e passos 1–5; menu na ordem do T15; teste do fluxo completo (`tests/test_fluxo_demo.py`); roteiro de 2 min (`demo/ROTEIRO_VIDEO.md`); script de rascunho do vídeo (`scripts/gravar_video_demo.py`). | Regravar o rascunho do vídeo e refazer os prints 04, 06 e 07 (os dados do demo mudaram). Parâmetro de cenário alterado: umidade do F3 de 42→54% para 44→56% (escolha de narrativa da demonstração, **não** é correção nem validação). |
-| 8 · Entrega aos devs | a fazer | | | |
+| 7 · Demonstração | concluída (falta só o ensaio e a narração, que dependem de pessoas) | 2026-10-01 | Caso sintético completo (`demo/caso_demo/`, D53: dados **mantidos**, abstenção preservada); fluxo inteiro no app em menos de 5 minutos; revisão de uso como usuário novo com 5 falhas reais corrigidas e testadas (resultado antigo nunca aparece com dados novos); 8 prints (`prints/`); vídeo **rascunho sem narração** de 2 min (`demo/video/rascunho_video_demo.mp4`) com o texto da narração em `demo/ROTEIRO_VIDEO.md`; guia de cliques da apresentação ao vivo (`demo/GUIA_DEMONSTRACAO_AO_VIVO.md`). | Adryan: gravar a narração; ensaiar no notebook da apresentação (ver seção abaixo). |
+| 8 · Entrega aos devs | concluída (falta o repositório privado e a autoria, que são decisões do Adryan) | 2026-10-01 | `HANDOFF.md` (instalação, organização, o que funciona, experimental, limitações, revisão crítica do código, decisões pendentes, casos, prioridades até 30/10); README reescrito; `requirements-lock.txt`; instalação do zero conferida; PDFs para os revisores em `docs/revisao/` (física E1–E15 e as três decisões prioritárias + Q1–Q17). | **Repositório ainda público** → Adryan torna privado. T19 (tag e autoria para o INPI) → Adryan. T17 fica fora deste repositório. |
 
 ## Fase R · Revisão e validação do motor físico (pedido do Adryan em 01/10/2026)
 
@@ -70,6 +70,40 @@ golden nem nos dados do demo.
 reservados montados fora da lógica do motor e piloto com dados autorizados de uma caldeira.
 Vídeo e prints 04 e 07 da Etapa 7 são apresentação do fluxo sintético, não evidência de
 validação.
+
+## Etapas 7 e 8 · demonstração de 30/10/2026 e entrega aos desenvolvedores
+
+**Escopo fechado:** carregar dados → conferir qualidade e limites → investigar → consultar
+fornecedores → gerar relatório. Login, várias empresas, OCR, API e novas funções físicas
+ficam para fases posteriores. Dados do demo **não** foram alterados e nenhuma incerteza foi
+acrescentada: o caso continua mostrando a EULER explicando por que não conclui (D53, decisão
+do Adryan).
+
+**Falhas de uso encontradas e corrigidas** (cada uma com teste em `tests/test_app.py`):
+relatório usando a investigação dos dados anteriores; escolha de períodos voltando ao
+padrão ao trocar de tela; relatório sumindo depois de baixar; barra lateral com a origem
+errada dos dados; PDF com páginas quase vazias. Textos: plural, unidades, nome do arquivo
+nos avisos, motivo quando o valor em jogo não é estimado, selo **DADOS SINTÉTICOS** em todas
+as telas e no relatório, quadro "Em que pé está a EULER" (verificado · em revisão · não feito).
+
+| Tipo de evidência | O que foi feito | Resultado |
+|---|---|---|
+| **Testes automáticos** | `pytest -q` (inclui telas pelo AppTest, fluxo completo do demo, verbos proibidos, golden) e `ruff check .` / `ruff format --check .` | 308 passando; lint sem erros; `tests/golden/` e tolerâncias sem alteração |
+| **Instalação do zero** | ambiente novo, só `pip install -e ".[dev]"` | 275 passando, 33 pulados (CoolProp/Cantera, extra `validacao`) |
+| **Conferência manual (navegador real)** | fluxo inteiro como usuário novo: demonstração, avisos, análises bloqueadas, troca de períodos, extrato, relatório, baixar HTML e PDF, trocar os arquivos depois, ir e voltar entre telas | sem resultado antigo nos dados novos; PDF baixado (4 páginas A4) |
+| **Conferência manual (materiais)** | 8 prints, quadros do vídeo em cada cena, PDF do relatório, PDFs dos revisores (5 e 8 páginas) | legíveis em 1280 px, 1280 × 720 e A4 |
+| **Depende do notebook da apresentação** | ensaio com o guia ao vivo; Chromium para o botão "Baixar PDF" (ou plano B com HTML); zoom no projetor; Windows não testado | **a fazer** (Adryan + 1 dev) |
+| **Depende de pessoas** | narração do vídeo (rascunho atual não tem som); revisão do texto dos exemplos de relatório | **a fazer** (Adryan) |
+| **Revisão humana e validação externa** | três decisões prioritárias + Q1–Q17 (`docs/revisao/`); golden; piloto com dados reais autorizados; T17 em repositório separado | **pendentes**: nenhuma proposta foi marcada como aprovada sem resposta humana |
+
+- Versão examinada nesta etapa: `VERSAO_EXAMINADA` (a mesma da capa dos PDFs de
+  `docs/revisao/` e do `HANDOFF.md`).
+- **Repositório ainda público** (a API do GitHub responde sem login em 01/10/2026).
+
+**Próximo passo até 30/10:** (1) Adryan torna o repositório privado; (2) ensaio no notebook
+da apresentação seguindo `demo/GUIA_DEMONSTRACAO_AO_VIVO.md`, duas vezes seguidas sem ajuda;
+(3) narração gravada sobre o rascunho do vídeo; (4) enviar `docs/revisao/` aos revisores.
+Detalhes e responsáveis: `HANDOFF.md` §9.
 
 **Modo de trabalho:** automático (pedido do Adryan em 01/10/2026): seguir as etapas sem esperar "ok"; decisões não especificadas vão para `docs/decisoes.md` como propostas pendentes.
 

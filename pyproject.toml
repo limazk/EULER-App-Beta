@@ -7,21 +7,25 @@ name = "euler-core"
 version = "0.0.1"
 description = "EULER · investigação física para caldeiras industriais (protótipo, Fase 0)"
 requires-python = ">=3.11"
+# Mínimos = versões testadas (o app usa recursos recentes do Streamlit: navegação por
+# páginas, selos no markdown, download sem recarregar). Versões exatas: requirements-lock.txt.
 dependencies = [
-    "pandas>=2.0",
-    "numpy>=1.26",
-    "iapws>=1.5",
-    "streamlit>=1.36",
+    "pandas>=3.0",
+    "numpy>=2.0",
+    "iapws>=1.5.5",
+    "streamlit>=1.64,<2",
     "openpyxl>=3.1",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0",
-    "ruff>=0.5",
+    "ruff>=0.16,<0.17",  # fixo: versões novas trazem regras novas e quebram o CI
 ]
+# prints, vídeo e PDFs (relatório e documentos para os revisores)
 prints = [
     "playwright>=1.40",
+    "markdown>=3.5",
 ]
 # Só para a verificação independente do motor (tests/test_validacao_*.py): outras
 # implementações de referência (IAPWS-95 e equações de estado de gases; dados NASA).

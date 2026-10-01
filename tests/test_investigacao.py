@@ -106,6 +106,8 @@ def test_sem_vapor_no_periodo_abstem_e_diz_o_que_falta():
     assert status(j)["perdas_nao_medidas"] == "nao_avaliavel"
     assert "totalizador de vapor" in j["proxima_verificacao"]["acao"]
     assert j["valor_em_jogo"] is None
+    # o motivo diz por que não há valor (antes: "sem aumento detectável", o que confundia)
+    assert "não pode ser calculado" in j["valor_em_jogo_motivo"]
 
 
 def test_independencia_dos_caminhos_e12(caso_a):

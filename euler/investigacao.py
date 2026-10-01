@@ -1280,10 +1280,16 @@ def investigar(
             ),
         }
     else:
-        motivo_valor = (
-            "Sem aumento de consumo detectável com segurança, com vapor e preço conhecidos: nenhum "
-            "valor é estimado (regra: não inventar números)."
-        )
+        # motivo específico: por que o valor em jogo não foi estimado (regra: não inventar)
+        if not c_cons.disponivel:
+            razao = "o consumo por tonelada de vapor não pode ser calculado"
+        elif c_cons.detectabilidade != "sim":
+            razao = "o aumento de consumo não está confirmado pelas incertezas"
+        elif c_cons.delta <= 0:
+            razao = "o consumo por tonelada de vapor não aumentou"
+        else:
+            razao = "falta o vapor ou o preço do combustível no período de comparação"
+        motivo_valor = f"Valor em jogo não estimado: {razao} (regra: não inventar números)."
 
     # ------------------------------------------------ custo do vapor (E14)
     custo = None
