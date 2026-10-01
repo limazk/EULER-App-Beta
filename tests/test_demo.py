@@ -46,7 +46,29 @@ def test_demo_conta_a_historia_do_extrato(pacote_demo):
     f = e.fornecedores.set_index("fornecedor_id")
     assert f.loc["F3", "posicao_tonelada"] == 1
     assert f.loc["F1", "posicao_energia"] == 1
+    assert (
+        f.loc["F3", "posicao_energia"] == 3
+    )  # o mais barato por tonelada é o mais caro por energia
     assert f.loc["F3", "umidade_recente"] - f.loc["F3", "umidade_referencia"] > 0.08
     alertas = e.alertas_umidade["fornecedor_id"].value_counts()
     assert alertas.get("F3", 0) > 5 * alertas.drop("F3", errors="ignore").sum()
     assert frase_tonelada_vs_energia(e.fornecedores).startswith("F3")
+
+
+def test_demo_conta_a_historia_da_investigacao(pacote_demo):
+    from euler.investigacao import investigar
+    from euler.periodos import periodos_entre_estoques
+
+    s = periodos_entre_estoques(pacote_demo)
+    base = (s[0][0], s[3][1])
+
+    def sustentadas(comp):
+        j = investigar(pacote_demo, base, comp)
+        return {h["id"] for h in j["hipoteses"] if h["status"] == "sustentada"}, j
+
+    causas, _ = sustentadas((s[4][0], s[5][1]))
+    assert causas == {"temperatura_gases", "umidade_combustivel"}
+    causas, j = sustentadas(s[6])
+    assert j["conclusao"]["abstencao"] is True
+    causas, _ = sustentadas(s[7])
+    assert causas == {"umidade_combustivel"}

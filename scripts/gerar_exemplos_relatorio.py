@@ -23,9 +23,9 @@ def exemplos() -> dict[str, tuple[str, tuple, tuple]]:
     s = periodos_entre_estoques(pacote)
     base = (s[0][0], s[3][1])  # semanas 1 a 4
     return pacote, {
-        "01_conclusao_temperatura_gases": ("Semanas 1–4 × 5–6: o degrau de temperatura", base, (s[4][0], s[5][1])),
+        "01_conclusao_duas_causas": ("Semanas 1–4 × 5–6: umidade e temperatura dos gases", base, (s[4][0], s[5][1])),
         "02_abstencao_sem_vapor": ("Semanas 1–4 × 7: medidor de vapor fora", base, s[6]),
-        "03_abstencao_causa_nao_identificada": ("Semanas 1–4 × 8: consumo subiu sem causa medida", base, s[7]),
+        "03_depois_da_limpeza_sobra_umidade": ("Semanas 1–4 × 8: depois da limpeza, sobra a umidade", base, s[7]),
     }  # fmt: skip
 
 

@@ -3,7 +3,7 @@
 Caldeira fictícia de 20 t/h a cavaco, 8 semanas (03/08 a 28/09/2026), 3 fornecedores.
 Fatos plantados de propósito (o "gabarito" do demo, ver demo/caso_demo/LEIAME.md):
   1. degrau de +32 °C na temperatura dos gases a partir de 31/08 08:00, sem evento que explique;
-  2. umidade do fornecedor F3 subindo de ~42% para ~54% ao longo das 8 semanas;
+  2. umidade do fornecedor F3 subindo de ~44% para ~56% ao longo das 8 semanas;
   3. medidor de vapor fora de 14/09 08:00 a 21/09 08:00 (totalizador sem leitura) e
      reinstalado zerado — período em que não dá para concluir;
   4. limpeza dos tubos de fumaça em 21/09 14:00: a temperatura dos gases volta ao normal;
@@ -44,7 +44,7 @@ FORNECEDORES = {
     # preço R$/t úmida, umidade inicial, umidade final
     "F1": (180.0, 0.38, 0.38),
     "F2": (170.0, 0.45, 0.45),
-    "F3": (160.0, 0.42, 0.54),
+    "F3": (160.0, 0.44, 0.56),
 }
 PARTICIPACAO = {"F1": 0.35, "F2": 0.35, "F3": 0.30}
 

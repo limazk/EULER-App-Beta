@@ -10,17 +10,23 @@ import euler
 
 st.set_page_config(page_title="EULER", page_icon=":material/local_fire_department:", layout="wide")
 
-paginas = [
-    st.Page("paginas/inicio.py", title="Início", icon=":material/home:", default=True),
-    st.Page("paginas/importar.py", title="Importar dados", icon=":material/upload_file:"),
-    st.Page("paginas/limites.py", title="Dados e limites", icon=":material/rule:"),
-    st.Page("paginas/investigacao.py", title="Investigação", icon=":material/troubleshoot:"),
-    st.Page("paginas/relatorio.py", title="Relatório", icon=":material/description:"),
-    st.Page("paginas/extrato.py", title="Extrato por fornecedor", icon=":material/receipt_long:"),
-    st.Page(
-        "paginas/calculadora.py", title="Calculadora de referência", icon=":material/calculate:"
-    ),
-]
+paginas = {
+    "": [st.Page("paginas/inicio.py", title="Início", icon=":material/home:", default=True)],
+    "Investigar": [
+        st.Page("paginas/importar.py", title="1. Importar dados", icon=":material/upload_file:"),
+        st.Page("paginas/limites.py", title="2. Dados e limites", icon=":material/rule:"),
+        st.Page("paginas/investigacao.py", title="3. Investigação", icon=":material/troubleshoot:"),
+        st.Page(
+            "paginas/extrato.py", title="4. Extrato por fornecedor", icon=":material/receipt_long:"
+        ),
+        st.Page("paginas/relatorio.py", title="5. Relatório", icon=":material/description:"),
+    ],
+    "Referência": [
+        st.Page(
+            "paginas/calculadora.py", title="Calculadora de referência", icon=":material/calculate:"
+        ),
+    ],
+}
 
 navegacao = st.navigation(paginas)
 st.sidebar.caption(f"EULER · protótipo v{euler.__version__} · dados sintéticos")
