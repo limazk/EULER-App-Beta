@@ -19,6 +19,9 @@ dev = [
     "pytest>=8.0",
     "ruff>=0.5",
 ]
+prints = [
+    "playwright>=1.40",
+]
 
 [tool.setuptools.packages.find]
 include = ["euler*"]
