@@ -1,0 +1,5 @@
+amostra_id,lote_id,data,umidade_bu_frac,pci_seco_mj_kg,C,H,O,N,S,cinzas,metodo,laboratorio,origem_dado
+A-0001,L-0001,2026-10-05T11:00:00-03:00,0.38,18.5,0.50,0.06,0.43,0.003,0.0005,0.0065,estufa_ISO18134,interno,sintetico
+A-0002,L-0002,2026-10-05T16:00:00-03:00,38,18.5,,,,,,,estufa_ISO18134,interno,sintetico
+A-0003,L-0009,2026-10-06T10:00:00-03:00,0.41,18.5,,,,,,,estufa_ISO18134,interno,sintetico
+A-0004,L-0003,2026-10-06T10:00:00-03:00,0.45,18.5,0.50,,,,,,estufa_ISO18134,interno,sintetico

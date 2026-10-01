@@ -1,0 +1,2 @@
+instrumento_id,tipo,ponto,unidade,resolucao,incerteza_declarada,ultima_verificacao,observacao
+ANALIS-01,analisador_o2,CHAMINE-1,pct_seco,0.1,0.3,2026-09-01,sintetico

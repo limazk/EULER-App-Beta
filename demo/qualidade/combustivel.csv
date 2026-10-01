@@ -1,0 +1,8 @@
+data,tipo,fornecedor_id,lote_id,massa_kg,volume_m3,densidade_kg_m3,origem_densidade,preco_brl,origem_dado
+2026-10-05T07:00:00-03:00,estoque,,,50000,,,,,sintetico
+2026-10-05T10:30:00-03:00,recebimento,F1,L-0001,30000,,,,5400.00,sintetico
+2026-10-05T15:00:00-03:00,recebimento,F2,L-0002,,80,,,5100.00,sintetico
+2026-10-06T09:00:00-03:00,recebimento,F3,L-0003,,90,330,declarada_fornecedor,4750.00,sintetico
+2026-10-06T11:00:00-03:00,recebimento,,L-0004,28,,,,5000.00,sintetico
+2026-10-06T13:00:00-03:00,recebimento,F1,L-0001,30000,,,,5400.00,sintetico
+2026-10-06T16:00:00-03:00,recebimento,F2,L-0005,29000,,,,,sintetico

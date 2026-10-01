@@ -43,9 +43,22 @@ def _abrir_expansor(texto: str) -> Callable[[Page], None]:
     return acao
 
 
+def _clicar(botao: str, esperar: str) -> Callable[[Page], None]:
+    def acao(pagina: Page) -> None:
+        pagina.get_by_role("button", name=botao).click()
+        pagina.get_by_text(esperar).first.wait_for(timeout=30_000)
+
+    return acao
+
+
 TELAS: list[Tela] = [
     Tela("01_inicio"),
     Tela("02_calculadora", "calculadora", _abrir_expansor("Detalhes do cálculo")),
+    Tela(
+        "03_importar_exemplo_com_problemas",
+        "importar",
+        _clicar("Exemplo com problemas (sintético)", "Resultado da importação"),
+    ),
 ]
 
 

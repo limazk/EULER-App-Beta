@@ -1,5 +1,6 @@
 """Testes de fumaça do app: cada tela abre sem erro e mostra o rodapé de segurança."""
 
+import ast
 from pathlib import Path
 
 import pytest
@@ -48,3 +49,30 @@ def test_calculadora_bloqueia_com_motivo():
     at.slider[2].set_value(70).run()
     assert not at.metric
     assert any("bloqueado" in e.value for e in at.error)
+
+
+def test_nenhuma_tela_usa_st_stop_que_esconderia_o_rodape():
+    for arquivo in [*(APP / "paginas").glob("*.py"), APP / "estado.py", APP / "main.py"]:
+        arvore = ast.parse(arquivo.read_text(encoding="utf-8"))
+        chamadas = [
+            n
+            for n in ast.walk(arvore)
+            if isinstance(n, ast.Call)
+            and isinstance(n.func, ast.Attribute)
+            and n.func.attr == "stop"
+        ]
+        assert not chamadas, arquivo.name
+
+
+def clicar(at: AppTest, inicio_do_rotulo: str) -> AppTest:
+    next(b for b in at.button if b.label.startswith(inicio_do_rotulo)).click().run()
+    return at
+
+
+def test_importar_exemplo_com_problemas_mostra_avisos():
+    at = clicar(abrir("importar.py"), "Exemplo com problemas")
+    assert not at.exception
+    valores = {m.label: m.value for m in at.metric}
+    assert valores["Tabelas importadas"] == "5"
+    assert int(valores["Avisos de atenção"]) >= 15
+    assert any(c.value == RODAPE_SEGURANCA for c in at.caption)
