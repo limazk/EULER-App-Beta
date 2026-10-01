@@ -31,6 +31,7 @@ O texto nunca traz comando operacional: só verificações (AGENTS.md, regra 1).
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from itertools import product
 from math import exp, isnan, log, sqrt
@@ -320,6 +321,99 @@ def _subiu(delta: float) -> str:
 def _sinal(x: float, casas: int = 1) -> str:
     x = round(float(x), casas) + 0.0  # evita "-0,0"
     return ("+" if x >= 0 else "") + num(x, casas)
+
+
+def _curto(titulo: str) -> str:
+    """Título da hipótese sem o parêntese explicativo, começando em minúscula."""
+    base = titulo.split(" (")[0].strip()
+    return base[:1].lower() + base[1:]
+
+
+def _com_efeito(h: dict) -> str:
+    efeito = h["efeito"]["consumo_pct"]
+    return _curto(h["titulo"]) + ("" if efeito is None else f" ({_sinal(efeito)}%)")
+
+
+def _acao_curta(acao: str) -> str:
+    """Primeira parte da próxima verificação, sem parênteses (para o resumo)."""
+    texto = re.sub(r"\s*\([^()]*\)", "", acao)
+    texto = re.split(r"; |\. ", texto, maxsplit=1)[0].strip().rstrip(".")
+    return texto + "."
+
+
+def _resumo(
+    c_cons: Comparacao,
+    hipoteses: list[dict],
+    abstem: bool,
+    motivo: str,
+    pendentes: list[dict],
+    prox: dict,
+) -> list[str]:
+    """Resultado em até três frases curtas (D63): o consumo; o que explica e o que foi
+    descartado (ou por que não dá para concluir); a próxima verificação.
+
+    Só junta textos e números que a investigação já calculou: nenhuma conta nova.
+    """
+    frases = []
+    if not c_cons.disponivel:
+        frases.append("Não dá para saber se o consumo por tonelada de vapor mudou.")
+    elif c_cons.detectabilidade == "sim":
+        v = 100 * c_cons.delta / c_cons.referencia
+        frases.append(f"O consumo por tonelada de vapor {_subiu(c_cons.delta)} {num(abs(v), 1)}%.")
+    else:
+        v = 100 * c_cons.delta / c_cons.referencia
+        frases.append(
+            f"O consumo por tonelada de vapor variou {_sinal(v)}%, mas não dá para afirmar "
+            "que mudou."
+        )
+
+    def ordem(lista):
+        return sorted(lista, key=lambda h: -abs(h["efeito"]["consumo_pct"] or 0))
+
+    sustentadas = ordem([h for h in hipoteses if h["status"] == "sustentada"])
+    descartadas = [
+        h for h in hipoteses if h["status"] == "descartada" and h["id"] != "perdas_nao_medidas"
+    ]
+    descartado = (
+        f"; descartado: {_lista(_curto(h['titulo']) for h in descartadas)}" if descartadas else ""
+    )
+    if not abstem and sustentadas:
+        frases.append(
+            "Explicações compatíveis com os dados: "
+            + _lista(_com_efeito(h) for h in sustentadas)
+            + descartado
+            + "."
+        )
+    elif abstem and pendentes:
+        pend = _lista(_com_efeito(h) for h in ordem(pendentes))
+        if sustentadas:
+            frases.append(
+                f"Não dá para concluir: {_lista(_com_efeito(h) for h in sustentadas)} é "
+                f"compatível com os dados, mas {pend} ainda não está confirmado{descartado}."
+            )
+        else:
+            frases.append(
+                f"Não dá para concluir: {pend} explicaria a mudança, mas ainda não está "
+                f"confirmado{descartado}."
+            )
+    elif abstem and not c_cons.disponivel:
+        mudaram = [
+            h
+            for h in hipoteses
+            if h["status"] in ("sustentada", "oposta", "possivel")
+            and h["id"] != "perdas_nao_medidas"
+            and h["avaliacao"]["mudanca_detectavel"] == "sim"
+        ]
+        if mudaram:
+            frases.append(
+                "Mesmo assim, mudou de forma detectável: "
+                + _lista(_curto(h["titulo"]) for h in mudaram)
+                + "."
+            )
+    elif abstem:
+        frases.append(f"Não dá para concluir: {motivo}.")
+    frases.append(f"Próxima verificação: {_acao_curta(prox['acao'])}")
+    return frases
 
 
 def _limpar(obj):
@@ -1254,6 +1348,7 @@ def investigar(
     if opostas:
         prox["porque"] += " Verifique também: " + " ".join(h["verificacao"] for h in opostas)
         prox["separa"] = list(dict.fromkeys(prox["separa"] + [h["id"] for h in opostas]))
+    resumo = _resumo(c_cons, hipoteses, abstem, motivo, pendentes, prox)
 
     # ------------------------------------------------ valor em jogo (só com base)
     valor_em_jogo, motivo_valor = None, ""
@@ -1396,6 +1491,7 @@ def investigar(
             "o_que_falta": falta,
             "proxima_verificacao": prox,
             "conclusao": {"abstencao": abstem, "motivo": motivo, "texto": texto},
+            "resumo": {"frases": resumo, "texto": " ".join(resumo)},
             "valor_em_jogo": valor_em_jogo,
             "valor_em_jogo_motivo": motivo_valor,
             "criterios": {

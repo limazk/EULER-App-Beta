@@ -72,6 +72,8 @@ h1 { font-size: 26px; margin: 4px 0 6px; line-height: 1.2; }
 .pergunta { color: var(--tinta-2); font-style: italic; border-left: 3px solid var(--linha);
             padding-left: 10px; margin: 14px 0 18px; }
 .conclusao { padding: 12px 16px; border-radius: 6px; margin: 0 0 22px; font-weight: 600; }
+.conclusao p { margin: 0 0 4px; }
+.conclusao p:last-child { margin: 0; }
 .conclusao.ok { background: var(--ok-fundo); color: var(--ok); }
 .conclusao.abstencao { background: var(--alerta-fundo); color: var(--alerta); }
 section { margin: 0 0 22px; }
@@ -161,6 +163,8 @@ def gerar_html(investigacao: dict, gerado_em: datetime | None = None) -> str:
         else ""
     )
     conclusao = j["conclusao"]
+    # resultado em até três frases (D63); a conclusão completa abre o bloco 2
+    resumo = "".join(f"<p>{_e(f)}</p>" for f in j["resumo"]["frases"])
     hips = j["hipoteses"]
 
     # 1. o que mudou
@@ -199,7 +203,8 @@ def gerar_html(investigacao: dict, gerado_em: datetime | None = None) -> str:
     sustentadas = [h for h in hips if h["status"] == "sustentada"]
     opostas = [h for h in hips if h["status"] == "oposta"]
     descartadas = [h for h in hips if h["status"] == "descartada"]
-    bloco2 = "".join(_hipotese_html(h) for h in sustentadas) or (
+    bloco2 = f"<p>{_e(conclusao['texto'])}</p>"
+    bloco2 += "".join(_hipotese_html(h) for h in sustentadas) or (
         "<p>Nenhuma explicação é sustentada pelos dados.</p>"
     )
     bloco2 += "".join(_hipotese_html(h) for h in opostas)
@@ -269,7 +274,7 @@ def gerar_html(investigacao: dict, gerado_em: datetime | None = None) -> str:
   <p class="meta">{_e(SITUACAO_MODELO)}</p>
 </header>
 <p class="pergunta">{_e(PERGUNTA_CENTRAL)}</p>
-<div class="conclusao {classe}">{_e(conclusao["texto"])}</div>
+<div class="conclusao {classe}">{resumo}</div>
 {secoes}
 <footer>
   <p><strong>{_e(RODAPE_SEGURANCA)}</strong></p>

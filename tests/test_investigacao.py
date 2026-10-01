@@ -140,3 +140,33 @@ def test_mudanca_pequena_demais_nao_explica():
         Periodo(G12, t_gases_c=292.2, umidade=0.3104, t_agua_alim_c=79),
     )
     assert status(j)["condicao_vapor"] == "descartada"
+
+
+def test_resumo_em_ate_tres_frases_curtas():
+    """D63: o resultado abre com até três frases: o consumo; o que explica (com o efeito
+    estimado) e o que foi descartado, ou por que não dá para concluir; a próxima verificação.
+    Ato 1 do demo (incertezas cadastradas) e ato 2 (abstenção)."""
+    from pathlib import Path
+
+    from euler.io import importar_pasta
+    from euler.periodos import periodos_entre_estoques
+    from euler.vapor import p_atm_por_altitude_bar
+
+    demo = Path(__file__).resolve().parents[1] / "demo"
+    for pasta in ("caso_demo_completo", "caso_demo"):
+        p = importar_pasta(demo / pasta, p_atm_bar=p_atm_por_altitude_bar(1000))
+        s = periodos_entre_estoques(p)
+        j = investigar(p, (s[0][0], s[3][1]), (s[4][0], s[5][1]))
+        frases = j["resumo"]["frases"]
+        assert 1 <= len(frases) <= 3
+        assert frases[0] == "O consumo por tonelada de vapor subiu 10,1%."
+        assert frases[-1].startswith("Próxima verificação: ")
+        assert "(+7,8%)" in frases[1] and "(+3,1%)" in frases[1]
+        assert "descartado: mais excesso de ar" in frases[1]
+        if pasta == "caso_demo_completo":
+            assert frases[1].startswith("Explicações compatíveis com os dados:")
+        else:
+            assert frases[1].startswith("Não dá para concluir:")
+        assert all(len(f) <= 220 for f in frases)
+        sem_vapor = investigar(p, (s[0][0], s[3][1]), s[6])["resumo"]["frases"]
+        assert sem_vapor[0] == "Não dá para saber se o consumo por tonelada de vapor mudou."

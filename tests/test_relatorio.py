@@ -49,7 +49,9 @@ def relatorios_sinteticos():
 def test_cinco_blocos_na_ordem_e_rodape(relatorios_demo):
     for html in relatorios_demo:
         texto = texto_visivel(html)
-        posicoes = [texto.index(b) for b in BLOCOS]
+        # o resumo do topo (D63) cita a próxima verificação antes dos blocos
+        inicio = texto.index(BLOCOS[0])
+        posicoes = [texto.index(b, inicio) for b in BLOCOS]
         assert posicoes == sorted(posicoes)
         assert RODAPE_SEGURANCA in texto
 

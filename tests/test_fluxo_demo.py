@@ -31,7 +31,7 @@ def test_fluxo_completo_do_caso_de_demonstracao():
     at.switch_page("paginas/investigacao.py").run()
     assert not at.exception, at.exception
     # auditoria A3: abstenção com o que cadastrar (antes: "Explicações compatíveis")
-    assert any(w.value.startswith("Não dá para concluir") for w in at.warning)
+    assert any("Não dá para concluir" in w.value for w in at.warning)
     assert _rodape_ok(at)
 
     at.switch_page("paginas/extrato.py").run()
@@ -55,6 +55,6 @@ def test_ato_1_caso_completo_conclui():
     assert {m.label: m.value for m in at.metric}.get("Bloqueadas") == "0"
     at.switch_page("paginas/investigacao.py").run()
     assert not at.exception, at.exception
-    assert not any(w.value.startswith("Não dá para concluir") for w in at.warning)
-    assert any("menos energia por tonelada" in s.value for s in at.success)
+    assert not any("Não dá para concluir" in w.value for w in at.warning)
+    assert any("combustível mais úmido" in s.value for s in at.success)
     assert _rodape_ok(at)

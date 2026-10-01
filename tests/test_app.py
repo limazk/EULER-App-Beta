@@ -132,7 +132,7 @@ def test_investigacao_com_demo_mostra_o_que_falta_para_concluir():
     at = abrir_com_demo("investigacao.py")
     assert not at.exception, at.exception
     # Auditoria A3: sem a incerteza do método de umidade, a EULER se abstém e diz o que cadastrar
-    assert any(w.value.startswith("Não dá para concluir") for w in at.warning)
+    assert any("Não dá para concluir" in w.value for w in at.warning)
     assert any("Mais calor saindo pela chaminé" in m.value for m in at.markdown)
     assert any("Cadastrar em instrumentos.csv" in i.value for i in at.info)
     assert any(c.value == RODAPE_SEGURANCA for c in at.caption)
@@ -142,7 +142,7 @@ def test_investigacao_semana_sem_vapor_abstem():
     at = abrir_com_demo("investigacao.py")
     at.select_slider[1].set_value((6, 6)).run()  # semana 7: medidor de vapor fora
     assert not at.exception, at.exception
-    assert any(w.value.startswith("Não dá para concluir") for w in at.warning)
+    assert any(w.value.startswith("Não dá para saber se o consumo") for w in at.warning)
 
 
 def test_relatorio_sem_dados_manda_importar():
@@ -281,7 +281,12 @@ def test_investigacao_resume_o_resultado_no_topo_sem_perder_os_quatro_estados():
     metricas = {m.label: m.value for m in at.metric}
     assert metricas["Consumo por tonelada de vapor"] == "0,353 t/t"
     assert metricas["Valor em jogo (estimado)"].endswith("26.992")
-    assert any(i.value.startswith("**Próxima verificação:** Cadastrar") for i in at.info)
+    assert any(
+        i.value.startswith("**Próxima verificação, em detalhe:** Cadastrar") for i in at.info
+    )
+    resumo = next(w.value for w in at.warning if "Não dá para concluir" in w.value)
+    assert resumo.startswith("O consumo por tonelada de vapor subiu 10,1%.")
+    assert "Próxima verificação: " in resumo
     tabela = at.table[0].value.set_index("Indicador")
     temperatura = tabela.loc["Temperatura dos gases"]
     assert temperatura["Diferença"] == "+31,9 °C (± 3,3)"
@@ -321,7 +326,7 @@ def test_tela_sem_dados_oferece_carregar_o_demo():
     assert any("Nenhum dado importado" in i.value for i in at.info)
     clicar(at, "Ato 2 · dados insuficientes")
     assert not at.exception, at.exception
-    assert any(w.value.startswith("Não dá para concluir") for w in at.warning)
+    assert any("Não dá para concluir" in w.value for w in at.warning)
 
 
 def test_investigacao_guardada_nao_serve_para_outra_altitude():

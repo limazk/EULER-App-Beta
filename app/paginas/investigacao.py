@@ -279,19 +279,23 @@ def mostrar(pacote) -> None:
 
     # ---------------------------------------------------------------- resultado em resumo
     secao("Resultado")
-    conclusao, proxima = st.columns(2, gap="medium")
-    with conclusao:
-        if j["conclusao"]["abstencao"]:
-            st.warning(md(j["conclusao"]["texto"]), icon=":material/pan_tool:")
-        else:
-            st.success(md(j["conclusao"]["texto"]), icon=":material/fact_check:")
-    with proxima:
-        prox = j["proxima_verificacao"]
-        st.info(
-            f"**Próxima verificação:** {md(prox['acao'])}  \n{md(prox['porque'])}",
-            icon=":material/search:",
+    # até três frases curtas (D63): o consumo; o que explica e o que foi descartado; a
+    # próxima verificação. A conclusão completa abre a aba 2.
+    resumo = "  \n".join(md(f) for f in j["resumo"]["frases"])
+    if j["conclusao"]["abstencao"]:
+        st.warning(resumo, icon=":material/pan_tool:")
+    else:
+        st.success(resumo, icon=":material/fact_check:")
+        st.caption(
+            '"Compatível com os dados" não é causa comprovada: cada explicação precisa da '
+            "verificação indicada."
         )
     _numeros_principais(j)
+    prox = j["proxima_verificacao"]
+    st.info(
+        f"**Próxima verificação, em detalhe:** {md(prox['acao'])}  \n{md(prox['porque'])}",
+        icon=":material/search:",
+    )
 
     # ---------------------------------------------------------------- detalhes em abas
     hips = j["hipoteses"]
@@ -315,6 +319,7 @@ def mostrar(pacote) -> None:
         _indicadores(j)
 
     with aba2:
+        st.markdown(f"**Conclusão:** {md(j['conclusao']['texto'])}")
         _hipoteses(sustentadas, "Nenhuma explicação é sustentada pelos dados.")
         if opostas:
             _hipoteses(opostas, "")
