@@ -5,8 +5,9 @@ do edital).
 **O que mostrar:** o app real rodando com o **caso de demonstração sintético**
 (`demo/caso_demo/`), sem alterar dados.
 **Rascunho gravado:** `python scripts/gravar_video_demo.py` grava o app seguindo estas
-cenas, **com legendas e sem narração** (`demo/video/rascunho_video_demo.webm`). A narração
-abaixo deve ser gravada por cima (ou falada ao vivo).
+cenas, **com legendas e sem narração** (`demo/video/rascunho_video_demo.mp4`, 2 min 8 s; o
+`.webm` original fica só na máquina que gravou). A narração abaixo deve ser gravada por cima
+(ou falada ao vivo).
 
 > Antes de gravar a versão final: `streamlit run app/main.py`, navegador em 1280 × 720,
 > zoom 100%. Fale devagar; cada cena tem alguns segundos de folga.
