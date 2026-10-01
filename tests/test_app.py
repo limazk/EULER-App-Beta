@@ -126,3 +126,17 @@ def test_investigacao_semana_sem_vapor_abstem():
     at.select_slider[1].set_value((6, 6)).run()  # semana 7: medidor de vapor fora
     assert not at.exception, at.exception
     assert any(w.value.startswith("Não dá para concluir") for w in at.warning)
+
+
+def test_relatorio_sem_investigacao_orienta():
+    at = abrir("relatorio.py")
+    assert not at.exception
+    assert any("Investigação" in i.value for i in at.info)
+
+
+def test_relatorio_depois_da_investigacao_gera_html():
+    at = abrir_com_demo("investigacao.py")
+    at.switch_page("paginas/relatorio.py").run()
+    clicar(at, "Gerar relatório")
+    assert not at.exception, at.exception
+    assert any(c.value == RODAPE_SEGURANCA for c in at.caption)

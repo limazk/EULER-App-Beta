@@ -520,13 +520,13 @@ def investigar(
         st_res = "descartada"
         porque = (
             "O balanço direto e a perda nos gases contam a mesma história, dentro da incerteza "
-            f"(diferença de {_sinal(residuo)} p.p., incerteza ±{num(u_residuo)} p.p.)."
+            f"(diferença de {_sinal(residuo)} p.p., incerteza ±{num(u_residuo, 1)} p.p.)."
         )
     elif residuo > 0:
         st_res = "possivel"
         porque = (
             f"O balanço direto mostra {num(residuo)} p.p. a mais de perda do que a chaminé explica "
-            f"(incerteza ±{num(u_residuo)} p.p.). Pode ser purga, perda pelo casco, vazamento de "
+            f"(incerteza ±{num(u_residuo, 1)} p.p.). Pode ser purga, perda pelo casco, vazamento de "
             "vapor ou combustão incompleta: os registros atuais não separam essas causas."
         )
     else:
@@ -622,7 +622,7 @@ def investigar(
     if not c_cons.disponivel:
         faltas_consumo = [f for b in (*b_ref.bloqueios, *b_comp.bloqueios) for f in b.falta]
         prox = {
-            "acao": "Registrar o que falta para fechar o balanço: "
+            "acao": "Registrar o que falta para completar o balanço: "
             + "; ".join(dict.fromkeys(faltas_consumo))
             + ".",
             "separa": [h["id"] for h in hipoteses if h["status"] in ("sustentada", "possivel")],
@@ -726,6 +726,10 @@ def investigar(
             + ([] if i.bloqueio is None else [i.bloqueio.motivo]),
         }
 
+    origens = set()
+    for imp in pacote.importacoes.values():
+        if "origem_dado" in imp.dados:
+            origens |= set(imp.dados["origem_dado"].dropna().astype(str))
     diario = pacote.dados("diario")
     caldeira = (
         None if diario is None or diario.empty else str(diario["caldeira_id"].dropna().iloc[0])
@@ -735,6 +739,7 @@ def investigar(
             "versao_euler": __version__,
             "formato": "investigacao/0.1 (proposta D28)",
             "caldeira_id": caldeira,
+            "origem_dados": sorted(origens),
             "periodos": {
                 "referencia": periodo_json(ref, b_ref, i_ref),
                 "comparacao": periodo_json(comp, b_comp, i_comp),

@@ -184,6 +184,12 @@ def mostrar(pacote) -> None:
     prox = j["proxima_verificacao"]
     st.info(f"**{md(prox['acao'])}**  \n{md(prox['porque'])}", icon=":material/search:")
 
+    st.page_link(
+        "paginas/relatorio.py",
+        label="Gerar o relatório desta comparação",
+        icon=":material/description:",
+    )
+
     with st.expander("Dados técnicos da investigação (JSON)"):
         texto = json.dumps(j, ensure_ascii=False, indent=2)
         st.download_button(

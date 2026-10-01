@@ -15,6 +15,7 @@ paginas = [
     st.Page("paginas/importar.py", title="Importar dados", icon=":material/upload_file:"),
     st.Page("paginas/limites.py", title="Dados e limites", icon=":material/rule:"),
     st.Page("paginas/investigacao.py", title="Investigação", icon=":material/troubleshoot:"),
+    st.Page("paginas/relatorio.py", title="Relatório", icon=":material/description:"),
     st.Page("paginas/extrato.py", title="Extrato por fornecedor", icon=":material/receipt_long:"),
     st.Page(
         "paginas/calculadora.py", title="Calculadora de referência", icon=":material/calculate:"

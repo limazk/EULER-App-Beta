@@ -64,6 +64,15 @@ def _com_demo(menu: str, esperar: str) -> Callable[[Page], None]:
     return acao
 
 
+def _relatorio_demo(pagina: Page) -> None:
+    """Demo → Investigação → Relatório → Gerar relatório (mesma sessão)."""
+    _com_demo("Investigação", "Próxima verificação")(pagina)
+    pagina.get_by_role("link", name="Relatório").first.click()
+    pagina.get_by_role("button", name="Gerar relatório").click()
+    pagina.get_by_text("Prévia").wait_for(timeout=60_000)
+    pagina.wait_for_timeout(2500)
+
+
 TELAS: list[Tela] = [
     Tela("01_inicio"),
     Tela("02_calculadora", "calculadora", _abrir_expansor("Detalhes do cálculo")),
@@ -79,6 +88,7 @@ TELAS: list[Tela] = [
     ),
     Tela("05_dados_e_limites", "importar", _com_demo("Dados e limites", "Análises liberadas")),
     Tela("06_investigacao", "importar", _com_demo("Investigação", "Próxima verificação")),
+    Tela("07_relatorio", "importar", _relatorio_demo),
 ]
 
 
