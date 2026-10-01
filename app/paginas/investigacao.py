@@ -18,7 +18,8 @@ st.title("Investigação")
 st.markdown(f"> {PERGUNTA_CENTRAL}")
 
 STATUS = {
-    "sustentada": ("Os dados sustentam", ":material/check_circle:"),
+    "sustentada": ("Compatível com os dados (não comprovada)", ":material/check_circle:"),
+    "oposta": ("Mudou no sentido contrário (compensou parte)", ":material/swap_vert:"),
     "possivel": ("Continua possível", ":material/help:"),
     "descartada": ("Descartada pelos dados", ":material/cancel:"),
     "nao_avaliavel": ("Não dá para avaliar", ":material/block:"),

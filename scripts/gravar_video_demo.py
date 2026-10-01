@@ -99,7 +99,7 @@ def roteiro(p: Page, url: str) -> None:
     rolar(p, 330, 4500)
     legenda(
         p,
-        "Os dados sustentam duas causas: cavaco mais úmido (sobretudo do F3) e gases 32 °C mais quentes.",
+        "Duas explicações compatíveis (não comprovadas): cavaco mais úmido (F3) e gases 32 °C mais quentes.",
     )
     rolar(p, 650, 5500)
     legenda(p, "Excesso de ar e perdas ocultas foram descartados — com o motivo.")

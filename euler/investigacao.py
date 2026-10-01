@@ -17,6 +17,10 @@ Vocabulário (revisado na Fase R, D44) — quatro coisas diferentes:
 - **causa comprovada**: a EULER **nunca** afirma a partir dos dados; exige a verificação
   indicada (`causa_comprovada: false` em toda hipótese).
 
+Um fator que mudou de forma detectável e relevante, mas no sentido **oposto** ao da mudança
+de consumo, recebe o status `oposta`: não explica a mudança, mas compensou parte dela e
+pode estar escondendo um problema (ex.: combustível mais seco mascarando gases mais quentes).
+
 Além das hipóteses: `fechamento` (as explicações somadas cobrem a mudança medida?),
 resíduo direto − indireto com a umidade **compartilhada** pelos dois caminhos (E12
 aplicado no número) e robustez ao uso do pátio (recebido × queimado, D38).
@@ -52,7 +56,9 @@ MEDICOES_INDIRETO = (
     "PCI seco das amostras",
     "composição elementar",
 )
-STATUS = ("sustentada", "possivel", "descartada", "nao_avaliavel")
+STATUS = ("sustentada", "oposta", "possivel", "descartada", "nao_avaliavel")
+"""oposta: mudou de forma detectável e relevante, mas empurra o consumo no sentido contrário
+ao medido — não explica a mudança, compensou parte dela (Fase R)."""
 CRITERIO_RELEVANCIA = 0.5
 """D29: efeito relevante ≥ 0,5 × menor mudança de consumo detectável (proposta)."""
 ALTERNATIVAS_D29 = (0.0, 0.5, 1.0)
@@ -308,12 +314,10 @@ def _avaliar(
         return "nao_avaliavel", av
     if cons.disponivel and cons.detectabilidade in ("sim", "condicional") and efeito is not None:
         av["compativel_com_consumo"] = bool((efeito > 0) == (cons.delta > 0))
-    if (
-        av["mudanca_detectavel"] == "nao"
-        or av["relevante"] is False
-        or av["compativel_com_consumo"] is False
-    ):
+    if av["mudanca_detectavel"] == "nao" or av["relevante"] is False:
         return "descartada", av
+    if av["compativel_com_consumo"] is False:
+        return ("oposta" if av["mudanca_detectavel"] == "sim" else "descartada"), av
     if (
         av["mudanca_detectavel"] == "sim"
         and av["compativel_com_consumo"] is True
@@ -338,7 +342,11 @@ def _complemento(
     if av["mudanca_detectavel"] == "condicional":
         return ""
     if av["compativel_com_consumo"] is False:
-        return " Isso empurraria o consumo para o lado contrário do que foi medido."
+        return (
+            f" Mudou de verdade, mas empurra o consumo para o lado contrário do que foi medido "
+            f"(efeito estimado {_sinal(_simples(efeito))}%): compensou parte da mudança e pode "
+            "estar escondendo um problema. Vale verificar mesmo assim."
+        )
     if not cons.disponivel:
         return " Sem o consumo por tonelada de vapor, não dá para confirmar o efeito no consumo."
     if cons.detectabilidade == "nao":
@@ -396,7 +404,15 @@ def investigar(
     comparacao: tuple[pd.Timestamp, pd.Timestamp],
     criterio_relevancia: float = CRITERIO_RELEVANCIA,
 ) -> dict:
-    """Compara dois períodos e devolve o JSON de investigação (ver docstring do módulo)."""
+    """Compara dois períodos e devolve o JSON de investigação (ver docstring do módulo).
+
+    Bloqueia (AnaliseBloqueada) se os períodos se sobrepõem: a comparação não teria sentido.
+    """
+    if not (referencia[1] <= comparacao[0] or comparacao[1] <= referencia[0]):
+        raise AnaliseBloqueada(
+            "Os períodos de referência e de comparação se sobrepõem: escolha períodos separados.",
+            ["dois períodos sem sobreposição"],
+        )
     ref, comp = resumir_periodo(pacote, *referencia), resumir_periodo(pacote, *comparacao)
     b_ref, b_comp = balanco_direto(ref), balanco_direto(comp)
     p_gases = pacote.p_atm_bar or P_ATM_NIVEL_DO_MAR_BAR
@@ -520,6 +536,13 @@ def investigar(
     def complemento(av: dict, efeito: float | None) -> str:
         return _complemento(av, efeito, lim, criterio_relevancia, c_cons)
 
+    def titulo(c: Comparacao, subiu: str, caiu: str, neutro: str) -> str:
+        if c.disponivel and c.detectabilidade in ("sim", "condicional"):
+            return subiu if c.delta > 0 else caiu
+        if c_cons.disponivel and c_cons.detectabilidade == "sim":
+            return subiu if c_cons.delta > 0 else caiu
+        return neutro
+
     hipoteses = []
     st, av = avaliacoes["temperatura_gases"]
     porque = _texto_mudanca(c_tg, "a temperatura dos gases", "°C", 1)
@@ -529,7 +552,12 @@ def investigar(
     hipoteses.append(
         _hipotese(
             "temperatura_gases",
-            "Mais calor saindo pela chaminé (temperatura dos gases)",
+            titulo(
+                c_tg,
+                "Mais calor saindo pela chaminé (temperatura dos gases)",
+                "Menos calor saindo pela chaminé (temperatura dos gases)",
+                "Calor saindo pela chaminé (temperatura dos gases)",
+            ),
             st,
             av,
             porque,
@@ -552,7 +580,12 @@ def investigar(
     hipoteses.append(
         _hipotese(
             "excesso_ar",
-            "Excesso de ar diferente (O₂ nos gases)",
+            titulo(
+                c_o2,
+                "Mais excesso de ar (O₂ maior nos gases)",
+                "Menos excesso de ar (O₂ menor nos gases)",
+                "Excesso de ar diferente (O₂ nos gases)",
+            ),
             st,
             av,
             porque,
@@ -574,8 +607,8 @@ def investigar(
     forn_maior = max(mudancas, key=mudancas.get) if mudancas else None
     if c_w.detectabilidade == "sim" and ef_w is not None:
         porque += (
-            " Cada tonelada recebida entrega menos energia (efeito estimado "
-            f"{_sinal(_simples(ef_w))}% no consumo"
+            f" Cada tonelada recebida entrega {'menos' if ef_w > 0 else 'mais'} energia "
+            f"(efeito estimado {_sinal(_simples(ef_w))}% no consumo"
         )
         if faixa_w is not None:
             porque += (
@@ -593,7 +626,12 @@ def investigar(
     hipoteses.append(
         _hipotese(
             "umidade_combustivel",
-            "Combustível mais úmido (menos energia por tonelada)",
+            titulo(
+                c_w,
+                "Combustível mais úmido (menos energia por tonelada)",
+                "Combustível mais seco (mais energia por tonelada)",
+                "Umidade do combustível",
+            ),
             st,
             av,
             porque,
@@ -626,7 +664,12 @@ def investigar(
     hipoteses.append(
         _hipotese(
             "condicao_vapor",
-            "Vapor mais exigente (pressão ou água de alimentação mais fria)",
+            titulo(
+                c_dh,
+                "Vapor mais exigente (pressão maior ou água de alimentação mais fria)",
+                "Vapor menos exigente (pressão menor ou água de alimentação mais quente)",
+                "Condição do vapor (pressão e água de alimentação)",
+            ),
             st,
             av,
             porque,
@@ -899,7 +942,8 @@ def investigar(
         mudaram = [
             h
             for h in hipoteses
-            if h["status"] in ("sustentada", "possivel") and h["id"] != "perdas_nao_medidas"
+            if h["status"] in ("sustentada", "oposta", "possivel")
+            and h["id"] != "perdas_nao_medidas"
         ]
         if mudaram:
             texto += (
@@ -912,6 +956,13 @@ def investigar(
             "Explicações compatíveis com os dados: "
             + "; ".join(h["titulo"].lower() for h in sustentadas)
             + ". Nenhuma é causa comprovada sem a verificação indicada."
+        )
+    opostas = [h for h in hipoteses if h["status"] == "oposta"]
+    if opostas:
+        texto += (
+            " Mudou no sentido contrário e compensou parte da mudança: "
+            + "; ".join(h["titulo"].lower() for h in opostas)
+            + "."
         )
 
     # ------------------------------------------------ próxima verificação
@@ -956,6 +1007,9 @@ def investigar(
             "separa": [],
             "porque": "Com mais dados, a incerteza diminui e mudanças menores ficam visíveis.",
         }
+    if opostas:
+        prox["porque"] += " Verifique também: " + " ".join(h["verificacao"] for h in opostas)
+        prox["separa"] = list(dict.fromkeys(prox["separa"] + [h["id"] for h in opostas]))
 
     # ------------------------------------------------ valor em jogo (só com base)
     valor_em_jogo, motivo_valor = None, ""

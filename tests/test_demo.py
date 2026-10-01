@@ -30,6 +30,59 @@ def test_gerador_nao_usa_o_motor_euler():
     assert "import euler" not in codigo and "from euler" not in codigo
 
 
+def _tabela(nome: str):
+    import io
+
+    import pandas as pd
+
+    return pd.read_csv(io.StringIO(_gerador().gerar()[nome]), dtype=str)
+
+
+def test_regressao_totalizador_conta_durante_a_lacuna_do_diario():
+    """Correção do gerador (Etapa 5): o medidor continua contando quando ninguém anota.
+
+    Antes, o totalizador só avançava nas linhas anotadas; atravessando a lacuna de ~1,5 dia
+    ele subia como se fosse um único intervalo de 2 h. Verificação sem o motor: a vazão média
+    calculada através da lacuna fica perto da vazão típica das outras leituras."""
+    import pandas as pd
+
+    g = _gerador()
+    d = _tabela("diario.csv")
+    d = d[d["totalizador_vapor_t"].notna()].copy()
+    d["t"] = pd.to_datetime(d["instante_observado"], utc=True)
+    d["tot"] = d["totalizador_vapor_t"].astype(float)
+    antes = d[d["t"] < pd.Timestamp(g.LACUNA[0])].iloc[-1]
+    depois = d[d["t"] >= pd.Timestamp(g.LACUNA[1])].iloc[0]
+    horas = (depois["t"] - antes["t"]).total_seconds() / 3600
+    vazao_lacuna = (depois["tot"] - antes["tot"]) / horas
+    normal = d[d["t"] < pd.Timestamp(g.LACUNA[0])]
+    vazao_tipica = (normal["tot"].iloc[-1] - normal["tot"].iloc[0]) / (
+        (normal["t"].iloc[-1] - normal["t"].iloc[0]).total_seconds() / 3600
+    )
+    assert horas > 30  # a lacuna existe
+    assert vazao_lacuna == pytest.approx(vazao_tipica, rel=0.2)
+
+
+def test_regressao_entregas_do_dia_antes_da_proxima_medicao_de_estoque():
+    """Invariante do gerador (protege a correção da Etapa 5): o estoque simulado soma as
+    entregas do dia antes de descontar o consumo, então toda entrega precisa ter horário
+    anterior à medição de estoque da manhã seguinte (07:30); senão o balanço E9 do arquivo
+    deixa de bater com o combustível simulado. Quem garante isso é o limite de 6 caminhões
+    por dia com 3,5 h de intervalo (até ~19h20); a fórmula antiga não tinha limite. Com a
+    semente atual a versão antiga não chegou a violar a regra: este teste é uma proteção,
+    não a reprodução de uma falha observada."""
+    import pandas as pd
+
+    g = _gerador()
+    c = _tabela("combustivel.csv")
+    t = pd.to_datetime(c.loc[c["tipo"] == "recebimento", "data"], utc=True)
+    inicio = pd.Timestamp(g.INICIO)
+    dia = ((t - inicio) // pd.Timedelta(days=1)).astype(int)
+    proxima_medicao = inicio + pd.to_timedelta(dia + 1, unit="D") - pd.Timedelta(minutes=30)
+    assert (t < proxima_medicao).all()
+    assert (t > inicio + pd.to_timedelta(dia, unit="D")).all()
+
+
 @pytest.fixture(scope="module")
 def pacote_demo():
     return importar_pasta(DEMO / "caso_demo", p_atm_bar=p_atm_por_altitude_bar(1000))

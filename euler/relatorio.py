@@ -36,7 +36,8 @@ VERBOS_PROIBIDOS = (
 """Verbos de comando operacional que nunca podem aparecer num relatório (regra 1)."""
 
 ROTULO_STATUS = {
-    "sustentada": "Os dados sustentam",
+    "sustentada": "Explicação compatível com os dados (não comprovada)",
+    "oposta": "Mudou no sentido contrário (compensou parte da mudança)",
     "possivel": "Continua possível",
     "descartada": "Descartada pelos dados",
     "nao_avaliavel": "Não dá para avaliar com os dados atuais",
@@ -165,9 +166,18 @@ def gerar_html(investigacao: dict, gerado_em: datetime | None = None) -> str:
 
     # 2. o que os dados sustentam
     sustentadas = [h for h in hips if h["status"] == "sustentada"]
+    opostas = [h for h in hips if h["status"] == "oposta"]
     descartadas = [h for h in hips if h["status"] == "descartada"]
     bloco2 = "".join(_hipotese_html(h) for h in sustentadas) or (
         "<p>Nenhuma explicação é sustentada pelos dados.</p>"
+    )
+    bloco2 += "".join(_hipotese_html(h) for h in opostas)
+    fechamento = j["o_que_mudou"].get("fechamento")
+    if fechamento:
+        bloco2 += f'<p class="nota">{_e(fechamento["frase"])}</p>'
+    bloco2 += (
+        '<p class="nota">"Compatível com os dados" não é causa comprovada: cada explicação '
+        "precisa da verificação indicada.</p>"
     )
     if descartadas:
         bloco2 += (
