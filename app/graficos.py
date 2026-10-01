@@ -11,9 +11,13 @@ import altair as alt
 import pandas as pd
 from componentes import COR_COMPARACAO, COR_REFERENCIA
 
-CORES = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#4a3aa7", "#e34948"]
-TINTA_SECUNDARIA = "#52514e"
-GRADE = "#e6e5e1"
+# Paleta categórica validada para fundo escuro (validador da paleta, superfície #212121:
+# faixa de luminosidade, croma, separação para daltonismo e contraste ≥ 3:1).
+CORES = ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "#008300", "#9085e9", "#e66767"]
+TINTA = "#ECECEC"
+TINTA_SECUNDARIA = "#A3A3A3"
+GRADE = "#333333"
+SUPERFICIE = "#232323"
 LOCALE_PT_BR = {
     "number": {"decimal": ",", "thousands": ".", "grouping": [3], "currency": ["R$ ", ""]},
     "time": {
@@ -42,7 +46,8 @@ def escala_cores(entidades: list[str]) -> alt.Scale:
 
 def _configurar(grafico: alt.Chart) -> alt.Chart:
     return (
-        grafico.configure(locale=LOCALE_PT_BR)
+        # fundo transparente: o gráfico fica sobre a cor do cartão ou da tela, sem caixa a mais
+        grafico.configure(locale=LOCALE_PT_BR, background="transparent")
         .configure_view(stroke=None)
         .configure_axis(
             gridColor=GRADE,
@@ -54,7 +59,8 @@ def _configurar(grafico: alt.Chart) -> alt.Chart:
             titleFontSize=12,
             titleFontWeight="normal",
         )
-        .configure_title(fontSize=14, anchor="start", color="#0b0b0b")
+        .configure_title(fontSize=14, anchor="start", color=TINTA)
+        .configure_legend(labelColor=TINTA_SECUNDARIA, titleColor=TINTA_SECUNDARIA)
     )
 
 
@@ -108,7 +114,7 @@ def linhas_semanais(
         ),
     )
     linhas = base.mark_line(strokeWidth=2)
-    pontos = base.mark_point(size=64, filled=True, stroke="white", strokeWidth=2).encode(
+    pontos = base.mark_point(size=64, filled=True, stroke=SUPERFICIE, strokeWidth=2).encode(
         tooltip=[
             alt.Tooltip("fornecedor_id:N", title="Fornecedor"),
             alt.Tooltip("semana:T", title="Semana de", format="%d/%m/%Y"),

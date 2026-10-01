@@ -44,25 +44,25 @@ ROTULO_STATUS = {
 }
 
 MARCA_SVG = (
-    '<svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="7" '
-    'fill="#C2410C"/><rect x="8" y="7.5" width="4" height="17" rx="1.5" fill="#fff"/>'
-    '<rect x="8" y="7.5" width="16" height="4" rx="1.5" fill="#fff"/><rect x="8" y="14" '
-    'width="11" height="4" rx="1.5" fill="#fff" fill-opacity=".85"/><rect x="8" y="20.5" '
-    'width="16" height="4" rx="1.5" fill="#fff"/></svg>'
+    '<svg viewBox="0 0 32 32" aria-hidden="true">'
+    '<rect x="8" y="6" width="2.4" height="20" rx="0.4" fill="#1d1d1b"/>'
+    '<rect x="8" y="6" width="16" height="2.4" rx="0.4" fill="#1d1d1b"/>'
+    '<rect x="12.6" y="14.8" width="9.4" height="2.4" rx="0.4" fill="#1d1d1b"/>'
+    '<rect x="8" y="23.6" width="16" height="2.4" rx="0.4" fill="#1d1d1b"/></svg>'
 )
-"""Marca EULER (D58, a mesma de app/imagens/euler_marca.svg), embutida no relatório."""
+"""Marca EULER (D61, a mesma de app/imagens/euler_marca.svg, em tinta escura para o papel)."""
 
 CSS = """
 @page { size: A4; margin: 18mm 16mm 20mm; }
 :root { --tinta: #1d1d1b; --tinta-2: #52514e; --linha: #e2e1dc; --fundo: #ffffff;
-        --destaque: #c2410c; --ok: #1d6b3a; --ok-fundo: #e8f3ec; --alerta: #8a5a00;
+        --destaque: #262626; --ok: #1d6b3a; --ok-fundo: #e8f3ec; --alerta: #8a5a00;
         --alerta-fundo: #fdf3dc; --info-fundo: #eef4fb; }
 * { box-sizing: border-box; }
 body { font-family: "Source Sans 3", "Segoe UI", Arial, sans-serif; color: var(--tinta);
        background: var(--fundo); margin: 0; line-height: 1.5; font-size: 15px; }
 main { max-width: 820px; margin: 0 auto; padding: 32px 24px 24px; }
 header { border-bottom: 3px solid var(--destaque); padding-bottom: 12px; margin-bottom: 20px; }
-.marca { font-weight: 800; letter-spacing: .08em; color: var(--destaque); font-size: 13px;
+.marca { font-weight: 600; letter-spacing: .2em; color: var(--destaque); font-size: 13px;
          display: flex; align-items: center; gap: 8px; }
 .marca svg { width: 22px; height: 22px; flex: none; }
 h1 { font-size: 26px; margin: 4px 0 6px; line-height: 1.2; }

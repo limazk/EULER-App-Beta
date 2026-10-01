@@ -13,56 +13,15 @@ import graficos
 import pandas as pd
 import streamlit as st
 from componentes import cabecalho, cartao, md, proximo_passo, secao
+from formatacao import SERIES, STATUS, diferenca, selo_deteccao, valor_formatado
 
 from euler.capacidades import avaliar
-from euler.formato import num, pct, plural
+from euler.formato import num, plural
 from euler.investigacao import SUFIXO_CADASTRAR, investigar
 from euler.periodos import periodos_entre_estoques
-from euler.relatorio import mudou_detectavel
 from euler.textos import PERGUNTA_CENTRAL
 
 cabecalho("Investigação", PERGUNTA_CENTRAL, "Passo 3 de 5")
-
-STATUS = {
-    "sustentada": ("Compatível com os dados (não comprovada)", "blue", ":material/check_circle:"),
-    "oposta": ("Mudou no sentido contrário (compensou parte)", "violet", ":material/swap_vert:"),
-    "possivel": ("Continua possível", "orange", ":material/help:"),
-    "descartada": ("Descartada pelos dados", "gray", ":material/cancel:"),
-    "nao_avaliavel": ("Não dá para avaliar", "gray", ":material/block:"),
-}
-
-# Selo curto dos quatro estados da detecção (azul = mudou; laranja = só com uma condição;
-# cinza = não mudou ou sem incerteza para dizer). No condicional, o selo vem seguido do texto
-# do relatório (mudou_detectavel), que diz a condição. O selo não quebra linha: texto longo
-# fica fora dele.
-SELO_DETECCAO = {
-    "sim": ("blue", "Sim"),
-    "condicional": ("orange", "Condicional"),
-    "nao": ("gray", "Não"),
-    None: ("gray", "Sem incerteza para dizer"),
-}
-
-
-def _selo_deteccao(c) -> str:
-    texto = mudou_detectavel(c)
-    if texto == "—":
-        return texto
-    cor, curto = SELO_DETECCAO[c["detectabilidade"]]
-    if c["detectabilidade"] == "condicional":
-        return f":{cor}-badge[{curto}] {texto}"
-    if c["detectabilidade"] == "nao":
-        return f":{cor}-badge[{curto}] variação normal"
-    return f":{cor}-badge[{curto}]"
-
-
-# Séries diárias que podem ir para o gráfico: coluna → (botão, título, unidade, formato).
-SERIES = {
-    "t_gases_c": ("Gases na chaminé", "Temperatura dos gases na chaminé", "°C", ".0f"),
-    "o2_seco_pct": ("O₂", "O₂ nos gases (base seca)", "%", ".1f"),
-    "co_ppm": ("CO", "CO nos gases", "ppm", ".0f"),
-    "t_ar_c": ("Ar de combustão", "Temperatura do ar de combustão", "°C", ".1f"),
-    "t_agua_alim_c": ("Água de alimentação", "Temperatura da água de alimentação", "°C", ".1f"),
-}
 
 
 @st.cache_data(show_spinner="Investigando os dois períodos…", max_entries=64)
@@ -122,9 +81,9 @@ def _linha_do_tempo(periodos, ref, comp) -> None:
     st.html(
         f'<div class="euler-tempo">{"".join(celulas)}</div>'
         '<div class="euler-tempo-legenda">'
-        '<span><span class="q" style="background:var(--euler-ref);border:1px solid #C9D3E0">'
+        '<span><span class="q ref">'
         f"</span><b>Referência</b> · {escape(resumo(*ref))}</span>"
-        '<span><span class="q" style="background:var(--euler-comp);border:1px solid #F3C3A6">'
+        '<span><span class="q comp">'
         f"</span><b>Comparação</b> · {escape(resumo(*comp))}</span></div>"
     )
 
@@ -225,38 +184,6 @@ def _hipoteses(lista, titulo_vazio: str) -> None:
             st.caption(f"Como verificar: {h['verificacao']}")
 
 
-def _valor(v, unidade: str) -> str:
-    if v is None:
-        return "—"
-    if unidade == "fração":
-        return pct(v)
-    casas = 3 if unidade == "MJ/kg" else 1
-    return f"{num(v, casas)} {unidade}"
-
-
-def _diferenca(c) -> str:
-    """Diferença comparação − referência, com a incerteza dela (os dois vêm do JSON)."""
-    if c["variacao"] is None:
-        return "—"
-    unidade = c["unidade"]
-    escala, rotulo, casas = 1.0, unidade, 1
-    if unidade == "fração":
-        escala, rotulo = 100.0, "p.p."
-    elif unidade == "%":
-        rotulo = "p.p."
-    elif unidade == "% do PCI":
-        rotulo = "p.p. do PCI"
-    elif unidade == "MJ/kg":
-        casas = 3
-    v = escala * c["variacao"]
-    texto = f"{'+' if v >= 0 else '−'}{num(abs(v), casas)} {rotulo}"
-    if c["incerteza_variacao"] is not None:
-        return f"{texto} (± {num(escala * c['incerteza_variacao'], casas)})"
-    if c.get("faltam_na_incerteza"):
-        return f"{texto} (incerteza incompleta)"
-    return texto
-
-
 def _indicadores(j) -> None:
     linhas = []
     for c in j["o_que_mudou"]["indicadores"]:
@@ -265,10 +192,10 @@ def _indicadores(j) -> None:
         linhas.append(
             {
                 "Indicador": c["nome"][0].upper() + c["nome"][1:],
-                "Referência": _valor(c["referencia"], c["unidade"]),
-                "Comparação": _valor(c["comparacao"], c["unidade"]),
-                "Diferença": _diferenca(c),
-                "Mudou de forma detectável?": _selo_deteccao(c),
+                "Referência": valor_formatado(c["referencia"], c["unidade"]),
+                "Comparação": valor_formatado(c["comparacao"], c["unidade"]),
+                "Diferença": diferenca(c),
+                "Mudou de forma detectável?": selo_deteccao(c),
             }
         )
     # tabela simples: quebra o texto (a coluna da detecção tem frases longas)
@@ -293,7 +220,7 @@ def _numeros_principais(j) -> None:
                 f"{num(consumo['referencia'], 3)} t/t",
                 delta_color="off",
             )
-            st.markdown(f"Mudou de forma detectável? {_selo_deteccao(consumo)}")
+            st.markdown(f"Mudou de forma detectável? {selo_deteccao(consumo)}")
         else:
             st.metric("Consumo por tonelada de vapor", "—")
             st.caption("Não pode ser calculado neste período (ver o motivo na conclusão).")

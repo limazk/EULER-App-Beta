@@ -35,8 +35,8 @@ BARRA_IMPRESSAO = """
  align-items:center;justify-content:flex-end;padding:8px 4px 10px;background:#fff;
  border-bottom:1px solid #e5e5e5;margin-bottom:14px;font-family:Arial,sans-serif;">
  <span style="color:#666;font-size:13px;margin-right:auto;">Prévia do relatório (A4)</span>
- <button onclick="window.print()" style="cursor:pointer;border:1px solid #c2410c;
-  background:#fdf1ea;color:#9a3412;font-weight:600;border-radius:6px;padding:7px 14px;
+ <button onclick="window.print()" style="cursor:pointer;border:1px solid #171717;
+  background:#171717;color:#ffffff;font-weight:600;border-radius:6px;padding:7px 14px;
   font-size:13px;">Imprimir ou salvar como PDF</button>
 </div>
 <style>@media print { .euler-barra { display: none !important; } }</style>

@@ -1,31 +1,45 @@
-# Identidade visual EULER (proposta D58, pendente de aprovação do Adryan).
-# Ferrugem (calor, energia) como cor de ação; azul-marinho profundo na barra lateral;
-# fundo claro e neutro para as telas de leitura. As cores das categorias dos gráficos são
-# a paleta validada de app/graficos.py (CORES).
+# Identidade visual EULER: tema escuro (D61, pedido do Adryan em 01/10/2026).
+# Fundo grafite quase preto, barra lateral mais escura, texto claro e interface monocromática;
+# cor só onde ela informa (alertas, selos, os dois períodos comparados e os gráficos).
+# As cores das categorias dos gráficos são a paleta validada para fundo escuro
+# (app/graficos.py, CORES).
 [theme]
-base = "light"
-primaryColor = "#C2410C"
-backgroundColor = "#FFFFFF"
-secondaryBackgroundColor = "#F3F5F8"
-textColor = "#1F2733"
-linkColor = "#9A3412"
-borderColor = "#DFE4EA"
+base = "dark"
+primaryColor = "#ECECEC"
+backgroundColor = "#212121"
+secondaryBackgroundColor = "#2A2A2A"
+textColor = "#ECECEC"
+linkColor = "#A8C7FA"
+borderColor = "#363636"
 showWidgetBorder = true
-baseRadius = "0.6rem"
-buttonRadius = "0.5rem"
-headingFontWeights = [700, 650, 600, 600, 600, 600]
+baseRadius = "0.5rem"
+buttonRadius = "0.45rem"
+headingFontWeights = [650, 600, 600, 600, 600, 600]
 headingFontSizes = ["2.1rem", "1.45rem", "1.2rem", "1.05rem", "1rem", "0.95rem"]
 metricValueFontSize = "1.85rem"
-metricValueFontWeight = 650
-dataframeHeaderBackgroundColor = "#F3F5F8"
-chartCategoricalColors = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#4a3aa7", "#e34948"]
+metricValueFontWeight = 600
+dataframeHeaderBackgroundColor = "#2A2A2A"
+chartCategoricalColors = ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "#008300", "#9085e9", "#e66767"]
+yellowBackgroundColor = "#3A3220"
+yellowTextColor = "#F2C94C"
+blueBackgroundColor = "#1F2A3A"
+blueTextColor = "#A8C7FA"
+greenBackgroundColor = "#1E3328"
+greenTextColor = "#7BD8A6"
+redBackgroundColor = "#3B2323"
+redTextColor = "#F28B82"
+orangeBackgroundColor = "#3A2A1E"
+orangeTextColor = "#F6AD6B"
+violetBackgroundColor = "#2D2740"
+violetTextColor = "#C3B5FD"
+grayBackgroundColor = "#2E2E2E"
+grayTextColor = "#BDBDBD"
 
 [theme.sidebar]
-backgroundColor = "#0F1B2D"
-secondaryBackgroundColor = "#1B2A41"
-textColor = "#D8DFE9"
-primaryColor = "#F0763A"
-borderColor = "#24344D"
+backgroundColor = "#171717"
+secondaryBackgroundColor = "#262626"
+textColor = "#ECECEC"
+borderColor = "#2A2A2A"
 
 [browser]
 gatherUsageStats = false

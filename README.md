@@ -20,6 +20,8 @@ pip install -e ".[dev]"
 streamlit run app/main.py          # abre em http://localhost:8501
 ```
 
+No Windows, depois da instalação: dois cliques em `ABRIR-EULER.cmd`.
+
 No app: **Início → Começar com o caso de demonstração** (passeio guiado em
 `demo/PASSEIO_PELAS_TELAS.md`). O fluxo é
 carregar dados → conferir qualidade e limites → investigar → consultar fornecedores →

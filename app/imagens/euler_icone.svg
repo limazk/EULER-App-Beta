@@ -1,5 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="EULER">
-  <!-- Marca EULER (D61): um "E" de traço fino, sem fundo. O braço do meio fica solto
-       da haste: a energia que entrou, a que virou vapor e o resto. -->
+  <!-- Ícone da aba do navegador: a marca sobre um quadrado grafite (aparece em abas claras
+       e escuras). -->
+  <rect width="32" height="32" rx="4" fill="#171717"/>
   <rect x="8" y="6" width="2.4" height="20" rx="0.4" fill="#ECECEC"/><rect x="8" y="6" width="16" height="2.4" rx="0.4" fill="#ECECEC"/><rect x="12.6" y="14.8" width="9.4" height="2.4" rx="0.4" fill="#ECECEC"/><rect x="8" y="23.6" width="16" height="2.4" rx="0.4" fill="#ECECEC"/>
 </svg>

@@ -1,8 +1,8 @@
 # HANDOFF · EULER (protótipo Fase 0) → equipe de desenvolvimento
 
 **Versão examinada:** commit `e49338d`, branch `claude/new-session-xytynj`, 01/10/2026.
-**Atualização posterior:** visual do app (identidade EULER, D58–D60), sem mudança nos
-cálculos; ver `PROGRESSO.md`.
+**Atualização posterior:** visual do app (tema escuro e marca EULER, D58–D61), acabamentos e
+`ABRIR-EULER.cmd`, sem mudança nos cálculos; ver `PROGRESSO.md`.
 **Escrito por:** agente de programação (Claude), a pedido do Adryan (fundador). Este documento
 é sincero sobre o que está pronto, o que é provisório e o que falta. **Nada da física tem
 aprovação científica**, e **nada foi validado com dados reais de caldeira**.
@@ -61,8 +61,10 @@ e usar **Imprimir → Salvar como PDF** (A4). O HTML é autossuficiente (D33).
 ```
 app/                 telas Streamlit (só apresentação; nenhuma conta física aqui)
   main.py            navegação, logo, barra lateral e rodapé de segurança
-  componentes.py     identidade visual (D58): estilo, cabeçalho, cartões, botão "Próximo"
-  imagens/           logo e marca EULER (SVG)
+  componentes.py     identidade visual (tema escuro, D61): estilo, cabeçalho, cartões, "Próximo"
+  formatacao.py      formatação dos resultados (selos, diferença ± incerteza, período a período),
+                     sem Streamlit; usada pelas telas e pela prévia interativa
+  imagens/           logo, marca e ícone EULER (SVG)
   estado.py          dados da sessão + "assinatura" dos dados (ver 3.2)
   graficos.py        gráficos Altair (paleta validada, números em pt-BR)
   paginas/           inicio · importar · limites · investigacao · extrato · relatorio · calculadora
@@ -131,12 +133,14 @@ mostra um resultado antigo como se fosse dos dados novos (teste em `tests/test_a
   e as telas. Mudança de texto exige rodar os testes de tela e o de verbos proibidos.
 - O PDF depende do Chromium (Playwright). Sem ele, só HTML (alternativa documentada).
 - Componentes do Streamlit em inglês (ex.: botão "Upload" do envio de arquivos).
-- O visual (D58–D60) usa o tema do `config.toml` e um pouco de CSS em `app/componentes.py`
+- O visual (D58–D61, tema escuro) usa o tema do `config.toml` e um pouco de CSS em `app/componentes.py`
   que se apoia nas classes `st-key-<chave>` e em alguns `data-testid` do Streamlit 1.64.
   Ao subir a versão do Streamlit, conferir as telas (cartões com a mesma altura, faixa da
   tela inicial, botão "Próximo"). Os cálculos não dependem disso.
-- `prints/` e o rascunho de vídeo mostram o visual anterior (mesmos números e textos);
-  `python scripts/prints.py` refaz os prints quando for preciso.
+- O rascunho de vídeo mostra o visual anterior (mesmos números e textos); `prints/` mostra o
+  tema escuro. `python scripts/prints.py` refaz os prints quando for preciso.
+- Investigação e tabela período a período ficam guardadas na sessão pela assinatura dos dados
+  (`st.cache_data`): a primeira conta de cada comparação leva 1–2 s; voltar a ela é imediato.
 - Testes de tela (AppTest) levam ~1 min; a suíte inteira, ~2 min.
 
 ## 6. Decisões pendentes · três prioritárias para os revisores

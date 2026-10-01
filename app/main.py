@@ -5,13 +5,13 @@ Rodar com: streamlit run app/main.py
 
 import estado
 import streamlit as st
-from componentes import LOGO, MARCA, aplicar_estilo, rodape
+from componentes import ICONE, LOGO, MARCA, aplicar_estilo, rodape
 
 import euler
 
 st.set_page_config(
     page_title="EULER",
-    page_icon=str(MARCA),
+    page_icon=str(ICONE),
     layout="wide",
     initial_sidebar_state="expanded",
 )

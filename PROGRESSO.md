@@ -130,6 +130,22 @@ cara de aplicativo, **sem mexer em cálculos, demo, incertezas nem resultados in
   telas; botão de impressão conferido (abre a impressão, some do papel).
 - `pytest -q`: 311 passando; `ruff check .` e `ruff format --check .` sem erros.
 
+## Acabamentos e tema escuro (pedidos do Adryan em 01/10/2026)
+
+| Item | O que mudou | Situação |
+|---|---|---|
+| Visual D58–D60 | aprovado pelo Adryan | **aprovado** |
+| Tema escuro e marca | fundo grafite, barra lateral mais escura, interface monocromática; marca "E" de traço fino, sem fundo cobre; relatório com a marca em tinta escura | **feito**; D61 **aprovada** (pedido do Adryan) |
+| O que falta saber | dois grupos na tela: incertezas a cadastrar em instrumentos.csv e o que medir/registrar | **feito**, com teste |
+| Envio de arquivos | "Escolher arquivos" em português | **feito** |
+| Telas mais rápidas | investigação e período a período guardadas pela assinatura dos dados; mudar dados refaz a conta | **feito**, com teste |
+| Telas sem dados | botão "Carregar o caso de demonstração" | **feito**, com teste |
+| Extrato | tabela inteira, sem rolagem lateral; gráficos sem caixa a mais | **feito** |
+| Windows | `ABRIR-EULER.cmd` dentro do projeto | **feito**, com teste |
+| Código | formatação das telas em `app/formatacao.py` (sem Streamlit), usada também pela prévia | **feito** |
+
+- Cálculos, demo, incertezas e `tests/golden/` **sem alteração**.
+
 **Modo de trabalho:** automático (pedido do Adryan em 01/10/2026): seguir as etapas sem esperar "ok"; decisões não especificadas vão para `docs/decisoes.md` como propostas pendentes.
 
 ## Notas da Etapa 0

@@ -4,13 +4,11 @@ import estado
 import pandas as pd
 import streamlit as st
 from componentes import cabecalho, cartao, proximo_passo
+from formatacao import linhas_por_periodo
 
 from euler.capacidades import avaliar
-from euler.direto import balanco_direto
-from euler.formato import num, pct, plural
-from euler.investigacao import indireto_periodo
-from euler.periodos import periodos_entre_estoques, resumir_periodo
-from euler.vapor import P_ATM_NIVEL_DO_MAR_BAR
+from euler.formato import plural
+from euler.periodos import periodos_entre_estoques
 
 cabecalho(
     "Dados e limites",
@@ -103,58 +101,11 @@ def mostrar(pacote) -> None:
         )
 
 
-def _com_incerteza(valor: float, incerteza: float | None, fmt, orcamento=None) -> str:
-    """Valor ± U; sem incerteza completa, diz isso (nunca mostra ± 0, auditoria A3)."""
-    if incerteza is not None:
-        return f"{fmt(valor)} ± {fmt(incerteza)}"
-    if orcamento is not None and orcamento.faltam:
-        return f"{fmt(valor)} (incerteza incompleta)"
-    return fmt(valor)
-
-
-def _faixa_patio(cenarios: dict[str, float] | None) -> str:
-    """Limites da eficiência pelos cenários do pátio (D38)."""
-    if not cenarios or "minimo" not in cenarios or "maximo" not in cenarios:
-        return "—"
-    return f"{pct(cenarios['minimo'])} a {pct(cenarios['maximo'])}"
-
-
 @st.cache_data(show_spinner="Calculando período a período…", max_entries=16)
 def _linhas_por_periodo(assinatura: str, _pacote) -> list[dict]:
-    """Uma linha por período entre medições de estoque. Guardada pela assinatura dos dados
-    (arquivos + altitude): voltar a esta tela não recalcula as semanas."""
-    p_gases = _pacote.p_atm_bar or P_ATM_NIVEL_DO_MAR_BAR
-    linhas = []
-    for inicio, fim in periodos_entre_estoques(_pacote):
-        r = resumir_periodo(_pacote, inicio, fim)
-        b = balanco_direto(r)
-        ind = indireto_periodo(r, p_gases)
-        bloqueios = [x.motivo for x in b.bloqueios] + (
-            [ind.bloqueio.motivo] if ind.bloqueio else []
-        )
-        linhas.append(
-            {
-                "Período": f"{inicio:%d/%m} a {fim:%d/%m}",
-                "Vapor (t)": "✕" if r.vapor_t is None else num(r.vapor_t.valor, 0),
-                "Combustível (t)": "✕"
-                if r.combustivel_kg is None
-                else num(r.combustivel_kg.valor / 1000, 0),
-                "Eficiência direta": "✕"
-                if b.eficiencia is None
-                else _com_incerteza(
-                    b.eficiencia.valor, b.eficiencia.incerteza, pct, b.eficiencia.orcamento
-                ),
-                "Estoque / consumido": "—"
-                if r.fracao_estoque is None
-                else pct(r.fracao_estoque, 0),
-                "Eficiência conforme o pátio": _faixa_patio(b.eficiencia_cenarios),
-                "Perda nos gases": "✕"
-                if ind.resultado is None
-                else f"{num(ind.resultado.perda_pct, 1)}% do PCI",
-                "Por que não dá": " ".join(dict.fromkeys(bloqueios)) or "—",
-            }
-        )
-    return linhas
+    """Guardada pela assinatura dos dados (arquivos + altitude): voltar a esta tela não
+    recalcula as semanas."""
+    return linhas_por_periodo(_pacote)
 
 
 def por_periodo(pacote) -> None:
