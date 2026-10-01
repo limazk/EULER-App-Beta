@@ -327,7 +327,7 @@ def _vapor(pacote: Pacote, diario: pd.DataFrame, r: ResumoPeriodo) -> None:
 def _energia_util_intervalos(tot: pd.DataFrame, r: ResumoPeriodo, escala: float) -> None:
     """Q_s = Σ ΔM_k · Δh(p_k, T_a,k) (E8), intervalo a intervalo entre leituras do
     totalizador, com p e T_a médias das duas leituras do intervalo. Só é usado quando
-    todos os intervalos têm pressão e água de alimentação; senão fica None (D26)."""
+    todos os intervalos têm pressão e água de alimentação; senão fica None (D46)."""
     soma, cobertos = 0.0, 0
     linhas = list(tot.itertuples())
     for ant, atual in pairwise(linhas):
@@ -407,16 +407,18 @@ def _combustivel(pacote: Pacote, r: ResumoPeriodo) -> None:
         u_rel = None
     inst_bal = buscar_instrumento(pacote, "balanca")
     if inst_bal is not None and not inst_bal.relativa and len(receb):
+        # O cadastro não separa a parte aleatória da sistemática (calibração): o erro é
+        # tratado como comum a todas as pesagens (n·u, limite superior), sem dividir por √n
+        # (GUM 5.2; D45). Pesagens independentes dariam √n·u.
         orc.componentes.append(
             Componente(
                 f"pesagem de {len(receb)} recebimentos ({inst_bal.id})",
-                sqrt(len(receb)) * inst_bal.u / m,
+                len(receb) * inst_bal.u / m,
                 "instrumental",
-                nota=inst_bal.interpretacao + "; pesagens tratadas como independentes",
+                chave_instrumento(pacote, inst_bal, "balanca", r.inicio, r.fim),
+                inst_bal.interpretacao
+                + "; erro tratado como comum a todas as pesagens (limite superior)",
             )
-        )
-        orc.nao_incluidos.append(
-            "parcela sistemática da balança (calibração), não declarada à parte"
         )
         u_rel = orc.u_rel() if u_rel is not None else None
     elif len(receb):

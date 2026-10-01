@@ -47,8 +47,10 @@ def test_conversao_de_unidades_bar_mpa_e_kj_mj():
 def test_golden_v01_contra_iapws95_independente():
     """Δh do golden V01 contra a formulação científica IAPWS-95 (CoolProp, HEOS).
 
-    IF97 e IAPWS-95 diferem por construção em até ~0,05 kJ/kg nesta região; tolerância
-    0,1 kJ/kg (0,004%)."""
+    A IF97 é uma aproximação da IAPWS-95; a diferença observada aqui é 0,075 kJ/kg. A
+    tolerância de 0,1 kJ/kg (0,004% de Δh) foi escolhida depois de ver essa diferença e se
+    justifica pelo efeito prático: é ~200 vezes menor que o efeito de um título x = 0,99 (≈ 20 kJ/kg).
+    Conferir com os limites de consistência IF97 × IAPWS-95 da IAPWS R7-97(2012)."""
     coolprop = pytest.importorskip("CoolProp.CoolProp")
     p = 1.0e6
     h_s = coolprop.PropsSI("H", "P", p, "Q", 1, "HEOS::Water") / 1e6

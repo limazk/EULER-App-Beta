@@ -133,3 +133,11 @@ def test_alerta_plausibilidade_nao_se_aplica_com_recuperador():
         )
         is None
     )
+
+
+def test_modo_variavel_avisa_quando_extrapola_o_polinomio():
+    """SO₂ só tem polinômio NASA a partir de 300 K (26,85 °C): ar a 10 °C extrapola, com aviso."""
+    r = calcular(t_ar_c=10, modelo_cp="variavel")
+    assert any("extrapolado" in a and "SO2" in a for a in r.avisos)
+    r = calcular(t_ar_c=30, modelo_cp="variavel")
+    assert not any("extrapolado" in a for a in r.avisos)

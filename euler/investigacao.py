@@ -278,11 +278,17 @@ def _texto_mudanca(
             return pct(v)
         return f"{num(v, casas)}%" if unidade == "%" else f"{num(v, casas)} {unidade}".strip()
 
+    def fu(v: float) -> str:
+        """Incerteza de uma diferença: em pontos percentuais quando a grandeza já é %."""
+        if como_pct:
+            return f"{num(100 * v, 1)} p.p."
+        return f"{num(v, casas)} p.p." if unidade == "%" else f(v)
+
     variacao = f"{f(c.referencia)} → {f(c.comparacao)}"
     if c.detectabilidade == "nao":
         return (
             f"{inicio} ficou estável ({variacao}): a diferença está dentro da incerteza "
-            f"(±{f(c.incerteza_delta_correlacionada)})."
+            f"(±{fu(c.incerteza_delta_correlacionada)})."
         )
     if c.detectabilidade == "condicional":
         return (
@@ -296,7 +302,7 @@ def _texto_mudanca(
         )
     return (
         f"{inicio} {_subiu(c.delta)} de forma detectável ({variacao}, incerteza "
-        f"±{f(c.incerteza_delta)})."
+        f"±{fu(c.incerteza_delta)})."
     )
 
 

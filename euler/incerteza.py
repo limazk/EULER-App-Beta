@@ -153,9 +153,7 @@ def u_diferenca(
     b = contribuicoes(valor_b, orc_b, +1.0)
 
     # dentro de cada período a mesma chave é a mesma fonte (r = 1): agrega antes
-    def agrega(
-        lista: list[tuple[float, str | None]], periodo: str
-    ) -> list[tuple[float, str | None]]:
+    def agrega(lista: list[tuple[float, str | None]]) -> list[tuple[float, str | None]]:
         saida, por_chave = [], {}
         for u, chave in lista:
             if chave is None:
@@ -164,7 +162,7 @@ def u_diferenca(
                 por_chave[chave] = por_chave.get(chave, 0.0) + u
         return saida + [(u, chave) for chave, u in por_chave.items()]
 
-    return u_combinada(agrega(a, "a") + agrega(b, "b"), r_instrumento)
+    return u_combinada(agrega(a) + agrega(b), r_instrumento)
 
 
 Detectabilidade = Literal["sim", "condicional", "nao"]

@@ -4,7 +4,8 @@ Fonte dos coeficientes: B. J. McBride, S. Gordon, M. A. Reno, "Coefficients for
 Calculating Thermodynamic and Transport Properties of Individual Species", NASA
 Technical Memorandum 4513, outubro de 1993 (https://ntrs.nasa.gov/citations/19940013151),
 na transcrição `nasa_gas.yaml` distribuída com o Cantera 3.2.0 (data/nasa_gas.yaml).
-Os valores abaixo foram copiados desse arquivo; o teste `tests/validacao/test_cp_variavel.py`
+Os valores abaixo foram copiados desse arquivo; o teste
+`tests/test_validacao_combustao.py::test_coeficientes_nasa_iguais_ao_arquivo_de_origem`
 confere a cópia quando o Cantera está instalado.
 
 Forma (gás ideal): H/(R·T) = a1 + a2·T/2 + a3·T²/3 + a4·T³/4 + a5·T⁴/5 + a6/T,

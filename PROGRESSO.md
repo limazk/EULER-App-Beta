@@ -12,7 +12,35 @@
 | 7 · Demonstração | em andamento (pausada para a fase de revisão física) | 2026-10-01 | Tela inicial com "Começar com o caso de demonstração" e passos 1–5; menu na ordem do T15; teste do fluxo completo (`tests/test_fluxo_demo.py`); roteiro de 2 min (`demo/ROTEIRO_VIDEO.md`); script de rascunho do vídeo (`scripts/gravar_video_demo.py`). | Regravar o rascunho do vídeo e refazer os prints 04, 06 e 07 (os dados do demo mudaram). Parâmetro de cenário alterado: umidade do F3 de 42→54% para 44→56% (escolha de narrativa da demonstração, **não** é correção nem validação). |
 | 8 · Entrega aos devs | a fazer | | | |
 
-**Próximo passo:** Fase R · Revisão e validação do motor físico (pedido do Adryan em 01/10/2026). Depois: concluir a Etapa 7 e seguir para a Etapa 8.
+## Fase R · Revisão e validação do motor físico (pedido do Adryan em 01/10/2026)
+
+| Item | Implementação | Aprovação científica | Onde ver |
+|---|---|---|---|
+| Diagnóstico (matriz de 28 cálculos, erros ER-1 a ER-9) | **concluída** | não se aplica | `docs/revisao_motor_fisico.md` §1 |
+| Correções dos erros demonstráveis | **concluída** (ER-1 a ER-9) | **pendente** (revisor) | §4 do mesmo documento |
+| Novas funções experimentais (cp(T) NASA, umidade do ar, CO, O₂ úmido) | **concluída**, marcada como experimental | **pendente** (Q2–Q4, Q10) | `euler/indireto.py`, `euler/propriedades_gases.py` |
+| Incerteza por componentes (GUM) e correlação entre períodos | **concluída** | **pendente** (Q8, Q11, Q12, Q16) | `euler/incerteza.py` |
+| Recebido × queimado (cenários do pátio) | **concluída** | **pendente** (Q7) | `euler/periodos.py` |
+| Regras da investigação (vocabulário, `oposta`, fechamento) | **concluída** | **pendente** (Q9, Q17) | `euler/investigacao.py` |
+| Verificação independente | **concluída**: 53 testes em `tests/test_validacao_*.py`, mais regressões do gerador em `tests/test_demo.py` (V-A a V-E) | não se aplica: verificar ≠ aprovar | `docs/matriz_validacao_fisica.md` |
+| Comparação com caldeira real | **não feita** (sem dados reais no repositório) | — | matriz, P-4 |
+| Perguntas aos revisores | **prontas** (Q1–Q17) | aguardando respostas | `docs/perguntas_revisores.md` |
+| Decisões | D35–D50 propostas; D08, D24 e D26 substituídas | **todas pendentes** | `docs/decisoes.md` |
+
+**Situação:** a implementação da Fase R está concluída e verificada; **nenhum item tem
+aprovação científica**. Testes passando mostram que o código faz o que foi especificado, não
+que a especificação esteja certa.
+
+- Versão examinada no diagnóstico: `97ad0c6`. Versão final da fase: registrada no commit que
+  traz esta linha (mensagem "Fase R (parte 3)"; ver `git log`).
+- `pytest -q`: 243 testes passando; `ruff check .` e `ruff format --check .` sem erros;
+  `tests/golden/` e tolerâncias sem alteração.
+- Sites bloqueados na sessão (para liberar na rede do ambiente, se quiser que a próxima
+  sessão confira as fontes originais): `www.iapws.org`, `webbook.nist.gov`, `janaf.nist.gov`,
+  `www.bipm.org`.
+- Print `05_dados_e_limites` refeito (tabela com as colunas do pátio).
+
+**Próximo passo:** respostas dos revisores às perguntas Q1–Q17 (a física continua como proposta até lá). Em paralelo: concluir a Etapa 7 (vídeo, prints 04, 06 e 07) e seguir para a Etapa 8.
 
 **Modo de trabalho:** automático (pedido do Adryan em 01/10/2026): seguir as etapas sem esperar "ok"; decisões não especificadas vão para `docs/decisoes.md` como propostas pendentes.
 

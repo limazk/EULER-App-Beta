@@ -146,3 +146,14 @@ def test_perda_por_co_a_mao():
     _, _, r = _massas(REF, 8, 0.40)
     esperado = 100 * 200e-6 * r.n_gases_secos_kmol_kg * 282.978 / (18.5 - 2.442 * 0.4 / 0.6)
     assert indireto.perda_co_pct(200, r, 18.5, 0.40) == pytest.approx(esperado, rel=1e-4)
+
+
+def test_motor_nao_importa_as_ferramentas_de_verificacao():
+    """A verificação só é independente se o motor não usar CoolProp nem Cantera."""
+    from pathlib import Path
+
+    raiz = Path(__file__).resolve().parents[1] / "euler"
+    for arquivo in raiz.rglob("*.py"):
+        codigo = arquivo.read_text(encoding="utf-8").lower()
+        assert "import coolprop" not in codigo and "from coolprop" not in codigo, arquivo
+        assert "import cantera" not in codigo and "from cantera" not in codigo, arquivo

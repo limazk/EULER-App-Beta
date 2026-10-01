@@ -21,7 +21,12 @@ from dataclasses import dataclass
 from iapws import IAPWS97
 
 from euler.combustivel import H_VAP_25C_MJ_KG, pci_umido
-from euler.propriedades_gases import entalpia_combustao_co_kj_kmol, entalpia_sensivel_kj_kmol
+from euler.propriedades_gases import (
+    NASA7,
+    TOLERANCIA_EXTRAPOLACAO_K,
+    entalpia_combustao_co_kj_kmol,
+    entalpia_sensivel_kj_kmol,
+)
 from euler.tipos import AnaliseBloqueada
 from euler.vapor import P_ATM_NIVEL_DO_MAR_BAR, t_sat_c
 
@@ -215,6 +220,14 @@ def perda_gases(
         avisos.append(
             "cp(T) experimental (polinômios NASA TM-4513): ainda não aprovado pelo revisor (D40)."
         )
+        extrapoladas = [
+            esp for esp, n_i in moles.items() if n_i > 0 and t_ar_c + 273.15 < NASA7[esp][0][0]
+        ]
+        if extrapoladas:
+            avisos.append(
+                f"Polinômio NASA extrapolado abaixo da faixa para {', '.join(extrapoladas)} "
+                f"(ar a {t_ar_c:g} °C; até {TOLERANCIA_EXTRAPOLACAO_K:g} K abaixo do limite)."
+            )
     pci_por_kg_seco = pci_seco_mj_kg - H_VAP_25C_MJ_KG * agua_por_seco
 
     if co_ppm is not None and co_ppm > CO_LIMITE_AVISO_PPM:

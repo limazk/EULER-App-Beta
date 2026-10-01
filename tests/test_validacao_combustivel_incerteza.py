@@ -228,3 +228,23 @@ def test_explicacoes_concorrentes_que_se_compensam():
     assert "compensou" in j["conclusao"]["texto"]
     # a próxima verificação aponta as duas: a explicação e o fator que compensou
     assert j["proxima_verificacao"]["separa"] == ["umidade_combustivel", "temperatura_gases"]
+
+
+def test_erro_da_balanca_nao_cai_com_raiz_de_n():
+    """Sem separação entre parte aleatória e sistemática no cadastro, o erro da balança é
+    tratado como comum a todas as pesagens do período: n·u, não √n·u (D45).
+
+    Demo: BALANCA-01 declara 50 kg sem tipo → limite, u = 50/√3 kg (GUM 4.3.7)."""
+    from euler.io import importar_pasta
+    from euler.periodos import periodos_entre_estoques
+    from euler.vapor import p_atm_por_altitude_bar
+
+    demo = Path(__file__).resolve().parents[1] / "demo" / "caso_demo"
+    pacote = importar_pasta(demo, p_atm_bar=p_atm_por_altitude_bar(1000))
+    inicio, fim = periodos_entre_estoques(pacote)[0]
+    r = resumir_periodo(pacote, inicio, fim)
+    comp = next(c for c in r.combustivel_kg.orcamento.componentes if "pesagem" in c.nome)
+    n = int(comp.nome.split()[2])
+    assert n > 10
+    assert comp.u_rel == pytest.approx(n * 50 / sqrt(3) / r.combustivel_kg.valor, rel=1e-12)
+    assert comp.chave.startswith("instrumento:BALANCA-01@")

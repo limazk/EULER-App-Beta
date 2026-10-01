@@ -23,6 +23,13 @@ dev = [
 prints = [
     "playwright>=1.40",
 ]
+# Só para a verificação independente do motor (tests/test_validacao_*.py): outras
+# implementações de referência (IAPWS-95 e equações de estado de gases; dados NASA).
+# Não são usadas pelo motor; sem elas esses testes são pulados.
+validacao = [
+    "CoolProp>=6.6",
+    "cantera>=3.0",
+]
 
 [tool.setuptools.packages.find]
 include = ["euler*"]
