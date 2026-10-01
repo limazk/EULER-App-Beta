@@ -51,6 +51,20 @@ def test_calculadora_bloqueia_com_motivo():
     assert any("bloqueado" in e.value for e in at.error)
 
 
+def test_nenhuma_tela_tem_texto_solto_que_o_streamlit_mostraria():
+    """Falha real: um texto solto depois de uma constante (como se fosse docstring) aparecia
+    na tela do Relatório, porque o Streamlit mostra toda expressão solta da página ("magic").
+    Só a docstring do módulo pode ficar solta."""
+    for arquivo in [APP / "main.py", *sorted((APP / "paginas").glob("*.py"))]:
+        arvore = ast.parse(arquivo.read_text(encoding="utf-8"))
+        soltos = [
+            no.lineno
+            for no in arvore.body[1:]
+            if isinstance(no, ast.Expr) and isinstance(no.value, ast.Constant)
+        ]
+        assert not soltos, f"{arquivo.name}: texto solto nas linhas {soltos}"
+
+
 def test_nenhuma_tela_usa_st_stop_que_esconderia_o_rodape():
     for arquivo in [*(APP / "paginas").glob("*.py"), APP / "estado.py", APP / "main.py"]:
         arvore = ast.parse(arquivo.read_text(encoding="utf-8"))
@@ -257,3 +271,31 @@ def test_dados_e_limites_resume_os_avisos_de_qualidade():
     texto = " ".join(m.value for m in at.markdown)
     assert "Qualidade dos registros:" in texto and "4 avisos de atenção" in texto
     assert "Sem leituras entre 12/09/2026" in texto and "Totalizador voltou" in texto
+
+
+def test_investigacao_resume_o_resultado_no_topo_sem_perder_os_quatro_estados():
+    """Visual novo (D59): resumo no topo e tabela com a diferença e a incerteza dela, vindas
+    do JSON. Os quatro estados da detecção continuam distintos e o condicional diz o que falta."""
+    at = abrir_com_demo("investigacao.py")
+    assert not at.exception, at.exception
+    metricas = {m.label: m.value for m in at.metric}
+    assert metricas["Consumo por tonelada de vapor"] == "0,353 t/t"
+    assert metricas["Valor em jogo (estimado)"].endswith("26.992")
+    assert any(i.value.startswith("**Próxima verificação:** Cadastrar") for i in at.info)
+    tabela = at.table[0].value.set_index("Indicador")
+    temperatura = tabela.loc["Temperatura dos gases"]
+    assert temperatura["Diferença"] == "+31,9 °C (± 3,3)"
+    assert temperatura["Mudou de forma detectável?"] == ":blue-badge[Sim]"
+    umidade = tabela.loc["Umidade do combustível recebido"]
+    assert umidade["Diferença"] == "+3,2 p.p. (incerteza incompleta)"
+    assert "falta cadastrar a incerteza" in umidade["Mudou de forma detectável?"]
+    assert tabela.loc["O₂ nos gases", "Mudou de forma detectável?"].startswith(":gray-badge[Não]")
+
+
+def test_investigacao_sem_vapor_nao_mostra_numero_de_consumo_nem_valor():
+    """Semana 7 (sem medidor de vapor): o resumo não inventa consumo nem valor em jogo."""
+    at = abrir_com_demo("investigacao.py")
+    at.select_slider[1].set_value((6, 6)).run()
+    metricas = {m.label: m.value for m in at.metric}
+    assert metricas["Consumo por tonelada de vapor"] == "—"
+    assert metricas["Valor em jogo"] == "não estimado"

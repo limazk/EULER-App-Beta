@@ -122,14 +122,15 @@ def roteiro(p: Page, url: str) -> None:
     p.wait_for_timeout(5500)
     rolar(p, 650, 3000)
     legenda(p, "Gases 32 °C mais quentes: explicação compatível com os dados, não comprovada.")
-    p.get_by_text("2. O que os dados sustentam").scroll_into_view_if_needed()
+    p.get_by_role("tab", name="2. O que os dados sustentam").click()
     p.wait_for_timeout(6500)
     legenda(p, "A umidade também subiu, mas falta a incerteza do método de umidade…")
-    p.get_by_text("3. Explicações que continuam possíveis").scroll_into_view_if_needed()
+    p.get_by_role("tab", name="3. Explicações possíveis").click()
     p.wait_for_timeout(5500)
 
     # 1:18 Dados insuficientes
     ate(78)
+    p.get_by_role("tab", name="1. O que mudou").click()
     p.evaluate(TOPO_JS)
     legenda(p, "…por isso a EULER não conclui: diz o que fecharia a conta se fosse confirmado.")
     p.wait_for_timeout(6000)

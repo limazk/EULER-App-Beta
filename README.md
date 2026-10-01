@@ -20,7 +20,8 @@ pip install -e ".[dev]"
 streamlit run app/main.py          # abre em http://localhost:8501
 ```
 
-No app: **Início → Começar com o caso de demonstração**. O fluxo é
+No app: **Início → Começar com o caso de demonstração** (passeio guiado em
+`demo/PASSEIO_PELAS_TELAS.md`). O fluxo é
 carregar dados → conferir qualidade e limites → investigar → consultar fornecedores →
 gerar relatório.
 
@@ -56,7 +57,7 @@ Sem o Chromium, o app oferece só **Baixar HTML**; abra no navegador e use
 | `euler/` | motor (física, importação, investigação, relatório) |
 | `app/` | telas Streamlit |
 | `tests/` | testes; `tests/golden/` são valores de referência **somente leitura** |
-| `demo/` | caso sintético, roteiro do vídeo, guia da demonstração ao vivo, vídeo |
+| `demo/` | caso sintético, passeio pelas telas, guia da demonstração ao vivo, roteiro do vídeo |
 | `docs/` | visão de produto, física para revisão, decisões, revisão do motor, matriz de validação, perguntas aos revisores, contrato de dados, exemplos de relatório |
 | `docs/revisao/` | PDFs para enviar aos revisores |
 | `templates/` | modelos de CSV e planilha para o cliente preencher |

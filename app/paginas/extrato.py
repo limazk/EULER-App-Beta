@@ -4,16 +4,17 @@ import estado
 import graficos
 import pandas as pd
 import streamlit as st
-from componentes import md
+from componentes import cabecalho, cartao, md, proximo_passo
 
 from euler.combustivel import extrato_por_fornecedor, extrato_semanal, frase_tonelada_vs_energia
 from euler.formato import num, pct, plural
 
-st.title("Extrato de energia por fornecedor")
-st.markdown("#### O fornecedor mais barato por tonelada nem sempre é o mais barato por energia.")
-st.markdown(
-    "A caldeira compra **energia**, não toneladas. Quanto mais úmido o cavaco, menos energia "
-    "cada tonelada entrega. Aqui cada lote vira energia (GJ) e custo por energia (R$/GJ)."
+cabecalho(
+    "Extrato de energia por fornecedor",
+    "**O fornecedor mais barato por tonelada nem sempre é o mais barato por energia.** "
+    "A caldeira compra energia, não toneladas: quanto mais úmido o cavaco, menos energia "
+    "cada tonelada entrega. Aqui cada lote vira energia (GJ) e custo por energia (R$/GJ).",
+    "Passo 4 de 5",
 )
 
 
@@ -28,7 +29,7 @@ def mostrar(pacote) -> None:
         return
 
     datas = receb["data"].dt.tz_localize(None)
-    escolha = st.date_input(
+    escolha = st.columns([1, 2])[0].date_input(
         "Período (data de recebimento)",
         value=(datas.min().date(), datas.max().date()),
         min_value=datas.min().date(),
@@ -58,29 +59,38 @@ def mostrar(pacote) -> None:
     com_custo = determinados.dropna(subset=["brl_gj"])
     m1, m2, m3 = st.columns(3)
     m1.metric(
-        "Energia entregue (lotes determinados)", f"{num(determinados['energia_gj'].sum(), 0)} GJ"
+        "Energia entregue (lotes determinados)",
+        f"{num(determinados['energia_gj'].sum(), 0)} GJ",
+        border=True,
     )
     m2.metric(
         "Custo médio da energia",
         f"R$ {num(com_custo['preco_brl'].sum() / com_custo['energia_gj'].sum())}/GJ"
         if len(com_custo)
         else "—",
+        border=True,
     )
-    m3.metric("Lotes com energia determinada", f"{len(determinados)} de {len(lotes)}")
+    m3.metric("Lotes com energia determinada", f"{len(determinados)} de {len(lotes)}", border=True)
 
     escala = graficos.escala_cores(list(combustivel["fornecedor_id"].dropna().unique()))
     barras = forn.dropna(subset=["brl_t", "brl_gj"]).copy()
     barras["rotulo_t"] = barras["brl_t"].map(lambda v: f"R$ {num(v)}/t")
     barras["rotulo_gj"] = barras["brl_gj"].map(lambda v: f"R$ {num(v)}/GJ")
     c1, c2 = st.columns(2)
-    c1.altair_chart(
-        graficos.barras_por_fornecedor(barras, "brl_t", "Preço por tonelada", "rotulo_t", escala),
-        width="stretch",
-    )
-    c2.altair_chart(
-        graficos.barras_por_fornecedor(barras, "brl_gj", "Custo por energia", "rotulo_gj", escala),
-        width="stretch",
-    )
+    with c1, cartao("barras-t"):
+        st.altair_chart(
+            graficos.barras_por_fornecedor(
+                barras, "brl_t", "Preço por tonelada", "rotulo_t", escala
+            ),
+            width="stretch",
+        )
+    with c2, cartao("barras-gj"):
+        st.altair_chart(
+            graficos.barras_por_fornecedor(
+                barras, "brl_gj", "Custo por energia", "rotulo_gj", escala
+            ),
+            width="stretch",
+        )
     st.caption("Nos dois gráficos, o mais barato fica no topo.")
 
     tabela = pd.DataFrame(
@@ -105,12 +115,13 @@ def mostrar(pacote) -> None:
     semanal = extrato_semanal(lotes)
     if semanal["semana"].nunique() >= 2:
         st.markdown("#### Umidade do cavaco por semana")
-        st.altair_chart(
-            graficos.linhas_semanais(
-                semanal, "umidade_media", "Umidade média (base úmida)", "%", escala
-            ),
-            width="stretch",
-        )
+        with cartao("umidade-semanal"):
+            st.altair_chart(
+                graficos.linhas_semanais(
+                    semanal, "umidade_media", "Umidade média (base úmida)", "%", escala
+                ),
+                width="stretch",
+            )
 
     alertas = extrato.alertas_umidade
     st.markdown(f"#### Umidade fora da faixa histórica · {plural(len(alertas), 'lote', 'lotes')}")
@@ -199,3 +210,4 @@ def mostrar(pacote) -> None:
 pacote = estado.exigir_pacote()
 if pacote is not None:
     mostrar(pacote)
+    proximo_passo("paginas/relatorio.py", "5. Relatório")

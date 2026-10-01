@@ -1,6 +1,31 @@
+# Identidade visual EULER (proposta D58, pendente de aprovação do Adryan).
+# Ferrugem (calor, energia) como cor de ação; azul-marinho profundo na barra lateral;
+# fundo claro e neutro para as telas de leitura. As cores das categorias dos gráficos são
+# a paleta validada de app/graficos.py (CORES).
 [theme]
 base = "light"
 primaryColor = "#C2410C"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F3F5F8"
+textColor = "#1F2733"
+linkColor = "#9A3412"
+borderColor = "#DFE4EA"
+showWidgetBorder = true
+baseRadius = "0.6rem"
+buttonRadius = "0.5rem"
+headingFontWeights = [700, 650, 600, 600, 600, 600]
+headingFontSizes = ["2.1rem", "1.45rem", "1.2rem", "1.05rem", "1rem", "0.95rem"]
+metricValueFontSize = "1.85rem"
+metricValueFontWeight = 650
+dataframeHeaderBackgroundColor = "#F3F5F8"
+chartCategoricalColors = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#4a3aa7", "#e34948"]
+
+[theme.sidebar]
+backgroundColor = "#0F1B2D"
+secondaryBackgroundColor = "#1B2A41"
+textColor = "#D8DFE9"
+primaryColor = "#F0763A"
+borderColor = "#24344D"
 
 [browser]
 gatherUsageStats = false

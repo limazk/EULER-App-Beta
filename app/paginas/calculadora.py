@@ -1,27 +1,30 @@
 """Calculadora de referência: perda nos gases, λ e PCI úmido (E1–E7)."""
 
 import streamlit as st
+from componentes import cabecalho, cartao
 
 from euler.combustivel import pci_umido
 from euler.formato import num
 from euler.indireto import COMPOSICAO_REFERENCIA, perda_gases
 from euler.tipos import AnaliseBloqueada
 
-st.title("Calculadora de referência")
+cabecalho(
+    "Calculadora de referência",
+    "Escolha a temperatura dos gases, o oxigênio e a umidade do combustível. "
+    "A EULER calcula quanto da energia do combustível sai pela chaminé como calor.",
+    "Referência",
+)
 st.warning(
     "**Simulação.** Valores de referência em revisão científica "
     "(itens E1 a E7 de `docs/fisica_para_revisao.md`). Não use para decisões.",
     icon=":material/science:",
 )
-st.markdown(
-    "Escolha a temperatura dos gases, o oxigênio e a umidade do combustível. "
-    "A EULER calcula quanto da energia do combustível sai pela chaminé como calor."
-)
 
-c1, c2, c3 = st.columns(3)
-t_gases = c1.slider("Temperatura dos gases na chaminé (°C)", 60, 400, 180, step=1)
-o2 = c2.slider("O₂ nos gases secos (%)", 0.0, 20.0, 8.0, step=0.1)
-umidade_pct = c3.slider("Umidade do combustível (% base úmida)", 0, 70, 40, step=1)
+with cartao("entradas"):
+    c1, c2, c3 = st.columns(3, gap="large")
+    t_gases = c1.slider("Temperatura dos gases na chaminé (°C)", 60, 400, 180, step=1)
+    o2 = c2.slider("O₂ nos gases secos (%)", 0.0, 20.0, 8.0, step=0.1)
+    umidade_pct = c3.slider("Umidade do combustível (% base úmida)", 0, 70, 40, step=1)
 
 with st.expander("Combustível e ar (valores de referência, podem ser alterados)"):
     st.caption("Cavaco de referência do documento de revisão. Origem: **assumido**.")
@@ -58,9 +61,9 @@ except AnaliseBloqueada as bloqueio:
     st.error(f"**Cálculo bloqueado.** {bloqueio.motivo}", icon=":material/block:")
 else:
     m1, m2, m3 = st.columns(3)
-    m1.metric("Perda nos gases", f"{num(r.perda_pct, 2)} % do PCI")
-    m2.metric("Razão de ar λ", num(r.lambda_ar, 3))
-    m3.metric("PCI úmido", f"{num(pci_u, 2)} MJ/kg")
+    m1.metric("Perda nos gases", f"{num(r.perda_pct, 2)} % do PCI", border=True)
+    m2.metric("Razão de ar λ", num(r.lambda_ar, 3), border=True)
+    m3.metric("PCI úmido", f"{num(pci_u, 2)} MJ/kg", border=True)
     for aviso in r.avisos:
         st.warning(aviso)
 

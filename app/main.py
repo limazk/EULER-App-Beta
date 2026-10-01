@@ -5,11 +5,18 @@ Rodar com: streamlit run app/main.py
 
 import estado
 import streamlit as st
-from componentes import rodape
+from componentes import LOGO, MARCA, aplicar_estilo, rodape
 
 import euler
 
-st.set_page_config(page_title="EULER", page_icon=":material/local_fire_department:", layout="wide")
+st.set_page_config(
+    page_title="EULER",
+    page_icon=str(MARCA),
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
+st.logo(str(LOGO), icon_image=str(MARCA), size="large")
+aplicar_estilo()
 
 paginas = {
     "": [st.Page("paginas/inicio.py", title="Início", icon=":material/home:", default=True)],

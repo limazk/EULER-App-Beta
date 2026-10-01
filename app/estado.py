@@ -132,6 +132,6 @@ def exigir_pacote() -> Pacote | None:
             "paginas/importar.py", label="Ir para Importar dados", icon=":material/arrow_forward:"
         )
         return None
-    selo = " · :orange-badge[DADOS SINTÉTICOS]" if dados_sinteticos() else ""
-    st.caption(f"Dados em uso: **{rotulo_dados()}**{selo}")
+    selo = " · :orange-badge[:material/science: DADOS SINTÉTICOS]" if dados_sinteticos() else ""
+    st.caption(f":material/database: Dados em uso: **{rotulo_dados()}**{selo}")
     return p

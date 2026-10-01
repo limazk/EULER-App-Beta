@@ -2,22 +2,26 @@
 
 import estado
 import streamlit as st
+from componentes import cabecalho, cartao, proximo_passo
 
 from euler.formato import num, plural
 from euler.io.esquemas import TABELAS
 from euler.io.modelos import ARQUIVO_PLANILHA
 
-st.title("Importar dados")
-st.markdown(
+COR_GRAVIDADE = {"Erro": "red", "Atenção": "orange", "Informação": "gray"}
+
+cabecalho(
+    "Importar dados",
     "Envie os registros da caldeira: os arquivos CSV (`diario.csv`, `combustivel.csv`, "
     "`amostras.csv`, `eventos.csv`, `instrumentos.csv`) ou a **planilha modelo** preenchida. "
-    "A EULER guarda o original e lista o que encontrou. **Nada é corrigido sem avisar.**"
+    "A EULER guarda o original e lista o que encontrou. **Nada é corrigido sem avisar.**",
+    "Passo 1 de 5",
 )
 
-with st.container(border=True):
+local, envio = st.columns([1, 2], gap="medium")
+with local, cartao("local"):
     st.markdown("**1. Local da caldeira**")
-    c1, c2 = st.columns([1, 2])
-    altitude = c1.number_input(
+    altitude = st.number_input(
         "Altitude do local (m)",
         min_value=-500.0,
         max_value=5000.0,
@@ -28,48 +32,57 @@ with st.container(border=True):
     )
     st.session_state["altitude_m"] = altitude
     if altitude is None:
-        c2.info("Sem altitude, a pressão absoluta do vapor não é calculada.")
+        st.caption("Sem altitude, a pressão absoluta do vapor não é calculada.")
     else:
-        c2.success(
+        st.caption(
             f"Pressão atmosférica: **{num(estado.p_atm_bar(), 3)} bar** "
             "(estimado pela altitude, atmosfera padrão)."
         )
 
-with st.container(border=True):
-    st.markdown("**2. Arquivos**")
+with envio, cartao("arquivos"):
+    st.markdown("**2. Arquivos da fábrica**")
     enviados = st.file_uploader(
         "Arraste os arquivos aqui", type=["csv", "xlsx"], accept_multiple_files=True
     )
-    if st.button("Importar os arquivos enviados", type="primary", disabled=not enviados):
-        estado.definir_arquivos(
-            {f.name: f.getvalue() for f in enviados},
-            plural(len(enviados), "arquivo enviado", "arquivos enviados"),
+    with st.container(horizontal=True, gap="small"):
+        if st.button("Importar os arquivos enviados", type="primary", disabled=not enviados):
+            estado.definir_arquivos(
+                {f.name: f.getvalue() for f in enviados},
+                plural(len(enviados), "arquivo enviado", "arquivos enviados"),
+            )
+        st.download_button(
+            "Baixar a planilha modelo (.xlsx)",
+            ARQUIVO_PLANILHA.read_bytes(),
+            file_name=ARQUIVO_PLANILHA.name,
+            icon=":material/download:",
         )
-    st.markdown("Ou use um exemplo **sintético**:")
-    b1, b2, b3 = st.columns(3)
-    if b1.button(
-        "Caso de demonstração", icon=":material/play_circle:", help="8 semanas, sintético"
-    ):
+
+st.markdown("##### Ou comece com um exemplo sintético")
+exemplos = st.columns(3, gap="medium")
+with exemplos[0], cartao("exemplo-demo"):
+    st.markdown(":material/play_circle: **Caso de demonstração**")
+    st.caption("Caldeira de 20 t/h a cavaco, 8 semanas, 3 fornecedores. O consumo muda no meio.")
+    if st.button("Caso de demonstração", help="8 semanas, sintético", width="stretch"):
         estado.usar_caso_demo()
         st.rerun()
-    if b2.button("Modelos (1 linha de exemplo)"):
+with exemplos[1], cartao("exemplo-modelos"):
+    st.markdown(":material/table_view: **Modelos**")
+    st.caption("Uma linha de exemplo por arquivo: mostra o formato e o que fica bloqueado.")
+    if st.button("Modelos (1 linha de exemplo)", width="stretch"):
         estado.definir_arquivos(
             estado.ler_pasta(estado.RAIZ / "templates"),
             "modelos de exemplo (sintéticos)",
             sinteticos=True,
         )
-    if b3.button("Exemplo com problemas (sintético)"):
+with exemplos[2], cartao("exemplo-problemas"):
+    st.markdown(":material/report: **Exemplo com problemas**")
+    st.caption("Erros de propósito (unidades trocadas, lacunas, duplicatas) para ver os avisos.")
+    if st.button("Exemplo com problemas (sintético)", width="stretch"):
         estado.definir_arquivos(
             estado.ler_pasta(estado.RAIZ / "demo" / "qualidade"),
             "exemplo com problemas de propósito (sintético)",
             sinteticos=True,
         )
-    st.download_button(
-        "Baixar a planilha modelo (.xlsx)",
-        ARQUIVO_PLANILHA.read_bytes(),
-        file_name=ARQUIVO_PLANILHA.name,
-        icon=":material/download:",
-    )
 
 
 def mostrar_resultado(pacote) -> None:
@@ -77,10 +90,10 @@ def mostrar_resultado(pacote) -> None:
     avisos = pacote.tabela_avisos()
     contagem = avisos["Gravidade"].value_counts()
     m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Tabelas importadas", len(pacote.importacoes))
-    m2.metric("Erros", int(contagem.get("Erro", 0)))
-    m3.metric("Avisos de atenção", int(contagem.get("Atenção", 0)))
-    m4.metric("Informações", int(contagem.get("Informação", 0)))
+    m1.metric("Tabelas importadas", len(pacote.importacoes), border=True)
+    m2.metric("Erros", int(contagem.get("Erro", 0)), border=True)
+    m3.metric("Avisos de atenção", int(contagem.get("Atenção", 0)), border=True)
+    m4.metric("Informações", int(contagem.get("Informação", 0)), border=True)
 
     linhas = []
     for nome, tabela in TABELAS.items():
@@ -111,8 +124,11 @@ def mostrar_resultado(pacote) -> None:
         ]
         visiveis = visiveis.astype({"Linha": "string"}).fillna({"Linha": "—"})
         if len(visiveis) <= 80:
-            # tabela simples: quebra o texto e mostra a frase inteira
-            st.table(visiveis.set_index("Gravidade"))
+            # tabela simples: quebra o texto, mostra a frase inteira e a gravidade em selo
+            visiveis["Gravidade"] = visiveis["Gravidade"].map(
+                lambda g: f":{COR_GRAVIDADE.get(g, 'gray')}-badge[{g}]"
+            )
+            st.table(visiveis, hide_index=True, border="horizontal")
         else:
             st.dataframe(visiveis, hide_index=True, width="stretch")
         st.caption(
@@ -131,3 +147,4 @@ def mostrar_resultado(pacote) -> None:
 pacote = estado.pacote()
 if pacote is not None:
     mostrar_resultado(pacote)
+    proximo_passo("paginas/limites.py", "2. Dados e limites")

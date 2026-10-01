@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import altair as alt
 import pandas as pd
+from componentes import COR_COMPARACAO, COR_REFERENCIA
 
 CORES = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#4a3aa7", "#e34948"]
 TINTA_SECUNDARIA = "#52514e"
@@ -124,8 +125,9 @@ def linhas_semanais(
     return _configurar((linhas + pontos + rotulos).properties(height=300))
 
 
-FAIXA_REFERENCIA = "#e6e5e1"
-FAIXA_COMPARACAO = "#fde7d9"
+# mesmas cores da linha do tempo dos períodos (tela Investigação)
+FAIXA_REFERENCIA = COR_REFERENCIA
+FAIXA_COMPARACAO = COR_COMPARACAO
 
 
 def serie_diaria_com_periodos(

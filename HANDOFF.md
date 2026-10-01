@@ -1,6 +1,8 @@
 # HANDOFF · EULER (protótipo Fase 0) → equipe de desenvolvimento
 
 **Versão examinada:** commit `e49338d`, branch `claude/new-session-xytynj`, 01/10/2026.
+**Atualização posterior:** visual do app (identidade EULER, D58–D60), sem mudança nos
+cálculos; ver `PROGRESSO.md`.
 **Escrito por:** agente de programação (Claude), a pedido do Adryan (fundador). Este documento
 é sincero sobre o que está pronto, o que é provisório e o que falta. **Nada da física tem
 aprovação científica**, e **nada foi validado com dados reais de caldeira**.
@@ -58,9 +60,13 @@ e usar **Imprimir → Salvar como PDF** (A4). O HTML é autossuficiente (D33).
 
 ```
 app/                 telas Streamlit (só apresentação; nenhuma conta física aqui)
-  main.py            navegação, barra lateral e rodapé de segurança
+  main.py            navegação, logo, barra lateral e rodapé de segurança
+  componentes.py     identidade visual (D58): estilo, cabeçalho, cartões, botão "Próximo"
+  imagens/           logo e marca EULER (SVG)
   estado.py          dados da sessão + "assinatura" dos dados (ver 3.2)
+  graficos.py        gráficos Altair (paleta validada, números em pt-BR)
   paginas/           inicio · importar · limites · investigacao · extrato · relatorio · calculadora
+.streamlit/config.toml  tema (cores, fontes, raio, cores dos gráficos)
 euler/               motor (funções puras, testáveis sem o app)
   io/                leitura de CSV/XLSX → tabelas normalizadas (preserva o original)
   qualidade.py       lacunas, duplicatas, unidades suspeitas, totalizador reiniciado, registro tardio
@@ -125,6 +131,12 @@ mostra um resultado antigo como se fosse dos dados novos (teste em `tests/test_a
   e as telas. Mudança de texto exige rodar os testes de tela e o de verbos proibidos.
 - O PDF depende do Chromium (Playwright). Sem ele, só HTML (alternativa documentada).
 - Componentes do Streamlit em inglês (ex.: botão "Upload" do envio de arquivos).
+- O visual (D58–D60) usa o tema do `config.toml` e um pouco de CSS em `app/componentes.py`
+  que se apoia nas classes `st-key-<chave>` e em alguns `data-testid` do Streamlit 1.64.
+  Ao subir a versão do Streamlit, conferir as telas (cartões com a mesma altura, faixa da
+  tela inicial, botão "Próximo"). Os cálculos não dependem disso.
+- `prints/` e o rascunho de vídeo mostram o visual anterior (mesmos números e textos);
+  `python scripts/prints.py` refaz os prints quando for preciso.
 - Testes de tela (AppTest) levam ~1 min; a suíte inteira, ~2 min.
 
 ## 6. Decisões pendentes · três prioritárias para os revisores
@@ -145,7 +157,7 @@ As demais (Q1–Q17, D05–D57) estão em `docs/perguntas_revisores.md` e `docs/
 
 | Caso | Como |
 |---|---|
-| Demonstração completa | app → **Começar com o caso de demonstração**; roteiro em `demo/GUIA_DEMONSTRACAO_AO_VIVO.md` |
+| Demonstração completa | app → **Começar com o caso de demonstração**; roteiro em `demo/GUIA_DEMONSTRACAO_AO_VIVO.md`; passeio por todas as telas em `demo/PASSEIO_PELAS_TELAS.md` |
 | Demo no código | `euler.io.importar_pasta("demo/caso_demo", p_atm_bar=p_atm_por_altitude_bar(1000))`; períodos por `periodos_entre_estoques`; `investigar(pacote, ref, comp)` |
 | Regenerar o demo | `python demo/gerar_caso_demo.py` (determinístico; o teste confere que os arquivos batem) |
 | Exemplos de relatório | `python scripts/gerar_exemplos_relatorio.py` → `docs/exemplos_relatorio/` |

@@ -106,6 +106,30 @@ da apresentação seguindo `demo/GUIA_DEMONSTRACAO_AO_VIVO.md`, duas vezes segui
 (3) narração gravada sobre o rascunho do vídeo; (4) enviar `docs/revisao/` aos revisores.
 Detalhes e responsáveis: `HANDOFF.md` §9.
 
+## Visual do app (pedido do Adryan em 01/10/2026, depois da conferência no Windows)
+
+O Codex abriu a EULER no computador do Adryan (cópia sem Git; PDF direto indisponível por
+falta do Chromium). Pedido: conhecer o app e deixá-lo mais profissional, organizado e com
+cara de aplicativo, **sem mexer em cálculos, demo, incertezas nem resultados inconclusivos**.
+
+| Item | O que mudou | Situação |
+|---|---|---|
+| Identidade EULER | logo e marca (um "E" de barras sobre ferrugem), barra lateral azul-marinho, tema e cartões; faixa de abertura na tela inicial | **feito**; D58 **proposta pendente (Adryan)** |
+| Organização | "Passo X de 5" e resumo no alto de cada tela; botão **Próximo** no fim; exemplos sintéticos em cartões; bloqueado antes do liberado em Dados e limites | **feito** |
+| Investigação | resultado no topo (conclusão + próxima verificação lado a lado; consumo, valor em jogo e explicações em cartões); blocos 1–4 em abas; linha do tempo dos períodos; gráfico com escolha da grandeza; coluna **Diferença (± incerteza)**; selos para os quatro estados da detecção | **feito**; D59 **proposta pendente (Adryan)** |
+| Relatório | botões lado a lado; **Imprimir ou salvar como PDF** na prévia (funciona sem Chromium) | **feito**; D60 **proposta pendente (Adryan)** |
+| Falha encontrada | um texto interno aparecia na tela do Relatório (Streamlit mostra texto solto da página) | **corrigida**, com teste |
+| Passeio escrito | `demo/PASSEIO_PELAS_TELAS.md` (onde clicar em cada tela + como atualizar a cópia do Windows) | **feito** |
+| Guia ao vivo | `demo/GUIA_DEMONSTRACAO_AO_VIVO.md` refeito para o visual novo | **feito** |
+| Prints e vídeo | não refeitos (pedido do Adryan: ele mesmo faz o vídeo); `prints/` mostra o visual anterior | — |
+
+- Cálculos, JSON da investigação, relatório baixado, demo e `tests/golden/` **sem
+  alteração**. Os números da tela continuam vindo do JSON.
+- Evidências: testes de tela novos (resumo da Investigação, semana sem vapor sem número
+  inventado, nenhum texto solto nas telas); conferência visual em navegador real de todas as
+  telas; botão de impressão conferido (abre a impressão, some do papel).
+- `pytest -q`: 311 passando; `ruff check .` e `ruff format --check .` sem erros.
+
 **Modo de trabalho:** automático (pedido do Adryan em 01/10/2026): seguir as etapas sem esperar "ok"; decisões não especificadas vão para `docs/decisoes.md` como propostas pendentes.
 
 ## Notas da Etapa 0

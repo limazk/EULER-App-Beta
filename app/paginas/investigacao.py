@@ -1,34 +1,97 @@
-"""Tela Investigação: o consumo mudou? O que os dados sustentam? O que verificar? (T13)."""
+"""Tela Investigação: o consumo mudou? O que os dados sustentam? O que verificar? (T13).
+
+Organização (D59): no topo, o resultado em resumo (conclusão, próxima verificação e os
+números principais); abaixo, os quatro blocos de detalhe em abas. Os textos vêm prontos do
+JSON da investigação: a tela só arruma, não calcula nem reescreve conclusões.
+"""
 
 import json
+from html import escape
 
 import estado
 import graficos
 import pandas as pd
 import streamlit as st
-from componentes import md
+from componentes import cabecalho, cartao, md, proximo_passo, secao
 
 from euler.capacidades import avaliar
-from euler.formato import num, pct
+from euler.formato import num, pct, plural
 from euler.investigacao import investigar
 from euler.periodos import periodos_entre_estoques
 from euler.relatorio import mudou_detectavel
 from euler.textos import PERGUNTA_CENTRAL
 
-st.title("Investigação")
-st.markdown(f"> {PERGUNTA_CENTRAL}")
+cabecalho("Investigação", PERGUNTA_CENTRAL, "Passo 3 de 5")
 
 STATUS = {
-    "sustentada": ("Compatível com os dados (não comprovada)", ":material/check_circle:"),
-    "oposta": ("Mudou no sentido contrário (compensou parte)", ":material/swap_vert:"),
-    "possivel": ("Continua possível", ":material/help:"),
-    "descartada": ("Descartada pelos dados", ":material/cancel:"),
-    "nao_avaliavel": ("Não dá para avaliar", ":material/block:"),
+    "sustentada": ("Compatível com os dados (não comprovada)", "blue", ":material/check_circle:"),
+    "oposta": ("Mudou no sentido contrário (compensou parte)", "violet", ":material/swap_vert:"),
+    "possivel": ("Continua possível", "orange", ":material/help:"),
+    "descartada": ("Descartada pelos dados", "gray", ":material/cancel:"),
+    "nao_avaliavel": ("Não dá para avaliar", "gray", ":material/block:"),
+}
+
+# Selo curto dos quatro estados da detecção (azul = mudou; laranja = só com uma condição;
+# cinza = não mudou ou sem incerteza para dizer). No condicional, o selo vem seguido do texto
+# do relatório (mudou_detectavel), que diz a condição. O selo não quebra linha: texto longo
+# fica fora dele.
+SELO_DETECCAO = {
+    "sim": ("blue", "Sim"),
+    "condicional": ("orange", "Condicional"),
+    "nao": ("gray", "Não"),
+    None: ("gray", "Sem incerteza para dizer"),
+}
+
+
+def _selo_deteccao(c) -> str:
+    texto = mudou_detectavel(c)
+    if texto == "—":
+        return texto
+    cor, curto = SELO_DETECCAO[c["detectabilidade"]]
+    if c["detectabilidade"] == "condicional":
+        return f":{cor}-badge[{curto}] {texto}"
+    if c["detectabilidade"] == "nao":
+        return f":{cor}-badge[{curto}] variação normal"
+    return f":{cor}-badge[{curto}]"
+
+
+# Séries diárias que podem ir para o gráfico: coluna → (botão, título, unidade, formato).
+SERIES = {
+    "t_gases_c": ("Gases na chaminé", "Temperatura dos gases na chaminé", "°C", ".0f"),
+    "o2_seco_pct": ("O₂", "O₂ nos gases (base seca)", "%", ".1f"),
+    "co_ppm": ("CO", "CO nos gases", "ppm", ".0f"),
+    "t_ar_c": ("Ar de combustão", "Temperatura do ar de combustão", "°C", ".1f"),
+    "t_agua_alim_c": ("Água de alimentação", "Temperatura da água de alimentação", "°C", ".1f"),
 }
 
 
 def _rotulo_periodo(p) -> str:
     return f"{p[0]:%d/%m} a {p[1]:%d/%m}"
+
+
+def _linha_do_tempo(periodos, ref, comp) -> None:
+    """Faixa com todos os períodos: os da referência e os da comparação em destaque."""
+    celulas = []
+    for i, (inicio, fim) in enumerate(periodos):
+        classe = "ref" if ref[0] <= i <= ref[1] else "comp" if comp[0] <= i <= comp[1] else ""
+        celulas.append(
+            f'<div class="p {classe}" title="{inicio:%d/%m/%Y} a {fim:%d/%m/%Y}">'
+            f"{inicio:%d/%m}</div>"
+        )
+
+    def resumo(a, b) -> str:
+        inicio, fim = periodos[a][0], periodos[b][1]
+        dias = round((fim - inicio).total_seconds() / 86400)
+        return f"{inicio:%d/%m} a {fim:%d/%m} · {plural(dias, 'dia', 'dias')}"
+
+    st.html(
+        f'<div class="euler-tempo">{"".join(celulas)}</div>'
+        '<div class="euler-tempo-legenda">'
+        '<span><span class="q" style="background:var(--euler-ref);border:1px solid #C9D3E0">'
+        f"</span><b>Referência</b> · {escape(resumo(*ref))}</span>"
+        '<span><span class="q" style="background:var(--euler-comp);border:1px solid #F3C3A6">'
+        f"</span><b>Comparação</b> · {escape(resumo(*comp))}</span></div>"
+    )
 
 
 def _escolher_periodos(periodos):
@@ -51,21 +114,24 @@ def _escolher_periodos(periodos):
         and max(*salvo["ref"], *salvo["comp"]) < n
     )
     inicial = salvo if valido else padrao
-    c1, c2 = st.columns(2)
-    ref = c1.select_slider(
-        "Período de referência (como era)",
-        options=list(range(n)),
-        value=inicial["ref"],
-        key="periodo_ref",
-        format_func=lambda i: rotulos[i],
-    )
-    comp = c2.select_slider(
-        "Período de comparação (como ficou)",
-        options=list(range(n)),
-        value=inicial["comp"],
-        key="periodo_comp",
-        format_func=lambda i: rotulos[i],
-    )
+    with cartao("periodos"):
+        st.markdown(":material/date_range: **Períodos comparados**")
+        c1, c2 = st.columns(2, gap="large")
+        ref = c1.select_slider(
+            "Período de referência (como era)",
+            options=list(range(n)),
+            value=inicial["ref"],
+            key="periodo_ref",
+            format_func=lambda i: rotulos[i],
+        )
+        comp = c2.select_slider(
+            "Período de comparação (como ficou)",
+            options=list(range(n)),
+            value=inicial["comp"],
+            key="periodo_comp",
+            format_func=lambda i: rotulos[i],
+        )
+        _linha_do_tempo(periodos, ref, comp)
     st.session_state["periodos_escolhidos"] = {
         "assinatura": estado.assinatura(),
         "ref": tuple(ref),
@@ -74,21 +140,33 @@ def _escolher_periodos(periodos):
     return (periodos[ref[0]][0], periodos[ref[1]][1]), (periodos[comp[0]][0], periodos[comp[1]][1])
 
 
-def _grafico_temperatura(pacote, ref, comp) -> None:
+def _grafico(pacote, ref, comp) -> None:
+    """Série diária escolhida pelo usuário, com os dois períodos em faixas de fundo."""
     diario = pacote.dados("diario")
-    if diario is None or not diario["t_gases_c"].notna().any():
+    if diario is None:
         return
-    d = diario.dropna(subset=["t_gases_c", "instante_observado"])
+    disponiveis = [c for c in SERIES if c in diario and diario[c].notna().any()]
+    if not disponiveis:
+        return
+    coluna = st.segmented_control(
+        "Ver no gráfico",
+        disponiveis,
+        default=disponiveis[0],
+        required=True,
+        format_func=lambda c: SERIES[c][0],
+        key="grafico_serie",
+    )
+    coluna = coluna or disponiveis[0]
+    _, titulo, unidade, formato = SERIES[coluna]
+    d = diario.dropna(subset=[coluna, "instante_observado"])
     d = d[d["regime"].fillna("estavel") != "parada"]
-    dias = d.groupby(d["instante_observado"].dt.tz_localize(None).dt.normalize())[
-        "t_gases_c"
-    ].mean()
+    dias = d.groupby(d["instante_observado"].dt.tz_localize(None).dt.normalize())[coluna].mean()
     df = pd.DataFrame({"dia": dias.index, "valor": dias.values.astype(float)})
     st.altair_chart(
         graficos.serie_diaria_com_periodos(
             df,
-            "Temperatura dos gases na chaminé (°C, média do dia)",
-            ".0f",
+            f"{titulo} ({unidade}, média do dia)",
+            formato,
             [(ref[0], ref[1], "Referência"), (comp[0], comp[1], "Comparação")],
         ),
         width="stretch",
@@ -99,9 +177,10 @@ def _hipoteses(lista, titulo_vazio: str) -> None:
     if not lista:
         st.caption(titulo_vazio)
     for h in lista:
-        rotulo, icone = STATUS[h["status"]]
+        rotulo, cor, icone = STATUS[h["status"]]
         with st.container(border=True):
-            st.markdown(f"{icone} **{h['titulo']}** · {rotulo}")
+            st.markdown(f":{cor}-badge[{icone} {rotulo}]")
+            st.markdown(f"**{h['titulo']}**")
             st.markdown(md(h["porque"]))
             efeito = h["efeito"]["consumo_pct"]
             if efeito is not None and h["status"] in ("sustentada", "possivel"):
@@ -111,29 +190,112 @@ def _hipoteses(lista, titulo_vazio: str) -> None:
             st.caption(f"Como verificar: {h['verificacao']}")
 
 
+def _valor(v, unidade: str) -> str:
+    if v is None:
+        return "—"
+    if unidade == "fração":
+        return pct(v)
+    casas = 3 if unidade == "MJ/kg" else 1
+    return f"{num(v, casas)} {unidade}"
+
+
+def _diferenca(c) -> str:
+    """Diferença comparação − referência, com a incerteza dela (os dois vêm do JSON)."""
+    if c["variacao"] is None:
+        return "—"
+    unidade = c["unidade"]
+    escala, rotulo, casas = 1.0, unidade, 1
+    if unidade == "fração":
+        escala, rotulo = 100.0, "p.p."
+    elif unidade == "%":
+        rotulo = "p.p."
+    elif unidade == "% do PCI":
+        rotulo = "p.p. do PCI"
+    elif unidade == "MJ/kg":
+        casas = 3
+    v = escala * c["variacao"]
+    texto = f"{'+' if v >= 0 else '−'}{num(abs(v), casas)} {rotulo}"
+    if c["incerteza_variacao"] is not None:
+        return f"{texto} (± {num(escala * c['incerteza_variacao'], casas)})"
+    if c.get("faltam_na_incerteza"):
+        return f"{texto} (incerteza incompleta)"
+    return texto
+
+
 def _indicadores(j) -> None:
     linhas = []
     for c in j["o_que_mudou"]["indicadores"]:
         if c["referencia"] is None and c["comparacao"] is None:
             continue
-        if c["unidade"] == "fração":
-            f = pct
-        else:
-
-            def f(v, u=c["unidade"]):
-                casas = 3 if u == "MJ/kg" else 1
-                return "—" if v is None else f"{num(v, casas)} {u}"
-
         linhas.append(
             {
                 "Indicador": c["nome"][0].upper() + c["nome"][1:],
-                "Referência": f(c["referencia"]),
-                "Comparação": f(c["comparacao"]),
-                "Mudou de forma detectável?": mudou_detectavel(c),
+                "Referência": _valor(c["referencia"], c["unidade"]),
+                "Comparação": _valor(c["comparacao"], c["unidade"]),
+                "Diferença": _diferenca(c),
+                "Mudou de forma detectável?": _selo_deteccao(c),
             }
         )
     # tabela simples: quebra o texto (a coluna da detecção tem frases longas)
-    st.table(pd.DataFrame(linhas).set_index("Indicador"))
+    st.table(pd.DataFrame(linhas), hide_index=True, border="horizontal")
+    st.caption(
+        "Diferença = comparação − referência; entre parênteses, a incerteza da diferença. "
+        "p.p. = pontos percentuais."
+    )
+
+
+def _numeros_principais(j) -> None:
+    """Três indicadores do topo: consumo, valor em jogo e situação das explicações."""
+    c1, c2, c3 = st.columns(3)
+    consumo = j["o_que_mudou"].get("consumo_especifico")
+    with c1, cartao("kpi-consumo"):
+        if consumo and consumo["variacao"] is not None and consumo["referencia"]:
+            variacao = 100 * consumo["variacao"] / consumo["referencia"]
+            st.metric(
+                "Consumo por tonelada de vapor",
+                f"{num(consumo['comparacao'], 3)} t/t",
+                f"{'+' if variacao >= 0 else ''}{num(variacao, 1)}% sobre "
+                f"{num(consumo['referencia'], 3)} t/t",
+                delta_color="off",
+            )
+            st.markdown(f"Mudou de forma detectável? {_selo_deteccao(consumo)}")
+        else:
+            st.metric("Consumo por tonelada de vapor", "—")
+            st.caption("Não pode ser calculado neste período (ver o motivo na conclusão).")
+    valor = j["valor_em_jogo"]
+    with c2, cartao("kpi-valor"):
+        if valor:
+            st.metric(
+                "Valor em jogo (estimado)",
+                md(f"R$ {num(valor['valor_brl'], 0)}"),
+                help="No período de comparação, em relação ao consumo da referência.",
+            )
+            incerteza = (
+                f"Incerteza: ± R$ {num(valor['incerteza_brl'], 0)}. "
+                if valor["incerteza_brl"] is not None
+                else ""
+            )
+            st.caption(md(incerteza + valor["base"]))
+        else:
+            st.metric("Valor em jogo", "não estimado")
+            st.caption(md(j["valor_em_jogo_motivo"]))
+    hips = j["hipoteses"]
+    contagem = {s: sum(h["status"] == s for h in hips) for s in STATUS}
+    with c3, cartao("kpi-explicacoes"):
+        compativeis = contagem["sustentada"]
+        st.metric(
+            "Explicações compatíveis com os dados",
+            compativeis,
+        )
+        partes = [
+            plural(contagem["possivel"] + contagem["nao_avaliavel"], "em aberto", "em aberto"),
+            plural(contagem["descartada"], "descartada", "descartadas"),
+        ]
+        if contagem["oposta"]:
+            partes.append(
+                plural(contagem["oposta"], "no sentido contrário", "no sentido contrário")
+            )
+        st.caption(" · ".join(partes) + ". Compatível não é causa comprovada.")
 
 
 def mostrar(pacote) -> None:
@@ -153,85 +315,84 @@ def mostrar(pacote) -> None:
     j = investigar(pacote, ref, comp)
     estado.guardar_investigacao(j)
 
-    conclusao = j["conclusao"]
-    if conclusao["abstencao"]:
-        st.warning(md(conclusao["texto"]), icon=":material/pan_tool:")
-    else:
-        st.success(md(conclusao["texto"]), icon=":material/fact_check:")
-
-    st.markdown("### 1. O que mudou")
-    st.markdown(f"**{md(j['o_que_mudou']['frase'])}**")
-    if j["o_que_mudou"]["custo_vapor"]:
-        st.markdown(md(j["o_que_mudou"]["custo_vapor"]["frase"]))
-    _grafico_temperatura(pacote, ref, comp)
-    _indicadores(j)
-    valor = j["valor_em_jogo"]
-    if valor:
-        st.metric(
-            "Valor em jogo no período de comparação (estimado)",
-            md(f"R$ {num(valor['valor_brl'], 0)}"),
+    # ---------------------------------------------------------------- resultado em resumo
+    secao("Resultado")
+    conclusao, proxima = st.columns(2, gap="medium")
+    with conclusao:
+        if j["conclusao"]["abstencao"]:
+            st.warning(md(j["conclusao"]["texto"]), icon=":material/pan_tool:")
+        else:
+            st.success(md(j["conclusao"]["texto"]), icon=":material/fact_check:")
+    with proxima:
+        prox = j["proxima_verificacao"]
+        st.info(
+            f"**Próxima verificação:** {md(prox['acao'])}  \n{md(prox['porque'])}",
+            icon=":material/search:",
         )
-        incerteza = (
-            f"Incerteza: ± R$ {num(valor['incerteza_brl'], 0)}. "
-            if valor["incerteza_brl"] is not None
-            else ""
-        )
-        st.caption(md(incerteza + valor["base"]))
-    else:
-        st.caption(md(j["valor_em_jogo_motivo"]))
+    _numeros_principais(j)
 
+    # ---------------------------------------------------------------- detalhes em abas
     hips = j["hipoteses"]
-    st.markdown("### 2. O que os dados sustentam")
-    _hipoteses(
-        [h for h in hips if h["status"] == "sustentada"],
-        "Nenhuma explicação é sustentada pelos dados.",
-    )
+    sustentadas = [h for h in hips if h["status"] == "sustentada"]
     opostas = [h for h in hips if h["status"] == "oposta"]
-    if opostas:
-        _hipoteses(opostas, "")
-    fechamento = j["o_que_mudou"].get("fechamento")
-    if fechamento:
-        st.caption(md(fechamento["frase"]))
-        if fechamento.get("frase_com_condicionais"):
-            st.caption(md(fechamento["frase_com_condicionais"]))
-    st.caption(
-        '"Compatível com os dados" não é causa comprovada: cada explicação precisa da '
-        "verificação indicada."
+    abertas = [h for h in hips if h["status"] in ("possivel", "nao_avaliavel")]
+    secao("Detalhes")
+    aba1, aba2, aba3, aba4 = st.tabs(
+        [
+            "1. O que mudou",
+            f"2. O que os dados sustentam ({len(sustentadas) + len(opostas)})",
+            f"3. Explicações possíveis ({len(abertas)})",
+            f"4. O que falta saber ({len(j['o_que_falta'])})",
+        ]
     )
-    descartadas = [h for h in hips if h["status"] == "descartada"]
-    if descartadas:
-        with st.expander(f"O que foi descartado e por quê ({len(descartadas)})"):
-            _hipoteses(descartadas, "")
+    with aba1:
+        st.markdown(f"**{md(j['o_que_mudou']['frase'])}**")
+        if j["o_que_mudou"]["custo_vapor"]:
+            st.markdown(md(j["o_que_mudou"]["custo_vapor"]["frase"]))
+        _grafico(pacote, ref, comp)
+        _indicadores(j)
 
-    st.markdown("### 3. Explicações que continuam possíveis")
-    _hipoteses(
-        [h for h in hips if h["status"] in ("possivel", "nao_avaliavel")],
-        "Nenhuma outra explicação continua em aberto.",
-    )
+    with aba2:
+        _hipoteses(sustentadas, "Nenhuma explicação é sustentada pelos dados.")
+        if opostas:
+            _hipoteses(opostas, "")
+        fechamento = j["o_que_mudou"].get("fechamento")
+        if fechamento:
+            st.caption(md(fechamento["frase"]))
+            if fechamento.get("frase_com_condicionais"):
+                st.caption(md(fechamento["frase_com_condicionais"]))
+        st.caption(
+            '"Compatível com os dados" não é causa comprovada: cada explicação precisa da '
+            "verificação indicada."
+        )
+        descartadas = [h for h in hips if h["status"] == "descartada"]
+        if descartadas:
+            with st.expander(f"O que foi descartado e por quê ({len(descartadas)})"):
+                _hipoteses(descartadas, "")
 
-    st.markdown("### 4. O que falta saber")
-    if j["o_que_falta"]:
-        st.markdown("\n".join(f"- {md(f)}" for f in j["o_que_falta"]))
-    else:
-        st.caption("Nada essencial faltando para esta comparação.")
-    st.caption(md(j["independencia"]["nota"]) + " (E12)")
+    with aba3:
+        _hipoteses(abertas, "Nenhuma outra explicação continua em aberto.")
 
-    st.markdown("### 5. Próxima verificação")
-    prox = j["proxima_verificacao"]
-    st.info(f"**{md(prox['acao'])}**  \n{md(prox['porque'])}", icon=":material/search:")
+    with aba4:
+        if j["o_que_falta"]:
+            st.markdown("\n".join(f"- {md(f)}" for f in j["o_que_falta"]))
+        else:
+            st.caption("Nada essencial faltando para esta comparação.")
+        st.caption(md(j["independencia"]["nota"]) + " (E12)")
 
-    st.page_link(
-        "paginas/relatorio.py",
-        label="Gerar o relatório desta comparação",
-        icon=":material/description:",
-    )
-
+    with st.container(horizontal=True, vertical_alignment="center"):
+        st.page_link(
+            "paginas/relatorio.py",
+            label="Gerar o relatório desta comparação",
+            icon=":material/description:",
+        )
     with st.expander("Dados técnicos da investigação (JSON)"):
         texto = json.dumps(j, ensure_ascii=False, indent=2)
         st.download_button(
             "Baixar o JSON", texto, file_name="investigacao_euler.json", mime="application/json"
         )
         st.json(j, expanded=False)
+    proximo_passo("paginas/extrato.py", "4. Extrato por fornecedor")
 
 
 pacote = estado.exigir_pacote()
