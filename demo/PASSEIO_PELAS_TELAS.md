@@ -68,7 +68,7 @@ inventados para teste). Para a apresentação com cliques e números exatos, use
   2. **O que os dados sustentam**: a explicação compatível (não comprovada) e quanto ela
      explica da mudança.
   3. **Explicações possíveis**: o que ainda não dá para confirmar nem descartar.
-  4. **O que falta saber**: em dois grupos. **Cadastrar em instrumentos.csv** (as
+  4. **O que falta saber**: em dois grupos. **Completar o cadastro de instrumentos** (as
      incertezas que a fábrica precisa informar) e **Medir, registrar ou conferir**.
 - Experimente: no controle **Período de comparação**, arraste a bolinha da direita até
   **14/09 a 21/09**. O amarelo passa a dizer que o consumo não pode ser calculado, e os

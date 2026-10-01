@@ -395,7 +395,7 @@ def _combustivel(pacote: Pacote, r: ResumoPeriodo) -> None:
     comb = pacote.dados("combustivel")
     if comb is None:
         r.bloqueios["combustivel"] = AnaliseBloqueada(
-            "Sem combustivel.csv: o combustível queimado não é conhecido.",
+            "Sem recebimentos de combustível: o combustível queimado não é conhecido.",
             ["recebimentos e medições de estoque"],
         )
         return
@@ -411,7 +411,8 @@ def _combustivel(pacote: Pacote, r: ResumoPeriodo) -> None:
         linhas = ", ".join(str(int(n)) for n in simultaneos["linha"])
         r.bloqueios["combustivel"] = AnaliseBloqueada(
             f"Recebimento registrado no mesmo horário de uma medição de estoque (linha {linhas} "
-            "de combustivel.csv): não dá para saber se ele já estava no estoque medido.",
+            "dos recebimentos de combustível): não dá para saber se ele já estava no estoque "
+            "medido.",
             ["horário do recebimento ou da medição de estoque, com a ordem entre eles"],
         )
         return
@@ -799,7 +800,7 @@ def resumir_periodo(pacote: Pacote, inicio: pd.Timestamp, fim: pd.Timestamp) -> 
     diario = pacote.dados("diario")
     if diario is None:
         r.bloqueios["diario"] = AnaliseBloqueada(
-            "Sem diário do operador: não há leituras da caldeira.", ["diario.csv"]
+            "Sem diário do operador: não há leituras da caldeira.", ["diário do operador"]
         )
     else:
         no_periodo = diario[

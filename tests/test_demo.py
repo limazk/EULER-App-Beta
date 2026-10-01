@@ -142,7 +142,7 @@ def test_demo_conta_a_historia_da_investigacao(pacote_demo):
     assert umidade(j)["avaliacao"]["mudanca_detectavel"] == "condicional"
     assert j["o_que_mudou"]["fechamento"]["veredito_com_condicionais"] == "fecha"
     assert j["conclusao"]["abstencao"] is True
-    assert j["proxima_verificacao"]["acao"].startswith("Cadastrar em instrumentos.csv")
+    assert j["proxima_verificacao"]["acao"].startswith("Registrar no cadastro de instrumentos")
     causas, j = sustentadas(s[6])
     assert j["conclusao"]["abstencao"] is True
     causas, j = sustentadas(s[7])

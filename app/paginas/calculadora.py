@@ -15,8 +15,7 @@ cabecalho(
     "Referência",
 )
 st.warning(
-    "**Simulação.** Valores de referência em revisão científica "
-    "(itens E1 a E7 de `docs/fisica_para_revisao.md`). Não use para decisões.",
+    "**Simulação.** Valores de referência em revisão científica. Não use para decisões.",
     icon=":material/science:",
 )
 
@@ -83,8 +82,9 @@ else:
             variacoes.append(f"- {rotulo}: fora da faixa de cálculo")
     st.markdown("\n".join(variacoes))
 
-    with st.expander("Detalhes do cálculo"):
+    with st.expander("Detalhes técnicos do cálculo"):
         st.markdown(
+            "Equações: itens E1 a E7 de `docs/fisica_para_revisao.md` (em revisão científica).\n\n"
             f"- O₂ estequiométrico (E1): {num(r.o2_esteq_kmol_kg, 5)} kmol/kg seco\n"
             f"- Gases secos (E3): {num(r.m_gases_secos_kg_kg, 3)} kg/kg seco\n"
             f"- Água nos gases (E4): {num(r.m_h2o_kg_kg, 3)} kg/kg seco\n"

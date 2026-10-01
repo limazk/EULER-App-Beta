@@ -84,7 +84,7 @@ def _investigacao_sem_vapor(pagina: Page) -> None:
 
 TELAS: list[Tela] = [
     Tela("01_inicio"),
-    Tela("02_calculadora", "calculadora", _abrir_expansor("Detalhes do cálculo")),
+    Tela("02_calculadora", "calculadora", _abrir_expansor("Detalhes técnicos do cálculo")),
     Tela(
         "03_importar_exemplo_com_problemas",
         "importar",

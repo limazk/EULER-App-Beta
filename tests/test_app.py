@@ -134,7 +134,7 @@ def test_investigacao_com_demo_mostra_o_que_falta_para_concluir():
     # Auditoria A3: sem a incerteza do método de umidade, a EULER se abstém e diz o que cadastrar
     assert any("Não dá para concluir" in w.value for w in at.warning)
     assert any("Mais calor saindo pela chaminé" in m.value for m in at.markdown)
-    assert any("Cadastrar em instrumentos.csv" in i.value for i in at.info)
+    assert any("Registrar no cadastro de instrumentos" in i.value for i in at.info)
     assert any(c.value == RODAPE_SEGURANCA for c in at.caption)
 
 
@@ -282,7 +282,7 @@ def test_investigacao_resume_o_resultado_no_topo_sem_perder_os_quatro_estados():
     assert metricas["Consumo por tonelada de vapor"] == "0,353 t/t"
     assert metricas["Valor em jogo (estimado)"].endswith("26.992")
     assert any(
-        i.value.startswith("**Próxima verificação, em detalhe:** Cadastrar") for i in at.info
+        i.value.startswith("**Próxima verificação, em detalhe:** Registrar") for i in at.info
     )
     resumo = next(w.value for w in at.warning if "Não dá para concluir" in w.value)
     assert resumo.startswith("O consumo por tonelada de vapor subiu 10,1%.")
@@ -313,7 +313,7 @@ def test_o_que_falta_saber_agrupa_sem_perder_itens():
     at = abrir_com_demo("investigacao.py")
     falta = at.session_state["investigacao"]["json"]["o_que_falta"]
     texto = " ".join(m.value for m in at.markdown)
-    assert "**Cadastrar em instrumentos.csv**" in texto
+    assert "**Completar o cadastro de instrumentos**" in texto
     assert "**Medir, registrar ou conferir**" in texto
     assert any(f.endswith(SUFIXO_CADASTRAR) for f in falta)
     for f in falta:

@@ -23,7 +23,7 @@ from typing import BinaryIO, Literal
 
 import pandas as pd
 
-from euler.io.esquemas import TABELAS, Coluna, Tabela
+from euler.io.esquemas import TABELAS, Coluna, Tabela, rotulo_categoria
 
 FUSO_PADRAO = "America/Sao_Paulo"
 Gravidade = Literal["erro", "atencao", "info"]
@@ -218,7 +218,11 @@ def _instante(texto: str, fuso: str) -> tuple[pd.Timestamp, list[str]]:
             raise ValueError(t)
     if ts.tzinfo is None:
         ts = ts.tz_localize(fuso)
-        interpretacoes.append(f"sem fuso horário; assumido {fuso}")
+        interpretacoes.append(
+            "sem fuso horário; assumido o horário de Brasília"
+            if fuso == FUSO_PADRAO
+            else f"sem fuso horário; assumido {fuso}"
+        )
     return ts.tz_convert(fuso), interpretacoes
 
 
@@ -256,7 +260,9 @@ def _converter_coluna(
             texto = ""
         if texto == "":
             if col.obrigatoria:
-                aviso(linha, "obrigatorio_vazio", f"Valor obrigatório de '{col.nome}' está vazio.")
+                aviso(
+                    linha, "obrigatorio_vazio", f"Valor obrigatório de “{col.rotulo}” está vazio."
+                )
             valores.append(None)
             continue
         try:
@@ -269,7 +275,7 @@ def _converter_coluna(
                     aviso(
                         linha,
                         "unidade_suspeita",
-                        f"'{col.nome}' = {texto}. {dica} O valor foi mantido.",
+                        f"{col.rotulo_inicial} = {texto}. {dica} O valor foi mantido.",
                     )
             elif col.tipo == "instante":
                 valor, interps = _instante(texto, fuso)
@@ -297,7 +303,8 @@ def _converter_coluna(
                     aviso(
                         linha,
                         "categoria_desconhecida",
-                        f"'{col.nome}' = '{texto}' não está na lista ({', '.join(col.categorias)}).",
+                        f"{col.rotulo_inicial} = '{texto}' não está na lista "
+                        f"({', '.join(rotulo_categoria(c) for c in col.categorias)}).",
                     )
             else:
                 valor = texto
@@ -305,7 +312,8 @@ def _converter_coluna(
             aviso(
                 linha,
                 "valor_ilegivel",
-                f"'{col.nome}' = '{texto}' não pôde ser lido como {_NOME_TIPO[col.tipo]}; "
+                f"{col.rotulo_inicial} = '{texto}' não pôde ser lido como "
+                f"{_NOME_TIPO[col.tipo]}; "
                 "tratado como ausente.",
             )
             valor = None
@@ -318,7 +326,7 @@ def _converter_coluna(
                 linhas_interp[0],
                 col.nome,
                 "interpretacao",
-                f"'{col.nome}': {interp} ({descrever_linhas(linhas_interp)}).",
+                f"{col.rotulo_inicial}: {interp} ({descrever_linhas(linhas_interp)}).",
                 "info",
             )
         )
@@ -355,7 +363,7 @@ def normalizar(
                 None,
                 extra,
                 "coluna_desconhecida",
-                f"Coluna '{extra}' não faz parte do contrato; ignorada (está no original).",
+                f"Coluna “{extra}” não faz parte do modelo; ignorada (está no original).",
                 "info",
             )
         )
@@ -369,7 +377,7 @@ def normalizar(
                     None,
                     col.nome,
                     "coluna_obrigatoria_ausente",
-                    f"Falta a coluna obrigatória '{col.nome}' ({col.descricao}).",
+                    f"Falta a coluna obrigatória “{col.rotulo}” ({col.descricao}).",
                     "erro",
                 )
             )
@@ -380,7 +388,7 @@ def normalizar(
                     None,
                     col.nome,
                     "coluna_ausente",
-                    f"Coluna opcional '{col.nome}' ausente; tratada como vazia.",
+                    f"Coluna opcional “{col.rotulo}” ausente; tratada como vazia.",
                     "info",
                 )
             )

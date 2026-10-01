@@ -3,6 +3,7 @@
 import pandas as pd
 
 from euler import qualidade
+from euler.io.esquemas import rotulo_categoria
 from euler.io.leitura import FUSO_PADRAO, Aviso, Fonte, Importacao, importar_tabela
 
 
@@ -31,7 +32,9 @@ def importar_combustivel(fonte: Fonte, fuso: str = FUSO_PADRAO) -> Importacao:
 
     for _, r in d[estimar].iterrows():
         fonte_dens = (
-            r["origem_densidade"] if not pd.isna(r["origem_densidade"]) else "não informada"
+            rotulo_categoria(r["origem_densidade"])
+            if not pd.isna(r["origem_densidade"])
+            else "não informada"
         )
         imp.avisos.append(
             Aviso(

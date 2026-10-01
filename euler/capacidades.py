@@ -35,6 +35,8 @@ class Capacidade:
     motivos: tuple[str, ...] = ()
     o_que_fazer: tuple[str, ...] = ()
     requisitos: tuple[str, ...] = field(default_factory=tuple)
+    referencia: str = ""
+    """Itens de docs/fisica_para_revisao.md e decisões usados (só em "Detalhes técnicos", D64)."""
 
     @property
     def habilitada(self) -> bool:
@@ -57,7 +59,7 @@ class _Verificador:
         return ok
 
     def capacidade(
-        self, id_: str, nome: str, pergunta: str, requisitos: tuple[str, ...]
+        self, id_: str, nome: str, pergunta: str, requisitos: tuple[str, ...], referencia: str = ""
     ) -> Capacidade:
         return Capacidade(
             id_,
@@ -67,6 +69,7 @@ class _Verificador:
             tuple(dict.fromkeys(m for m, _ in self.faltas)),
             tuple(dict.fromkeys(o for _, o in self.faltas)),
             requisitos,
+            referencia,
         )
 
 
@@ -80,7 +83,9 @@ def avaliar(pacote: Pacote) -> list[Capacidade]:
     caps: list[Capacidade] = []
 
     def tem_diario(v: _Verificador) -> bool:
-        return v.exigir(diario is not None, "Sem diário do operador.", "Enviar diario.csv.")
+        return v.exigir(
+            diario is not None, "Sem diário do operador.", "Enviar o diário do operador."
+        )
 
     # 1. qualidade dos registros
     v = _Verificador()
@@ -90,7 +95,8 @@ def avaliar(pacote: Pacote) -> list[Capacidade]:
             "registros",
             "Qualidade dos registros",
             "Os registros têm lacunas, duplicatas ou unidades suspeitas?",
-            ("diario.csv",),
+            ("diário do operador",),
+            "D13, D14",
         )
     )
 
@@ -100,14 +106,18 @@ def avaliar(pacote: Pacote) -> list[Capacidade]:
         v.exigir(
             _tem(diario, "t_gases_c"),
             "Sem temperatura dos gases no diário.",
-            "Registrar t_gases_c a cada leitura.",
+            "Registrar a temperatura dos gases a cada leitura.",
         )
         v.exigir(
             _tem(diario, "o2_seco_pct"),
             "Sem O₂ nos gases no diário.",
-            "Registrar o2_seco_pct (analisador de O₂).",
+            "Registrar o O₂ nos gases (analisador de O₂).",
         )
-        v.exigir(_tem(diario, "t_ar_c"), "Sem temperatura do ar de combustão.", "Registrar t_ar_c.")
+        v.exigir(
+            _tem(diario, "t_ar_c"),
+            "Sem temperatura do ar de combustão.",
+            "Registrar a temperatura do ar de combustão.",
+        )
     v.exigir(
         _tem(amos, "umidade_bu_frac"),
         "Sem umidade medida do combustível.",
@@ -122,9 +132,10 @@ def avaliar(pacote: Pacote) -> list[Capacidade]:
     caps.append(
         v.capacidade(
             "perda_gases",
-            "Perda nos gases (caminho indireto, E1–E7)",
+            "Perda nos gases (caminho indireto)",
             "Quanto da energia do combustível sai pela chaminé?",
             ("temperatura dos gases", "O₂", "temperatura do ar", "umidade", "análise elementar"),
+            "E1–E7",
         )
     )
 
@@ -134,10 +145,12 @@ def avaliar(pacote: Pacote) -> list[Capacidade]:
         v.exigir(
             _tem(diario, "totalizador_vapor_t"),
             "Sem leitura do totalizador de vapor.",
-            "Registrar totalizador_vapor_t.",
+            "Registrar a leitura do totalizador de vapor.",
         )
         v.exigir(
-            _tem(diario, "p_vapor_bar_man"), "Sem pressão do vapor.", "Registrar p_vapor_bar_man."
+            _tem(diario, "p_vapor_bar_man"),
+            "Sem pressão do vapor.",
+            "Registrar a pressão do vapor (manômetro).",
         )
         v.exigir(
             pacote.p_atm_bar is not None,
@@ -147,14 +160,15 @@ def avaliar(pacote: Pacote) -> list[Capacidade]:
         v.exigir(
             _tem(diario, "t_agua_alim_c"),
             "Sem temperatura da água de alimentação.",
-            "Registrar t_agua_alim_c.",
+            "Registrar a temperatura da água de alimentação.",
         )
     caps.append(
         v.capacidade(
             "energia_vapor",
-            "Energia útil do vapor (E8)",
+            "Energia útil do vapor",
             "Quanta energia virou vapor?",
             ("totalizador de vapor", "pressão", "altitude", "água de alimentação"),
+            "E8",
         )
     )
 
@@ -163,7 +177,7 @@ def avaliar(pacote: Pacote) -> list[Capacidade]:
     v.exigir(
         receb is not None and len(receb) > 0,
         "Sem recebimentos de combustível.",
-        "Enviar combustivel.csv com os recebimentos.",
+        "Enviar os recebimentos de combustível.",
     )
     v.exigir(
         receb is not None and _tem(receb, "massa_kg_calc"),
@@ -178,14 +192,15 @@ def avaliar(pacote: Pacote) -> list[Capacidade]:
             else f"Só {plural(n_estoques, 'medição', 'medições')} de estoque"
         )
         + ": é preciso uma no início e outra no fim do período.",
-        "Medir o estoque do pátio no início e no fim de cada período (linha tipo = estoque).",
+        "Medir o estoque do pátio no início e no fim de cada período.",
     )
     caps.append(
         v.capacidade(
             "combustivel_queimado",
-            "Combustível queimado no período (E9)",
+            "Combustível queimado no período",
             "Quanto combustível foi queimado?",
             ("recebimentos pesados", "estoque inicial e final"),
+            "E9, D17, D18, D49",
         )
     )
     ok_queimado = caps[-1].habilitada
@@ -210,9 +225,10 @@ def avaliar(pacote: Pacote) -> list[Capacidade]:
     caps.append(
         v.capacidade(
             "energia_combustivel",
-            "Energia do combustível (E10)",
+            "Energia do combustível",
             "Quanta energia a fábrica comprou e queimou?",
             ("combustível queimado", "umidade por lote", "PCI seco"),
+            "E5, E10, D22, D38",
         )
     )
 
@@ -231,9 +247,10 @@ def avaliar(pacote: Pacote) -> list[Capacidade]:
     caps.append(
         v.capacidade(
             "eficiencia_direta",
-            "Eficiência direta (E10, E13)",
+            "Eficiência direta",
             "Quanto da energia comprada virou vapor?",
             ("energia útil do vapor", "energia do combustível"),
+            "E10, E13, D39",
         )
     )
 
@@ -245,30 +262,30 @@ def avaliar(pacote: Pacote) -> list[Capacidade]:
     v.exigir(
         incerteza_relativa_instrumento(pacote, "vapor") is not None,
         "Sem incerteza declarada do medidor de vapor.",
-        "Cadastrar o medidor de vapor em instrumentos.csv (unidade pct_da_leitura).",
+        "Cadastrar a incerteza do medidor de vapor (em % da leitura), com o tipo.",
     )
     v.exigir(
         incerteza_relativa_instrumento(pacote, "estoque") is not None,
         "Sem incerteza declarada da medição de estoque.",
-        "Cadastrar o levantamento de estoque em instrumentos.csv (unidade pct_da_leitura).",
+        "Cadastrar a incerteza do levantamento de estoque (em % da leitura), com o tipo.",
     )
     # a eficiência também depende destes; sem eles, a incerteza fica indisponível (A3)
     for grandeza, nome, unidade in (
         ("balanca", "da balança dos recebimentos", "kg"),
         ("p_vapor_bar_abs", "do manômetro do vapor", "bar"),
         ("t_agua_alim_c", "do termômetro da água de alimentação", "°C"),
-        ("umidade", "do método de umidade (estufa)", "pontos de %, unidade pct"),
-        ("pci_seco", "da análise de PCI seco (calorímetro)", "pct_da_leitura"),
+        ("umidade", "do método de umidade (estufa)", "em pontos de %"),
+        ("pci_seco", "da análise de PCI seco (calorímetro)", "em % da leitura"),
     ):
         v.exigir(
             buscar_instrumento(pacote, grandeza) is not None,
             f"Sem incerteza declarada {nome}.",
-            f"Cadastrar em instrumentos.csv a incerteza {nome} ({unidade}), com o tipo.",
+            f"Cadastrar a incerteza {nome} ({unidade}), com o tipo.",
         )
     caps.append(
         v.capacidade(
             "incerteza",
-            "Faixa de incerteza da eficiência (E15)",
+            "Faixa de incerteza da eficiência",
             "Quanto o resultado pode estar errado?",
             (
                 "eficiência direta",
@@ -277,6 +294,7 @@ def avaliar(pacote: Pacote) -> list[Capacidade]:
                     "balança, pressão, água de alimentação, umidade, PCI seco)"
                 ),
             ),
+            "E15, D35",
         )
     )
 
@@ -285,7 +303,7 @@ def avaliar(pacote: Pacote) -> list[Capacidade]:
     v.exigir(
         receb is not None and _tem(receb, "fornecedor_id"),
         "Sem recebimentos com fornecedor.",
-        "Informar fornecedor_id em cada recebimento.",
+        "Informar o fornecedor de cada recebimento.",
     )
     v.exigir(
         _tem(amos, "umidade_bu_frac"),
@@ -295,14 +313,15 @@ def avaliar(pacote: Pacote) -> list[Capacidade]:
     v.exigir(
         receb is not None and _tem(receb, "preco_brl"),
         "Sem preço dos lotes.",
-        "Informar preco_brl de cada recebimento.",
+        "Informar o preço de cada recebimento.",
     )
     caps.append(
         v.capacidade(
             "extrato",
-            "Extrato de energia por fornecedor (M1, E11)",
+            "Extrato de energia por fornecedor",
             "Quem entrega a energia mais barata?",
             ("recebimentos com fornecedor", "umidade por lote", "preço"),
+            "M1, E11, D19, D20",
         )
     )
 
@@ -326,6 +345,7 @@ def avaliar(pacote: Pacote) -> list[Capacidade]:
             "Comparação entre períodos",
             "O que mudou de um período para outro?",
             ("diário", "três ou mais medições de estoque"),
+            "D25, D37, D50",
         )
     )
 
@@ -365,14 +385,15 @@ def avaliar(pacote: Pacote) -> list[Capacidade]:
     v.exigir(
         receb is not None and _tem(receb, "preco_brl"),
         "Sem preço dos lotes.",
-        "Informar preco_brl de cada recebimento.",
+        "Informar o preço de cada recebimento.",
     )
     caps.append(
         v.capacidade(
             "custo_vapor",
-            "Custo do vapor e efeito do preço (E14)",
+            "Custo do vapor e efeito do preço",
             "O custo do vapor mudou por preço ou por consumo?",
             ("eficiência direta", "preço"),
+            "E14",
         )
     )
     return caps

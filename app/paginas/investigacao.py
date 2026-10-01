@@ -45,7 +45,7 @@ def _o_que_falta(falta: list[str]) -> None:
     if cadastrar:
         with cartao("falta-cadastrar"):
             st.markdown(
-                ":material/edit_note: **Cadastrar em instrumentos.csv** · "
+                ":material/edit_note: **Completar o cadastro de instrumentos** · "
                 f"{plural(len(cadastrar), 'incerteza', 'incertezas')}, cada uma com o tipo da "
                 "incerteza"
             )
@@ -342,7 +342,7 @@ def mostrar(pacote) -> None:
 
     with aba4:
         _o_que_falta(j["o_que_falta"])
-        st.caption(md(j["independencia"]["nota"]) + " (E12)")
+        st.caption(md(j["independencia"]["nota"]))
 
     with st.container(horizontal=True, vertical_alignment="center"):
         st.page_link(
@@ -350,7 +350,7 @@ def mostrar(pacote) -> None:
             label="Gerar o relatório desta comparação",
             icon=":material/description:",
         )
-    with st.expander("Dados técnicos da investigação (JSON)"):
+    with st.expander("Detalhes técnicos da investigação (JSON)"):
         texto = json.dumps(j, ensure_ascii=False, indent=2)
         st.download_button(
             "Baixar o JSON", texto, file_name="investigacao_euler.json", mime="application/json"

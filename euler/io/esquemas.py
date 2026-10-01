@@ -15,6 +15,40 @@ TipoColuna = Literal["texto", "numero", "instante", "data", "booleano", "categor
 ORIGENS_DADO = ("sintetico", "publico", "real")
 
 
+ROTULOS = {
+    "caldeira_id": "caldeira", "instante_observado": "hora da leitura",
+    "instante_registrado": "hora da anotação", "turno": "turno", "operador_id": "operador",
+    "regime": "regime", "p_vapor_bar_man": "pressão do vapor", "t_gases_c": "temperatura dos gases",
+    "ponto_gases_id": "ponto de medição dos gases", "o2_seco_pct": "O₂ nos gases",
+    "instrumento_o2_id": "analisador de O₂", "co_ppm": "CO nos gases",
+    "t_agua_alim_c": "temperatura da água de alimentação", "t_ar_c": "temperatura do ar de combustão",
+    "purgas_n": "número de purgas", "purgas_s": "duração das purgas",
+    "totalizador_vapor_t": "totalizador de vapor", "producao": "produção",
+    "ocorrencia": "ocorrência", "flag_instrumento_indisponivel": "instrumento fora de serviço",
+    "origem_dado": "origem do dado", "data": "data", "tipo": "tipo", "fornecedor_id": "fornecedor",
+    "lote_id": "lote", "massa_kg": "massa", "volume_m3": "volume", "densidade_kg_m3": "densidade",
+    "origem_densidade": "origem da densidade", "preco_brl": "preço", "amostra_id": "amostra",
+    "umidade_bu_frac": "umidade", "pci_seco_mj_kg": "PCI seco", "C": "carbono", "H": "hidrogênio",
+    "O": "oxigênio", "N": "nitrogênio", "S": "enxofre", "cinzas": "cinzas", "metodo": "método",
+    "laboratorio": "laboratório", "instante": "hora do evento", "descricao": "descrição",
+    "autorizado_por": "autorizado por", "instrumento_id": "instrumento", "ponto": "ponto de instalação",
+    "unidade": "unidade", "resolucao": "resolução", "incerteza_declarada": "incerteza declarada",
+    "ultima_verificacao": "última verificação", "observacao": "observação",
+    "incerteza_tipo": "tipo da incerteza", "incerteza_k": "fator k da incerteza",
+}  # fmt: skip
+"""Nome de cada coluna em português, para as mensagens ao usuário (linguagem de fábrica, D64).
+O nome técnico fica no contrato de dados e nos "Detalhes técnicos"."""
+
+
+def rotulo_coluna(nome: str) -> str:
+    return ROTULOS.get(nome, nome.replace("_", " "))
+
+
+def rotulo_categoria(valor: str) -> str:
+    """Valor de categoria como o usuário escreve (o importador aceita espaço no lugar de _)."""
+    return valor.replace("_", " ")
+
+
 @dataclass(frozen=True)
 class Coluna:
     nome: str
@@ -28,6 +62,15 @@ class Coluna:
     """Dica quando o valor sai da faixa; tupla = (dica abaixo, dica acima)."""
     categorias: tuple[str, ...] = ()
 
+    @property
+    def rotulo(self) -> str:
+        return rotulo_coluna(self.nome)
+
+    @property
+    def rotulo_inicial(self) -> str:
+        """O rótulo com a primeira letra maiúscula, para começar uma frase."""
+        return self.rotulo[0].upper() + self.rotulo[1:]
+
 
 @dataclass(frozen=True)
 class Tabela:
@@ -40,6 +83,10 @@ class Tabela:
     @property
     def arquivo(self) -> str:
         return f"{self.nome}.csv"
+
+    @property
+    def rotulo(self) -> str:
+        return self.titulo[0].lower() + self.titulo[1:]
 
     def coluna(self, nome: str) -> Coluna:
         return next(c for c in self.colunas if c.nome == nome)

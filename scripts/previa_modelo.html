@@ -401,7 +401,7 @@ function telaInvestigacao() {
     detalhe = hipoteses(c.abertas, "Nenhuma outra explicação continua em aberto.");
   } else {
     const lista = (l) => `<ul>${l.map((x) => `<li>${e(x[0].toUpperCase() + x.slice(1))}</li>`).join("")}</ul>`;
-    detalhe = (c.falta_cadastrar.length ? `<div class="cartao"><p><b>Cadastrar em instrumentos.csv</b> · ${plural(c.falta_cadastrar.length, "incerteza", "incertezas")}, cada uma com o tipo da incerteza</p>${lista(c.falta_cadastrar)}</div>` : "")
+    detalhe = (c.falta_cadastrar.length ? `<div class="cartao"><p><b>Completar o cadastro de instrumentos</b> · ${plural(c.falta_cadastrar.length, "incerteza", "incertezas")}, cada uma com o tipo da incerteza</p>${lista(c.falta_cadastrar)}</div>` : "")
       + (c.falta_outros.length ? `<div class="cartao"><p><b>Medir, registrar ou conferir</b> · ${plural(c.falta_outros.length, "item", "itens")}</p>${lista(c.falta_outros)}</div>` : "")
       + (!c.falta_cadastrar.length && !c.falta_outros.length ? '<p class="legenda">Nada essencial faltando para esta comparação.</p>' : "")
       + `<p class="legenda">${e(c.independencia)}</p>`;
@@ -462,7 +462,7 @@ function telaRelatorio() {
 
 function telaCalculadora() {
   return `${cabecalho("Referência", "Calculadora de referência", "Escolha a temperatura dos gases, o oxigênio e a umidade do combustível. A EULER calcula quanto da energia do combustível sai pela chaminé como calor.", false)}
-    <div class="alerta aviso">${icone("ciencia")}<div><b>Simulação.</b> Valores de referência em revisão científica (itens E1 a E7). Não use para decisões.</div></div>
+    <div class="alerta aviso">${icone("ciencia")}<div><b>Simulação.</b> Valores de referência em revisão científica. Não use para decisões.</div></div>
     <div class="cartao"><p>A calculadora faz contas na hora a cada ajuste, por isso fica só no app (abra com <b>ABRIR-EULER.cmd</b>). No ponto de referência (180 °C, 8% de O₂, 40% de umidade), a perda nos gases é <b>11,77% do PCI</b>.</p></div>`;
 }
 

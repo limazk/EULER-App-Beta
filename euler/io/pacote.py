@@ -11,7 +11,7 @@ import pandas as pd
 from euler import qualidade
 from euler.io.combustivel import importar_combustivel
 from euler.io.diario import importar_diario
-from euler.io.esquemas import TABELAS
+from euler.io.esquemas import TABELAS, rotulo_coluna
 from euler.io.leitura import FUSO_PADRAO, Aviso, Fonte, Importacao, importar_tabela, ler_planilha
 
 ORDEM_GRAVIDADE = {"erro": 0, "atencao": 1, "info": 2}
@@ -56,9 +56,9 @@ class Pacote:
         linhas = [
             {
                 "Gravidade": ROTULO_GRAVIDADE[a.gravidade],
-                "Tabela": _arquivo(a.tabela),
+                "Tabela": _titulo(a.tabela),
                 "Linha": a.linha,
-                "Coluna": a.coluna or "",
+                "Coluna": rotulo_coluna(a.coluna) if a.coluna else "",
                 "Aviso": a.mensagem,
                 "Tipo": a.tipo,
                 "_ordem": ORDEM_GRAVIDADE[a.gravidade],
@@ -102,7 +102,7 @@ def _relacoes(p: Pacote) -> list[Aviso]:
                     int(a["linha"]),
                     "lote_id",
                     "lote_desconhecido",
-                    f"Amostra do lote '{a['lote_id']}', que não aparece em combustivel.csv.",
+                    f"Amostra do lote '{a['lote_id']}', que não aparece nos recebimentos de combustível.",
                 )
             )
         com_umidade = set(amos.loc[amos["umidade_bu_frac"].notna(), "lote_id"].dropna())
@@ -128,8 +128,8 @@ def _relacoes(p: Pacote) -> list[Aviso]:
                     None,
                     "instrumento_o2_id",
                     "instrumento_sem_cadastro",
-                    f"Instrumento '{ident}' citado no diário não está em "
-                    "instrumentos.csv: incerteza desconhecida.",
+                    f"Instrumento '{ident}' citado no diário não está no cadastro de "
+                    "instrumentos: incerteza desconhecida.",
                     "info",
                 )
             )
@@ -171,8 +171,8 @@ def fontes_de_arquivos(arquivos: Mapping[str, bytes]) -> tuple[dict[str, Fonte],
                     None,
                     None,
                     "arquivo_desconhecido",
-                    f"Arquivo '{nome_arquivo}' não corresponde a nenhuma tabela do "
-                    f"contrato ({', '.join(t.arquivo for t in TABELAS.values())}).",
+                    f"Arquivo '{nome_arquivo}' não foi reconhecido: o nome precisa ser o de "
+                    "uma das tabelas do modelo (a lista está em “Detalhes técnicos”).",
                     "info",
                 )
             )
@@ -188,6 +188,6 @@ def importar_pasta(
     return importar_pacote(fontes, p_atm_bar=p_atm_bar, fuso=fuso)
 
 
-def _arquivo(tabela: str | None) -> str:
-    """Nome do arquivo de uma tabela (é o que o usuário enviou e o que a linha numera)."""
-    return TABELAS[tabela].arquivo if tabela in TABELAS else (tabela or "—")
+def _titulo(tabela: str | None) -> str:
+    """Nome da tabela como o usuário a conhece (linguagem de fábrica, D64)."""
+    return TABELAS[tabela].titulo if tabela in TABELAS else (tabela or "—")

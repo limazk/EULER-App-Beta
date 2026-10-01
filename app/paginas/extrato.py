@@ -21,11 +21,13 @@ cabecalho(
 def mostrar(pacote) -> None:
     combustivel, amostras = pacote.dados("combustivel"), pacote.dados("amostras")
     if combustivel is None:
-        st.warning("Para o extrato, envie `combustivel.csv` (e `amostras.csv` com a umidade).")
+        st.warning(
+            "Para o extrato, envie os recebimentos de combustível (e as amostras com a umidade)."
+        )
         return
     receb = combustivel[combustivel["tipo"] == "recebimento"]
     if receb.empty:
-        st.warning("Não há recebimentos em `combustivel.csv`.")
+        st.warning("Não há recebimentos nos registros de combustível.")
         return
 
     datas = receb["data"].dt.tz_localize(None)
@@ -128,8 +130,8 @@ def mostrar(pacote) -> None:
     st.markdown(f"#### Umidade fora da faixa histórica · {plural(len(alertas), 'lote', 'lotes')}")
     st.caption(
         "Faixa histórica: média ± 3 desvios-padrão dos primeiros 10 lotes medidos de cada "
-        "fornecedor (proposta D20). É um sinal para conferir a amostragem e o lote, não uma "
-        "conclusão sobre o fornecedor."
+        "fornecedor (proposta em revisão). É um sinal para conferir a amostragem e o lote, não "
+        "uma conclusão sobre o fornecedor."
     )
     if len(alertas):
         resumo = []
@@ -201,11 +203,18 @@ def mostrar(pacote) -> None:
         )
 
     st.caption(
-        "Cálculo (E11, em revisão científica): energia do lote = massa × PCI úmido; "
+        "Cálculo em revisão científica: energia do lote = massa × PCI úmido; "
         "PCI úmido = (1 − umidade) × PCI seco − 2,442 × umidade; R$/GJ = preço do lote ÷ energia. "
         "Umidade: **medido** por lote. PCI seco: **medido** na amostra do lote ou **assumido** da "
         "amostra mais próxima do mesmo fornecedor."
     )
+    with st.expander("Detalhes técnicos do extrato"):
+        st.markdown(
+            "- Energia por lote e R$/GJ: item E11 de `docs/fisica_para_revisao.md` (PCI úmido: "
+            "E5).\n"
+            "- Faixa histórica de umidade: proposta D20 de `docs/decisoes.md`.\n"
+            "- PCI seco da amostra mais próxima do mesmo fornecedor: proposta D19."
+        )
 
 
 pacote = estado.exigir_pacote()

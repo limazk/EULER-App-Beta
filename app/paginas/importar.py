@@ -12,9 +12,10 @@ COR_GRAVIDADE = {"Erro": "red", "Atenção": "orange", "Informação": "gray"}
 
 cabecalho(
     "Importar dados",
-    "Envie os registros da caldeira: os arquivos CSV (`diario.csv`, `combustivel.csv`, "
-    "`amostras.csv`, `eventos.csv`, `instrumentos.csv`) ou a **planilha modelo** preenchida. "
-    "A EULER guarda o original e lista o que encontrou. **Nada é corrigido sem avisar.**",
+    "Envie os registros da caldeira (diário do operador, recebimentos de combustível, "
+    "amostras, eventos e cadastro de instrumentos), um arquivo CSV por registro, ou a "
+    "**planilha modelo** preenchida. A EULER guarda o original e lista o que encontrou. "
+    "**Nada é corrigido sem avisar.**",
     "Passo 1 de 5",
 )
 
@@ -58,6 +59,24 @@ with envio, cartao("arquivos"):
             ARQUIVO_PLANILHA.read_bytes(),
             file_name=ARQUIVO_PLANILHA.name,
             icon=":material/download:",
+        )
+    with st.expander("Detalhes técnicos: nomes dos arquivos e das colunas"):
+        st.markdown(
+            "Cada registro vai num arquivo com o nome abaixo (ou numa aba da planilha com o "
+            "mesmo nome, sem o `.csv`). Colunas e unidades completas no contrato de dados "
+            "(`docs/contrato_dados.md`)."
+        )
+        st.dataframe(
+            [
+                {
+                    "Registro": t.titulo,
+                    "Arquivo": t.arquivo,
+                    "Colunas obrigatórias": ", ".join(c.nome for c in t.colunas if c.obrigatoria),
+                }
+                for t in TABELAS.values()
+            ],
+            hide_index=True,
+            width="stretch",
         )
 
 st.markdown("##### Ou comece com um exemplo sintético")
@@ -117,9 +136,7 @@ def mostrar_resultado(pacote) -> None:
             situacao, n = "bloqueada (ver erros)", str(len(imp.original))
         else:
             situacao, n = "importada", str(len(imp.dados))
-        linhas.append(
-            {"Tabela": tabela.titulo, "Arquivo": tabela.arquivo, "Linhas": n, "Situação": situacao}
-        )
+        linhas.append({"Registro": tabela.titulo, "Linhas": n, "Situação": situacao})
     st.dataframe(linhas, hide_index=True, width="stretch")
 
     st.markdown("#### Avisos de qualidade")
@@ -150,7 +167,7 @@ def mostrar_resultado(pacote) -> None:
             "(cabeçalho = linha 1)."
         )
 
-    with st.expander("Ver os dados como a EULER entendeu"):
+    with st.expander("Detalhes técnicos: os dados como a EULER entendeu"):
         nomes = list(pacote.importacoes)
         for aba, nome in zip(st.tabs([TABELAS[n].titulo for n in nomes]), nomes, strict=True):
             with aba:

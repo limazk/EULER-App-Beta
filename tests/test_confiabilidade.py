@@ -332,5 +332,5 @@ def test_a3_explicacao_condicional_aponta_o_que_falta_cadastrar():
     assert j["conclusao"]["abstencao"] and "não está confirmada" in j["conclusao"]["motivo"]
     partes = j["conclusao"]["texto"].split("Mesmo assim")
     assert len(partes) == 1 or "mais úmido" not in partes[1]  # não é mudança confirmada
-    assert j["proxima_verificacao"]["acao"].startswith("Cadastrar em instrumentos.csv")
+    assert j["proxima_verificacao"]["acao"].startswith("Registrar no cadastro de instrumentos")
     assert j["proxima_verificacao"]["separa"] == ["umidade_combustivel"]

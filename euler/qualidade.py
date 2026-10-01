@@ -9,6 +9,7 @@ from __future__ import annotations
 import pandas as pd
 
 from euler.formato import num
+from euler.io.esquemas import rotulo_coluna
 from euler.io.leitura import Aviso, descrever_linhas
 
 LACUNA_FATOR = 2.0
@@ -41,11 +42,11 @@ def duplicatas(dados: pd.DataFrame, tabela: str, chave: tuple[str, ...]) -> list
         diferentes = [
             c for c in comparar if grupo[c].astype("string").fillna("<vazio>").nunique() > 1
         ]
-        rotulo = ", ".join(f"{c} = {_valor(grupo.iloc[0][c])}" for c in chave)
+        rotulo = ", ".join(f"{rotulo_coluna(c)} = {_valor(grupo.iloc[0][c])}" for c in chave)
         if diferentes:
             msg = (
                 f"As {linhas} têm a mesma chave ({rotulo}) mas valores diferentes em: "
-                f"{', '.join(diferentes)}. Nenhuma foi apagada; confira qual vale."
+                f"{', '.join(rotulo_coluna(c) for c in diferentes)}. Nenhuma foi apagada; confira qual vale."
             )
             tipo = "duplicata_conflitante"
         else:

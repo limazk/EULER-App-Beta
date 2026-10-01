@@ -100,7 +100,7 @@ Dados e limites diz o quê.
 | **Relatório HTML** | Relatório → Baixar HTML | o relatório completo num arquivo que abre em qualquer navegador; dá para mandar por e-mail | gerente, cliente |
 | **Relatório PDF** | Relatório → Baixar PDF (precisa do Chromium instalado) | o mesmo relatório em A4 (cerca de 4 páginas), para imprimir ou anexar | gerente, cliente, banca |
 | **Imprimir ou salvar como PDF** | botão em cima da prévia do relatório | gera o PDF pelo próprio navegador, sem instalar nada | quem não tem o Chromium (ex.: seu Windows) |
-| **JSON da investigação** | Investigação → "Dados técnicos" → Baixar o JSON | todos os números, incertezas, hipóteses e critérios, num formato que outro programa lê | desenvolvedores, auditoria, revisores, integrações futuras |
+| **JSON da investigação** | Investigação → "Detalhes técnicos da investigação" → Baixar o JSON | todos os números, incertezas, hipóteses e critérios, num formato que outro programa lê | desenvolvedores, auditoria, revisores, integrações futuras |
 | **Planilha modelo (.xlsx)** | Importar dados → Baixar a planilha modelo | modelo em branco, com uma aba por arquivo e as colunas certas, para a fábrica preencher | a fábrica (cliente) |
 | **Prévia interativa** | `python scripts/gerar_previa.py` | uma página com as telas e os números do demo, que abre sem instalar nada | apresentação, investidores |
 

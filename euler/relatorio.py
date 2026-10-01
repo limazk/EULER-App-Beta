@@ -278,9 +278,9 @@ def gerar_html(investigacao: dict, gerado_em: datetime | None = None) -> str:
 {secoes}
 <footer>
   <p><strong>{_e(RODAPE_SEGURANCA)}</strong></p>
-  <p>Números marcados como estimados vêm de cálculos com hipóteses registradas em
-  docs/decisoes.md. Equações e valores de referência em revisão científica
-  (docs/fisica_para_revisao.md). Formato {_e(j["formato"])}.</p>
+  <p>Números marcados como estimados vêm de cálculos com hipóteses registradas no
+  registro de decisões do projeto. Equações e valores de referência em revisão
+  científica; as referências completas estão nos dados técnicos da investigação (JSON).</p>
 </footer>
 </main>
 </body>

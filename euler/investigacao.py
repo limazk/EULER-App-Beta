@@ -65,7 +65,7 @@ MEDICOES_INDIRETO = (
     "composição elementar",
 )
 STATUS = ("sustentada", "oposta", "possivel", "descartada", "nao_avaliavel")
-SUFIXO_CADASTRAR = ": cadastrar em instrumentos.csv, com o tipo da incerteza"
+SUFIXO_CADASTRAR = ": registrar no cadastro de instrumentos, com o tipo da incerteza"
 """Fim dos itens de "o que falta" que pedem cadastrar uma incerteza (a tela agrupa por ele)."""
 """oposta: mudou de forma detectável e relevante, mas empurra o consumo no sentido contrário
 ao medido — não explica a mudança, compensou parte dela (Fase R)."""
@@ -812,7 +812,7 @@ def investigar(
             "na próxima parada programada.",
             "Uma fonte: o termopar dos gases (caminho indireto). O balanço direto só corrobora se "
             "o resíduo direto − indireto ficar dentro da incerteza; os dois caminhos compartilham "
-            "a umidade e o PCI das amostras (E12).",
+            "a umidade e o PCI das amostras.",
             ("temperatura dos gases",),
             ef_tg,
             por_perda(ef_tg),
@@ -885,7 +885,7 @@ def investigar(
             + (f" do fornecedor {forn_maior}" if forn_maior and st == "sustentada" else "")
             + " (método de estufa e número de amostras por lote) e medir a umidade do pátio.",
             "Uma fonte: as amostras de umidade. O mesmo dado entra no balanço direto e na perda "
-            "nos gases, então não há corroboração independente (E12).",
+            "nos gases, então não há corroboração independente.",
             ("umidade das amostras", "PCI seco das amostras"),
             ef_w_perda,
             ef_w,
@@ -1299,8 +1299,8 @@ def investigar(
     elif c_cons.detectabilidade in ("condicional", None):
         prox = {
             "acao": (
-                "Conferir a calibração do medidor de vapor e cadastrar a incerteza dele (com o "
-                "tipo: limite, padrão ou expandida) em instrumentos.csv."
+                "Conferir a calibração do medidor de vapor e registrar a incerteza dele no "
+                "cadastro de instrumentos (com o tipo: limite, padrão ou expandida)."
             ),
             "separa": [],
             "porque": "A conclusão depende de o erro do medidor ser o mesmo nos dois períodos.",
@@ -1310,8 +1310,8 @@ def investigar(
         acao = principal["verificacao"]
         if faltas_pendentes:
             acao = (
-                f"Cadastrar em instrumentos.csv a {_lista(faltas_pendentes)}, informando o tipo da "
-                f"incerteza; e {acao[0].lower()}{acao[1:]}"
+                f"Registrar no cadastro de instrumentos a {_lista(faltas_pendentes)}, informando "
+                f"o tipo da incerteza; e {acao[0].lower()}{acao[1:]}"
             )
         prox = {
             "acao": acao,
@@ -1399,7 +1399,7 @@ def investigar(
                 f"({_sinal(100 * c_custo.delta / c_custo.referencia)}%): "
                 f"{_sinal(efeito_preco)}% pelo preço da energia comprada (R$/GJ) e "
                 f"{_sinal(efeito_intensidade)}% pela energia gasta por tonelada de vapor. "
-                "Variação de preço não é perda de eficiência (E14)."
+                "Variação de preço não é perda de eficiência."
             ),
         }
 
