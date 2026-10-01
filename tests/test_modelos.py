@@ -20,10 +20,14 @@ def test_toda_coluna_tem_unidade_obrigatoriedade_e_descricao():
 
 
 def test_cabecalhos_dos_csvs_modelo_seguem_o_contrato():
+    """Os modelos do kit vêm na ordem do contrato; colunas acrescentadas depois ao contrato
+    (ex.: incerteza_tipo, Fase R) ficam no fim e são opcionais."""
     for t in TABELAS.values():
         with (PASTA_MODELOS / t.arquivo).open(encoding="utf-8") as f:
             cabecalho = next(csv.reader(f))
-        assert cabecalho == [c.nome for c in t.colunas], t.arquivo
+        contrato = [c.nome for c in t.colunas]
+        assert cabecalho == contrato[: len(cabecalho)], t.arquivo
+        assert all(not t.coluna(c).obrigatoria for c in contrato[len(cabecalho) :]), t.arquivo
 
 
 def test_planilha_tem_uma_aba_por_tabela_com_os_cabecalhos_do_contrato():

@@ -56,7 +56,12 @@ def test_caso_b_umidade_sustentada():
     s = status(j)
     assert s["umidade_combustivel"] == "sustentada"
     assert s["temperatura_gases"] == "descartada"
-    assert s["perdas_nao_medidas"] == "descartada"
+    # Fase R (D38): degrau de 15 pontos de umidade com 100 t no pátio — o resíduo direto −
+    # indireto depende de qual combustível queimou; sem medir o pátio, não dá para avaliar.
+    assert s["perdas_nao_medidas"] == "nao_avaliavel"
+    assert "pátio" in next(h for h in j["hipoteses"] if h["id"] == "perdas_nao_medidas")["porque"]
+    # o fechamento (em escala logarítmica, ER-7) bate: a umidade explica a mudança
+    assert j["o_que_mudou"]["fechamento"]["veredito"] == "fecha"
     assert j["conclusao"]["abstencao"] is False
 
 
@@ -93,8 +98,11 @@ def test_sem_vapor_no_periodo_abstem_e_diz_o_que_falta():
     )
     assert j["o_que_mudou"]["frase"].startswith("Não dá para saber se o consumo")
     assert j["conclusao"]["abstencao"] is True
-    # o caminho indireto ainda sustenta a temperatura dos gases
-    assert status(j)["temperatura_gases"] == "sustentada"
+    # Fase R (D44): a temperatura mudou de forma detectável, mas sem consumo medido o efeito
+    # não pode ser confirmado → "possível", não "sustentada"
+    assert status(j)["temperatura_gases"] == "possivel"
+    h = next(h for h in j["hipoteses"] if h["id"] == "temperatura_gases")
+    assert h["avaliacao"]["mudanca_detectavel"] == "sim"
     assert status(j)["perdas_nao_medidas"] == "nao_avaliavel"
     assert "totalizador de vapor" in j["proxima_verificacao"]["acao"]
     assert j["valor_em_jogo"] is None

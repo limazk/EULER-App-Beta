@@ -1,9 +1,14 @@
 """Linha de base e comparação entre períodos (E15) e detecção de degrau (T12).
 
-Uma mudança só é chamada de **detectável** quando é maior que a incerteza da
-diferença (k = 2, ~95%). Para leituras do diário, a incerteza da média de um período
-vem da variação entre **médias diárias** (leituras de 2 em 2 h são correlacionadas
-entre si; dias são mais próximos de independentes) — proposta D25.
+Uma mudança só é chamada de **detectável** quando é maior que U = 2u da diferença.
+Para leituras do diário, a dispersão da média de um período vem da variação entre
+**médias diárias** (leituras de 2 em 2 h são correlacionadas; dias são mais próximos de
+independentes) — D25. Quando as grandezas trazem orçamento de incerteza (Fase R), a
+diferença considera os erros que se repetem nos dois períodos (GUM 5.2.2):
+
+- `sim`: detectável mesmo supondo erros de instrumento independentes (r = 0);
+- `condicional`: só detectável se o erro do mesmo instrumento se repetir (r = 1);
+- `nao`: nem assim; `None`: falta incerteza para decidir (D37).
 """
 
 from __future__ import annotations
@@ -13,6 +18,13 @@ from math import sqrt
 
 import pandas as pd
 
+from euler.incerteza import (
+    Componente,
+    Detectabilidade,
+    Orcamento,
+    detectabilidade,
+    u_diferenca,
+)
 from euler.tipos import Grandeza
 
 
@@ -48,7 +60,12 @@ def estatistica_diaria(
 
 @dataclass(frozen=True)
 class Comparacao:
-    """Diferença entre o período de comparação e o de referência."""
+    """Diferença entre o período de comparação e o de referência.
+
+    incerteza_delta: U = 2u da diferença supondo erros de instrumento independentes (r = 0).
+    incerteza_delta_correlacionada: U supondo que o mesmo instrumento repete o erro (r = 1).
+    detectavel: True ('sim'), False ('nao'), None ('condicional' ou sem incerteza).
+    """
 
     nome: str
     unidade: str
@@ -57,19 +74,23 @@ class Comparacao:
     delta: float | None
     incerteza_delta: float | None
     detectavel: bool | None
-    """True/False quando há incerteza para decidir; None quando não dá para saber."""
+    incerteza_delta_correlacionada: float | None = None
+    detectabilidade: Detectabilidade | None = None
 
     @property
     def disponivel(self) -> bool:
         return self.delta is not None
 
 
-def _valor_incerteza(x: Estatistica | Grandeza | None) -> tuple[float | None, float | None]:
-    if x is None:
-        return None, None
-    if isinstance(x, Estatistica):
-        return x.media, x.incerteza
-    return x.valor, x.incerteza
+def _como_grandeza(x: Estatistica | Grandeza | None) -> Grandeza | None:
+    if x is None or isinstance(x, Grandeza):
+        return x
+    orc = Orcamento()
+    if x.erro_padrao is not None and x.media != 0:
+        orc.componentes.append(Componente("dispersão", x.erro_padrao / x.media, "aleatoria"))
+    return Grandeza(
+        x.media, x.unidade, "medido", x.incerteza, "", orc if x.erro_padrao is not None else None
+    )
 
 
 def comparar(
@@ -78,12 +99,36 @@ def comparar(
     referencia: Estatistica | Grandeza | None,
     comparacao: Estatistica | Grandeza | None,
 ) -> Comparacao:
-    """Compara dois períodos; detectável se |Δ| > incerteza da diferença (k = 2)."""
-    a, ua = _valor_incerteza(referencia)
-    b, ub = _valor_incerteza(comparacao)
+    """Compara dois períodos; a detectabilidade usa U = 2u da diferença (ver docstring)."""
+    a, b = _como_grandeza(referencia), _como_grandeza(comparacao)
     if a is None or b is None:
-        return Comparacao(nome, unidade, a, b, None, None, None)
-    delta = float(b - a)
-    u = float(sqrt(ua**2 + ub**2)) if ua is not None and ub is not None else None
-    detectavel = None if u is None else bool(abs(delta) > u)
-    return Comparacao(nome, unidade, float(a), float(b), delta, u, detectavel)
+        return Comparacao(
+            nome, unidade, None if a is None else float(a.valor), None if b is None else float(b.valor),
+            None, None, None,
+        )  # fmt: skip
+    delta = float(b.valor - a.valor)
+    if (
+        a.orcamento is not None
+        and b.orcamento is not None
+        and a.incerteza is not None
+        and b.incerteza is not None
+    ):
+        u0 = u_diferenca(a.valor, a.orcamento, b.valor, b.orcamento, r_instrumento=0.0)
+        u1 = u_diferenca(a.valor, a.orcamento, b.valor, b.orcamento, r_instrumento=1.0)
+        u_ind, u_cor = max(u0, u1), min(u0, u1)
+    elif a.incerteza is not None and b.incerteza is not None:
+        u_ind = u_cor = sqrt((a.incerteza / 2) ** 2 + (b.incerteza / 2) ** 2)
+    else:
+        return Comparacao(nome, unidade, float(a.valor), float(b.valor), delta, None, None)
+    nivel = detectabilidade(delta, u_ind, u_cor)
+    return Comparacao(
+        nome,
+        unidade,
+        float(a.valor),
+        float(b.valor),
+        delta,
+        float(2 * u_ind),
+        {"sim": True, "nao": False}.get(nivel),
+        float(2 * u_cor),
+        nivel,
+    )

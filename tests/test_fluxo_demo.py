@@ -29,7 +29,8 @@ def test_fluxo_completo_do_caso_de_demonstracao():
 
     at.switch_page("paginas/investigacao.py").run()
     assert not at.exception, at.exception
-    assert any("Os dados sustentam" in s.value for s in at.success)
+    # Fase R (D44): "Os dados sustentam" virou "Explicações compatíveis com os dados"
+    assert any("Explicações compatíveis" in s.value for s in at.success)
     assert _rodape_ok(at)
 
     at.switch_page("paginas/extrato.py").run()

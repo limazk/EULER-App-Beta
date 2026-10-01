@@ -1,27 +1,45 @@
 """Balanço direto: energia útil do vapor ÷ energia do combustível (E8, E10, E13, E15; T10).
 
-η_D = Q_s / E_f, no mesmo período e na mesma fronteira, com
-Q_s = M_vapor · Δh(p, T_água) (E8) e E_f = M_comb · PCI_u da mistura (E9, E10).
+Fronteira física (D39):
+- **entra**: o combustível queimado no período (E9, massa como recebida) com seu PCI;
+- **sai como energia útil**: só o vapor que passa pelo medidor, do estado da água de
+  alimentação (no ponto em que a temperatura é medida, na pressão da caldeira) até vapor
+  saturado; título x = 1 **assumido** quando não medido;
+- **fica fora da energia útil** e aparece como "outras perdas" no confronto com o caminho
+  indireto: purga (D27), gases da chaminé, casco, cinzas e incombustos, vazamentos e
+  qualquer vapor consumido antes do medidor.
 
-Não circularidade (E13): a eficiência é sempre **resultado**. Nenhuma função deste
-módulo (nem de vapor/combustível) recebe eficiência como entrada; um teste garante isso.
+Assim, η_D = Q_s / E_f é a eficiência **direta** dessa fronteira. Ela **não** é a perda
+nos gases: a perda nos gases é só uma parcela de (1 − η_D).
 
-Incerteza de primeira ordem (E15), com as incertezas declaradas tratadas como
-expandidas (k = 2, D24):
-    (u_η/η)² = (u_Mvapor/Mvapor)² + (u_Mcomb/Mcomb)² + (u_PCI/PCI)²
-Componentes sem incerteza declarada ficam listados em `sem_incerteza`.
-A incerteza de Δh (pressão e temperatura da água) é desprezada (nota em D26).
-Purga: fica fora da energia útil (pergunta aberta no E10, D27).
+Energia útil (E8): intervalo a intervalo entre leituras do totalizador quando há pressão e
+água de alimentação em todos os intervalos; senão, com as condições médias (D26).
+
+Não circularidade (E13): a eficiência é sempre resultado; nenhuma função deste módulo (nem
+de vapor/combustível/períodos) recebe eficiência como entrada — há um teste para isso.
+
+Incerteza (E15, GUM): orçamentos por componente (euler.incerteza). A diferença entre o
+combustível recebido e o queimado não entra no orçamento: é tratada como **cenários**
+(`eficiencia_cenarios`), porque é uma hipótese de modelo e não um erro aleatório (D38).
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from math import sqrt
 
+from iapws import IAPWS97
+
+from euler.incerteza import Componente, Orcamento
 from euler.periodos import ResumoPeriodo
 from euler.tipos import AnaliseBloqueada, Grandeza
 from euler.vapor import delta_h_mj_kg
+
+FRONTEIRA = (
+    "Entra: combustível queimado no período (estoques + recebimentos) com o PCI do material. "
+    "Sai como energia útil: o vapor medido no totalizador, da água de alimentação até vapor "
+    "saturado (título assumido = 1). Ficam fora: purga, gases da chaminé, casco, cinzas, "
+    "vazamentos e vapor usado antes do medidor."
+)
 
 MEDICOES_DIRETO = (
     "totalizador de vapor",
@@ -40,10 +58,15 @@ class BalancoDireto:
 
     delta_h_mj_kg: Grandeza | None = None
     energia_util_gj: Grandeza | None = None
+    metodo_energia_util: str | None = None
     energia_combustivel_gj: Grandeza | None = None
     eficiencia: Grandeza | None = None
+    eficiencia_cenarios: dict[str, float] | None = None
     consumo_t_por_t: Grandeza | None = None
     intensidade_gj_por_t: Grandeza | None = None
+    sensibilidade_titulo_pct: float | None = None
+    """Variação relativa de Δh (e de η) se o título for 0,99 em vez de 1 (sempre negativa)."""
+    fronteira: str = FRONTEIRA
     sem_incerteza: list[str] = field(default_factory=list)
     bloqueios: list[AnaliseBloqueada] = field(default_factory=list)
 
@@ -52,16 +75,34 @@ class BalancoDireto:
         return self.eficiencia is not None
 
 
-def _rel(g: Grandeza | None) -> float | None:
-    if g is None or g.incerteza is None or g.valor == 0:
-        return None
-    return g.incerteza / abs(g.valor)
+def _orcamento_delta_h(r: ResumoPeriodo, p: float, t: float, dh: float) -> Orcamento:
+    """Incerteza de Δh pelos instrumentos de pressão e de água de alimentação."""
+    orc = Orcamento()
+    for coluna, passo in (("p_vapor_bar_abs", 0.1), ("t_agua_alim_c", 1.0)):
+        g = r.leituras_grandeza.get(coluna)
+        inst = (
+            None
+            if g is None or g.orcamento is None
+            else next((c for c in g.orcamento.componentes if c.natureza == "instrumental"), None)
+        )
+        if inst is None:
+            orc.nao_incluidos.append(f"incerteza do instrumento de {coluna}")
+            continue
+        args = {"p_vapor_bar_abs": p, "t_agua_alim_c": t}
+        args[coluna] += passo
+        sens = (
+            delta_h_mj_kg(args["p_vapor_bar_abs"], "saturado_seco", args["t_agua_alim_c"]) - dh
+        ) / passo
+        u_abs = inst.u_rel * g.valor
+        orc.componentes.append(Componente(inst.nome, sens * u_abs / dh, "instrumental", inst.chave))
+    orc.nao_incluidos.append("título do vapor não medido (x = 1 assumido)")
+    return orc
 
 
-def _combinar(*relativas: float | None) -> float | None:
-    if any(r is None for r in relativas):
-        return None
-    return sqrt(sum(r**2 for r in relativas))
+def _grandeza(valor: float, unidade: str, orc: Orcamento, nota: str, com_u: bool) -> Grandeza:
+    return Grandeza(
+        valor, unidade, "estimado", 2 * orc.u_rel() * abs(valor) if com_u else None, nota, orc
+    )
 
 
 def balanco_direto(r: ResumoPeriodo) -> BalancoDireto:
@@ -91,63 +132,82 @@ def balanco_direto(r: ResumoPeriodo) -> BalancoDireto:
     else:
         try:
             dh = delta_h_mj_kg(p.media, "saturado_seco", t_agua.media)
-            b.delta_h_mj_kg = Grandeza(
+            b.delta_h_mj_kg = _grandeza(
                 dh,
                 "MJ/kg",
-                "estimado",
-                nota=f"IF97 a {p.media:.2f} bar abs, água a {t_agua.media:.0f} °C; "
-                "vapor saturado seco (título x = 1 assumido)",
+                _orcamento_delta_h(r, p.media, t_agua.media, dh),
+                f"IF97 a {p.media:.2f} bar abs, água a {t_agua.media:.0f} °C; título x = 1 assumido",
+                com_u=True,
             )
+            umido = IAPWS97(P=p.media / 10, x=0.99).h / 1000 - (
+                IAPWS97(P=p.media / 10, x=1).h / 1000 - dh
+            )
+            b.sensibilidade_titulo_pct = 100 * (umido / dh - 1)
         except AnaliseBloqueada as bloqueio:
             b.bloqueios.append(bloqueio)
 
-    if r.vapor_t is not None and b.delta_h_mj_kg is not None:
-        q = r.vapor_t.valor * b.delta_h_mj_kg.valor  # t × MJ/kg = GJ
-        rel = _rel(r.vapor_t)
-        b.energia_util_gj = Grandeza(q, "GJ", "estimado", None if rel is None else rel * q)
-    if r.combustivel_kg is not None and r.pci_umido_mistura is not None:
-        e = r.combustivel_kg.valor * r.pci_umido_mistura.valor / 1000
-        rel = _combinar(_rel(r.combustivel_kg), _rel(r.pci_umido_mistura))
-        b.energia_combustivel_gj = Grandeza(e, "GJ", "estimado", None if rel is None else rel * e)
+    vapor, comb, pci = r.vapor_t, r.combustivel_kg, r.pci_umido_mistura
+    if vapor is not None and b.delta_h_mj_kg is not None:
+        orc_q = vapor.orcamento.mais(b.delta_h_mj_kg.orcamento)
+        if r.energia_util_intervalos_gj is not None:
+            q, b.metodo_energia_util = r.energia_util_intervalos_gj, "intervalo a intervalo"
+        else:
+            q = vapor.valor * b.delta_h_mj_kg.valor  # t × MJ/kg = GJ
+            b.metodo_energia_util = "condições médias do período"
+        b.energia_util_gj = _grandeza(
+            q, "GJ", orc_q, b.metodo_energia_util, vapor.incerteza is not None
+        )
+    if comb is not None and pci is not None:
+        e = comb.valor * pci.valor / 1000
+        b.energia_combustivel_gj = _grandeza(
+            e, "GJ", comb.orcamento.mais(pci.orcamento), "cenário 'o que entra é o que queima'",
+            comb.incerteza is not None,
+        )  # fmt: skip
 
-    if r.vapor_t is None or r.combustivel_kg is None:
+    if vapor is None or comb is None:
         return b
-    for nome, g in (
-        ("medidor de vapor", r.vapor_t),
-        ("medição de estoque", r.combustivel_kg),
-        ("PCI da mistura", r.pci_umido_mistura),
-    ):
-        if g is not None and g.incerteza is None:
+    for nome, g in (("medidor de vapor", vapor), ("medição de estoque", comb)):
+        if g.incerteza is None:
             b.sem_incerteza.append(nome)
 
-    consumo = (r.combustivel_kg.valor / 1000) / r.vapor_t.valor
-    rel_c = _combinar(_rel(r.vapor_t), _rel(r.combustivel_kg))
-    b.consumo_t_por_t = Grandeza(
-        consumo,
+    com_u = vapor.incerteza is not None and comb.incerteza is not None
+    b.consumo_t_por_t = _grandeza(
+        (comb.valor / 1000) / vapor.valor,
         "t de combustível / t de vapor",
-        "estimado",
-        None if rel_c is None else rel_c * consumo,
-        "combustível queimado (E9) ÷ vapor do totalizador",
+        comb.orcamento.mais(vapor.orcamento, -1),
+        "combustível queimado (E9) ÷ vapor do totalizador; não depende da qualidade do combustível",
+        com_u,
     )
     if b.energia_combustivel_gj is None:
         return b
-    intensidade = b.energia_combustivel_gj.valor / r.vapor_t.valor
-    rel_i = _combinar(_rel(r.vapor_t), _rel(b.energia_combustivel_gj))
-    b.intensidade_gj_por_t = Grandeza(
-        intensidade,
+    b.intensidade_gj_por_t = _grandeza(
+        b.energia_combustivel_gj.valor / vapor.valor,
         "GJ de combustível / t de vapor",
-        "estimado",
-        None if rel_i is None else rel_i * intensidade,
+        b.energia_combustivel_gj.orcamento.mais(vapor.orcamento, -1),
+        "cenário 'o que entra é o que queima'",
+        com_u,
     )
     if b.energia_util_gj is None:
         return b
     eta = b.energia_util_gj.valor / b.energia_combustivel_gj.valor
-    rel_eta = _combinar(_rel(r.vapor_t), _rel(r.combustivel_kg), _rel(r.pci_umido_mistura))
-    b.eficiencia = Grandeza(
+    b.eficiencia = _grandeza(
         eta,
         "fração",
-        "estimado",
-        None if rel_eta is None else rel_eta * eta,
-        "energia útil do vapor ÷ energia do combustível (E10), base PCI",
+        b.energia_util_gj.orcamento.mais(b.energia_combustivel_gj.orcamento, -1),
+        "energia útil do vapor ÷ energia do combustível (E10), base PCI; cenário 'o que entra "
+        "é o que queima'",
+        com_u,
     )
+    if r.pci_queimado is not None:
+        cen = r.pci_queimado
+        b.eficiencia_cenarios = {
+            nome: b.energia_util_gj.valor / (comb.valor * valor / 1000)
+            for nome, valor in (
+                ("recebido", cen.recebido),
+                ("fifo", cen.fifo),
+                ("minimo", cen.maximo),  # PCI máximo → eficiência mínima
+                ("maximo", cen.minimo),
+            )
+            if valor is not None
+        }
     return b

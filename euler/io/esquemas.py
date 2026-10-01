@@ -454,6 +454,25 @@ INSTRUMENTOS = Tabela(
             "2026-09-01",
         ),
         Coluna("observacao", "texto", "—", False, "Observação livre.", "sintetico"),
+        Coluna(
+            "incerteza_tipo",
+            "categoria",
+            "—",
+            False,
+            "Como a incerteza foi declarada. Sem esta informação, a EULER trata o valor como "
+            "limite ±a (distribuição retangular, GUM 4.3.7).",
+            "",
+            categorias=("padrao", "expandida", "limite"),
+        ),
+        Coluna(
+            "incerteza_k",
+            "numero",
+            "—",
+            False,
+            "Fator de abrangência k, quando a incerteza é expandida (ex.: 2).",
+            "",
+            faixa=(1, 4),
+        ),
     ),
 )
 

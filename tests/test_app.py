@@ -116,7 +116,8 @@ def test_dados_e_limites_com_modelos_mostra_bloqueios():
 def test_investigacao_com_demo_sustenta_temperatura_dos_gases():
     at = abrir_com_demo("investigacao.py")
     assert not at.exception, at.exception
-    assert any("Os dados sustentam" in s.value for s in at.success)
+    # Fase R (D44): "Os dados sustentam" virou "Explicações compatíveis com os dados"
+    assert any("Explicações compatíveis" in s.value for s in at.success)
     assert any("Mais calor saindo pela chaminé" in m.value for m in at.markdown)
     assert any(c.value == RODAPE_SEGURANCA for c in at.caption)
 

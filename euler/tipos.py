@@ -1,7 +1,12 @@
 """Tipos comuns do motor EULER."""
 
-from dataclasses import dataclass
-from typing import Literal
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Literal
+
+if TYPE_CHECKING:
+    from euler.incerteza import Orcamento
 
 Origem = Literal["medido", "estimado", "assumido"]
 """Origem de um número mostrado ao usuário (AGENTS.md, estilo de texto)."""
@@ -25,8 +30,10 @@ class AnaliseBloqueada(Exception):
 class Grandeza:
     """Um número mostrado ao usuário, sempre com unidade e origem.
 
-    incerteza: incerteza expandida (k = 2, ~95%) na mesma unidade, ou None se não declarada.
+    incerteza: incerteza expandida U = 2u (k = 2) na mesma unidade, ou None se não há
+        incerteza declarada suficiente (o que falta fica em `orcamento.nao_incluidos`).
     nota: de onde veio o número, em linguagem simples.
+    orcamento: componentes da incerteza (euler.incerteza), quando conhecidos.
     """
 
     valor: float
@@ -34,3 +41,4 @@ class Grandeza:
     origem: Origem
     incerteza: float | None = None
     nota: str = ""
+    orcamento: Orcamento | None = field(default=None, compare=False, repr=False)

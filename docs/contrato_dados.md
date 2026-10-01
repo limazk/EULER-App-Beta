@@ -117,3 +117,5 @@ Cadastro dos instrumentos usados nas leituras e sua incerteza declarada.
 | `incerteza_declarada` | na unidade do instrumento | não | Incerteza declarada pelo fabricante ou pela calibração. | `0.3` | 0 a 1.000.000 |
 | `ultima_verificacao` | data | não | Data da última verificação ou calibração. | `2026-09-01` |  |
 | `observacao` | — | não | Observação livre. | `sintetico` |  |
+| `incerteza_tipo` | — | não | Como a incerteza foi declarada. Sem esta informação, a EULER trata o valor como limite ±a (distribuição retangular, GUM 4.3.7). Valores: `padrao`, `expandida`, `limite`. |  |  |
+| `incerteza_k` | — | não | Fator de abrangência k, quando a incerteza é expandida (ex.: 2). |  | 1 a 4 |

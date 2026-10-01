@@ -60,9 +60,39 @@ def test_gases_mais_frios_que_o_ar_bloqueia():
         calcular(t_gases_c=24)
 
 
-def test_modo_variavel_bloqueado_ate_revisor_definir_fonte():
-    with pytest.raises(AnaliseBloqueada, match="revisor"):
-        calcular(modelo_cp="variavel")
+def test_modo_variavel_e_experimental_e_avisa():
+    # Fase R: cp(T) pelos polinômios NASA, experimental até aprovação do revisor (D40)
+    r = calcular(modelo_cp="variavel")
+    assert any("experimental" in a for a in r.avisos)
+
+
+@pytest.mark.parametrize("t_g, o2, w", [(180, 8, 0.4), (150, 8, 0.4), (250, 8, 0.4), (180, 4, 0.4),
+                                        (180, 10, 0.4), (180, 8, 0.3), (180, 8, 0.5)])  # fmt: skip
+def test_modo_variavel_difere_do_constante_menos_de_meio_ponto_t07(t_g, o2, w):
+    """Critério de aceite do T07 (até o REV aprovar outro): diferença < 0,5 p.p. em G01–G10."""
+    const = calcular(t_gases_c=t_g, o2_seco_pct=o2, umidade_bu_frac=w).perda_pct
+    var = calcular(t_gases_c=t_g, o2_seco_pct=o2, umidade_bu_frac=w, modelo_cp="variavel").perda_pct
+    assert abs(var - const) < 0.5
+    assert var < const  # cp constante de 1,05 kJ/kg·K superestima os gases secos
+
+
+def test_umidade_do_ar_aumenta_a_perda_e_padrao_nao_muda_o_golden():
+    base = calcular()
+    com_ar = calcular(umidade_ar_kg_kg=0.0119)
+    assert base.perda_pct == pytest.approx(11.773, abs=0.01)
+    assert 0.15 < com_ar.perda_pct - base.perda_pct < 0.25
+
+
+def test_perda_por_co():
+    r = calcular()
+    assert indireto.perda_co_pct(0, r, 18.5, 0.40) == 0
+    # 200 ppm ≈ 0,11% do PCI (ordem de grandeza conferida à mão em docs/matriz_validacao_fisica.md)
+    assert indireto.perda_co_pct(200, r, 18.5, 0.40) == pytest.approx(0.111, abs=0.002)
+
+
+def test_o2_umido_convertido_para_seco_e_maior():
+    seco = indireto.o2_seco_equivalente(7.0, REF, 0.40)
+    assert 8.0 < seco < 8.8
 
 
 def test_modelo_cp_desconhecido_e_erro_de_programacao():

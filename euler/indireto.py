@@ -4,7 +4,13 @@ Referência das equações: docs/fisica_para_revisao.md, Bloco A.
 Convenções: composição em fração mássica base seca (C, H, O, N, S); umidade `w`
 em base úmida (fração); temperaturas em °C; PCI em MJ/kg; cp em MJ/(kg·K).
 Hipóteses: combustão completa; ar seco com 21% O₂ / 79% N₂; umidade do ar de
-combustão desprezada (pergunta aberta no E4).
+combustão desprezada por padrão (pergunta aberta no E4; opcional na Fase R).
+
+Modos de cp (E6):
+- "constante" — referência dos testes golden (1,05 e 1,90 kJ/kg·K); não muda.
+- "variavel" — **experimental** (Fase R, D40): entalpia sensível de cada espécie pelos
+  polinômios NASA (TM-4513, ver euler.propriedades_gases). Dá 0,30–0,41 p.p. a menos que
+  o modo constante nos casos G01–G12. Pendente de aprovação do revisor como fonte de cp(T).
 
 Este módulo não compartilha código com o benchmark `euler-bench` (AGENTS.md, regra 7).
 """
@@ -15,6 +21,7 @@ from dataclasses import dataclass
 from iapws import IAPWS97
 
 from euler.combustivel import H_VAP_25C_MJ_KG, pci_umido
+from euler.propriedades_gases import entalpia_combustao_co_kj_kmol, entalpia_sensivel_kj_kmol
 from euler.tipos import AnaliseBloqueada
 from euler.vapor import P_ATM_NIVEL_DO_MAR_BAR, t_sat_c
 
@@ -54,6 +61,8 @@ class ResultadoPerdaGases:
     t_orvalho_c: float
     modelo_cp: str
     avisos: tuple[str, ...] = ()
+    n_gases_secos_kmol_kg: float | None = None
+    """Gases secos, kmol por kg de combustível seco (usado na perda por CO)."""
 
 
 def _checar_composicao(comp: Mapping[str, float]) -> tuple[float, ...]:
@@ -122,6 +131,7 @@ def perda_gases(
     modelo_cp: str = "constante",
     p_gases_bar_abs: float = P_ATM_NIVEL_DO_MAR_BAR,
     co_ppm: float | None = None,
+    umidade_ar_kg_kg: float | None = None,
 ) -> ResultadoPerdaGases:
     """Perda sensível nos gases de chaminé, % do PCI (E1–E7).
 
@@ -139,18 +149,16 @@ def perda_gases(
         modelo_cp: "constante" (referência, reproduz o golden) ou "variavel"
             (bloqueado até o revisor definir a fonte de cp(T), E6).
         p_gases_bar_abs: pressão dos gases para o orvalho (padrão: nível do mar).
-        co_ppm: CO medido; acima de 200 ppm gera aviso (E2).
+        co_ppm: CO medido; acima de 200 ppm gera aviso (E2). A perda por CO é calculada à
+            parte (`perda_co_pct`), não entra aqui.
+        umidade_ar_kg_kg: umidade absoluta do ar de combustão (kg de água por kg de ar
+            seco). None (padrão) = desprezada, como no golden. Experimental (D41).
 
     Bloqueia (E7) se os gases estiverem abaixo do orvalho da água ou não estiverem
     mais quentes que o ar de combustão.
     """
     if modelo_cp not in MODELOS_CP:
         raise ValueError(f"modelo_cp desconhecido: {modelo_cp!r} (use {MODELOS_CP})")
-    if modelo_cp == "variavel":
-        raise AnaliseBloqueada(
-            "Modo cp variável ainda indisponível: a fonte de cp(T) será definida pelo "
-            "revisor científico (E6). Use o modo de referência (cp constante)."
-        )
     c, h, _o, n, s = _checar_composicao(composicao_seca)
     pci_umido(pci_seco_mj_kg, umidade_bu_frac)  # valida umidade e PCI
     if t_gases_c <= t_ar_c:
@@ -167,6 +175,13 @@ def perda_gases(
     m_gs = 44 * n_co2 + 64 * n_so2 + 32 * n_o2 + 28 * n_n2
     agua_por_seco = umidade_bu_frac / (1 - umidade_bu_frac)
     m_h2o = 9 * h + agua_por_seco
+    if umidade_ar_kg_kg is not None:
+        if not 0 <= umidade_ar_kg_kg < 0.1:
+            raise AnaliseBloqueada(
+                f"Umidade do ar de {umidade_ar_kg_kg:g} kg/kg fora da faixa (0 a 0,1)."
+            )
+        ar_seco_kg = lam * a / 0.21 * (0.21 * 32 + 0.79 * 28)  # mesmas massas molares de E3
+        m_h2o += umidade_ar_kg_kg * ar_seco_kg
 
     t_orvalho = _t_orvalho_agua_c(
         m_h2o / MASSA_MOLAR_H2O, n_co2 + n_so2 + n_o2 + n_n2, p_gases_bar_abs
@@ -177,10 +192,31 @@ def perda_gases(
             "há condensação e a fórmula de perda sensível não vale (E7)."
         )
 
-    calor = (m_gs * CP_GASES_SECOS_MJ_KG_K + m_h2o * CP_VAPOR_AGUA_MJ_KG_K) * (t_gases_c - t_ar_c)
+    avisos = []
+    if modelo_cp == "constante":
+        calor = (m_gs * CP_GASES_SECOS_MJ_KG_K + m_h2o * CP_VAPOR_AGUA_MJ_KG_K) * (
+            t_gases_c - t_ar_c
+        )
+    else:
+        moles = {
+            "CO2": n_co2,
+            "SO2": n_so2,
+            "O2": n_o2,
+            "N2": n_n2,
+            "H2O": m_h2o / MASSA_MOLAR_H2O,
+        }
+        calor = (
+            sum(
+                n_i * entalpia_sensivel_kj_kmol(esp, t_ar_c, t_gases_c)
+                for esp, n_i in moles.items()
+            )
+            / 1000
+        )
+        avisos.append(
+            "cp(T) experimental (polinômios NASA TM-4513): ainda não aprovado pelo revisor (D40)."
+        )
     pci_por_kg_seco = pci_seco_mj_kg - H_VAP_25C_MJ_KG * agua_por_seco
 
-    avisos = []
     if co_ppm is not None and co_ppm > CO_LIMITE_AVISO_PPM:
         avisos.append(
             f"CO de {co_ppm:g} ppm: acima de {CO_LIMITE_AVISO_PPM} ppm, o λ calculado sem "
@@ -196,6 +232,7 @@ def perda_gases(
         t_orvalho_c=t_orvalho,
         modelo_cp=modelo_cp,
         avisos=tuple(avisos),
+        n_gases_secos_kmol_kg=n_co2 + n_so2 + n_o2 + n_n2,
     )
 
 
@@ -222,3 +259,67 @@ def alerta_temperatura_implausivel(
             "e o instrumento."
         )
     return None
+
+
+def perda_co_pct(
+    co_ppm: float, resultado: ResultadoPerdaGases, pci_seco_mj_kg: float, umidade_bu_frac: float
+) -> float:
+    """Perda por CO não queimado, % do PCI (Fase R, experimental, D42).
+
+    q_CO = y_CO · n_gases_secos · ΔH_c(CO) / (PCI_seco − 2,442·w/(1−w))
+    com y_CO em base seca (ppm × 10⁻⁶) e ΔH_c(CO) = 282,98 MJ/kmol (polinômios NASA,
+    igual ao valor de formação do NIST). Não corrige o λ (o CO consome menos O₂ que o CO₂).
+    """
+    if co_ppm < 0:
+        raise AnaliseBloqueada(f"CO de {co_ppm:g} ppm não pode ser negativo.")
+    if resultado.n_gases_secos_kmol_kg is None:
+        raise ValueError("resultado sem quantidade de gases secos")
+    pci_por_kg_seco = pci_seco_mj_kg - H_VAP_25C_MJ_KG * umidade_bu_frac / (1 - umidade_bu_frac)
+    calor = co_ppm * 1e-6 * resultado.n_gases_secos_kmol_kg * entalpia_combustao_co_kj_kmol() / 1000
+    return 100 * calor / pci_por_kg_seco
+
+
+def umidade_absoluta_ar(
+    t_ar_c: float, umidade_relativa: float, p_bar_abs: float = P_ATM_NIVEL_DO_MAR_BAR
+) -> float:
+    """Umidade absoluta do ar (kg de água / kg de ar seco), Fase R, experimental (D41).
+
+    W = 0,622 · φ·p_sat / (p − φ·p_sat), com p_sat(T) da IAPWS-IF97. 0,622 é a razão das
+    massas molares água/ar (18,015/28,96).
+    """
+    if not 0 <= umidade_relativa <= 1:
+        raise AnaliseBloqueada(f"Umidade relativa {umidade_relativa:g} fora de 0 a 1 (fração).")
+    p_sat = IAPWS97(T=t_ar_c + 273.15, x=0).P * 10
+    return 0.622 * umidade_relativa * p_sat / (p_bar_abs - umidade_relativa * p_sat)
+
+
+def o2_seco_equivalente(
+    o2_umido_pct: float, composicao_seca: Mapping[str, float], umidade_bu_frac: float
+) -> float:
+    """O₂ em base seca correspondente a uma leitura em base **úmida** (Fase R, D43).
+
+    Analisadores in situ (zircônia na chaminé) medem O₂ nos gases úmidos. Resolve λ tal
+    que n_O2 / (gases secos + água) = O₂ úmido, e devolve n_O2 / gases secos.
+    Água: só a do combustível (E4, sem umidade do ar).
+    """
+    if not 0 <= o2_umido_pct < 21:
+        raise AnaliseBloqueada(f"O₂ úmido de {o2_umido_pct:g}% fora da faixa (0 a 21%).")
+    c, h, _o, n, s = _checar_composicao(composicao_seca)
+    a = oxigenio_estequiometrico(composicao_seca)
+    n_h2o = (9 * h + umidade_bu_frac / (1 - umidade_bu_frac)) / MASSA_MOLAR_H2O
+    alvo = o2_umido_pct / 100
+
+    def secos(lam: float) -> tuple[float, float]:
+        n_o2 = (lam - 1) * a
+        return n_o2, c / 12 + s / 32 + n_o2 + RAZAO_N2_O2_AR * lam * a + n / 28
+
+    lo, hi = 1.0, 50.0
+    for _ in range(200):  # bissecção: y_O2 úmido cresce com λ
+        meio = (lo + hi) / 2
+        n_o2, n_s = secos(meio)
+        if n_o2 / (n_s + n_h2o) < alvo:
+            lo = meio
+        else:
+            hi = meio
+    n_o2, n_s = secos((lo + hi) / 2)
+    return 100 * n_o2 / n_s
