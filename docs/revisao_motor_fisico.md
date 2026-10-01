@@ -1,4 +1,4 @@
-# Revisão do motor físico da EULER (Fase R)
+# Revisão do motor físico da EULER (Fase R e revisão de confiabilidade)
 
 > **Situação deste documento:** revisão técnica feita por agente de programação (Claude), a
 > pedido do Adryan em 01/10/2026. **Nada aqui é aprovação científica.** Os itens só passam a
@@ -8,6 +8,9 @@
 
 - **Versão examinada (diagnóstico):** commit `97ad0c6` (branch `claude/new-session-xytynj`).
 - **Versão após as correções:** commit `01c2a4b` (seção 5).
+- **Auditoria externa (01/10/2026)** da versão `2cd4dc3`: achados A1–A5 e uma observação de
+  apresentação, todos corrigidos na revisão de confiabilidade (seção 7). Revisão técnica do
+  código, não aprovação científica.
 - **Spec v0.3:** **não encontrada** (repositório, branches, arquivos enviados; o conector do
   Google Drive desta sessão não tem permissão de leitura). Requisitos que **não puderam ser
   conferidos** contra ela: tabela de capacidades (seção 4 → D30), formato do JSON de
@@ -23,7 +26,7 @@ Legenda de situação usada em todo o documento:
 | Sigla | Significado |
 |---|---|
 | **I** | implementado no código e coberto por testes de comportamento |
-| **V** | verificado contra referência **independente** do motor (tabela publicada, outra implementação, cálculo à mão) |
+| **V** | verificado contra referência **externa** ou por **outro método** (as quatro categorias estão em `docs/matriz_validacao_fisica.md`) |
 | **R** | revisado e aprovado por especialista humano — **nenhum item está nesta situação** |
 
 ---
@@ -74,7 +77,7 @@ verificação (seção 3) e estavam errados. O de O₂ é maior do que o informa
 | ID | Onde | O que está errado | Evidência | Efeito |
 |---|---|---|---|---|
 | ER-1 | `periodos._mistura` | A "incerteza" do PCI e da umidade da mistura é o erro-padrão da dispersão entre lotes. Todos os lotes são conhecidos (não é amostra), então isso não é incerteza de medição. Além disso, mistura uma média ponderada pela massa com um desvio-padrão sem ponderação. | código | u de η e de E_f sem significado físico |
-| ER-2 | `periodos.incerteza_relativa_instrumento` (D24) | Toda incerteza declarada é lida como expandida k = 2. | GUM (JCGM 100:2008) 4.3.7: limites ±a sem outra informação → u = a/√3 | u subestimada em 13% quando o valor é limite (0,5a × 0,577a) |
+| ER-2 | `periodos.incerteza_relativa_instrumento` (D24) | Toda incerteza declarada é lida como expandida k = 2, sem declaração. | GUM (JCGM 100:2008) 4.3.3: U/k só com k declarado; 4.3.7 dá u = a/√3 para limites conhecidos. (Tratar valor sem tipo como limite é hipótese do projeto, D35.) | u subestimada em 13% quando o valor é limite (0,5a × 0,577a) |
 | ER-3 | `deteccao.comparar`, `investigacao` | O erro sistemático do mesmo instrumento é tratado como independente entre períodos. | GUM 5.2 (grandezas correlacionadas) | Δconsumo do demo: ±2,92% em vez de ±0,72% (abstenção desnecessária) — ou subestimada quando o instrumento muda entre os períodos |
 | ER-4 | `investigacao` (H5) | Resíduo direto − indireto combina em quadratura dois termos que compartilham a umidade e o PCI. | +1 p.p. de umidade desloca o resíduo em −2,07 p.p. | E12 não aplicado no número |
 | ER-5 | `periodos._combustivel` | Recebimento com o mesmo horário da medição de estoque é colocado no período sem aviso. | código | E9 errado em até 1 lote (~30 t) |
@@ -133,9 +136,9 @@ na rede da sessão e foram citados de memória técnica ou conferidos indiretame
 | R3 | CoolProp 8.0.0 — I. H. Bell, J. Wronski, S. Quoilin, V. Lemort, *Ind. Eng. Chem. Res.* 53(6), 2498–2508, 2014 | https://coolprop.org | equações de estado de referência de N₂, O₂, CO₂ e H₂O (V-B5); **só nos testes** |
 | R4 | B. J. McBride, S. Gordon, M. A. Reno, *Coefficients for Calculating Thermodynamic and Transport Properties of Individual Species*, NASA TM-4513, 1993 | https://ntrs.nasa.gov/citations/19940013151 | polinômios de 7 coeficientes do modo cp(T) experimental (D40) |
 | R5 | Cantera 3.2.0, arquivo `data/nasa_gas.yaml` (transcrição de R4) | https://www.cantera.org | origem da cópia dos coeficientes, conferida por teste (V-B6); **só nos testes** |
-| R6 | JCGM 100:2008, *Evaluation of measurement data — Guide to the expression of uncertainty in measurement* (GUM) | https://www.bipm.org/en/committees/jc/jcgm/publications † | seções 4.3.3, 4.3.7, 5.1.3, 5.2.2, 6.2.1, 6.3.3 (D35–D37) |
+| R6 | JCGM 100:2008, *Evaluation of measurement data — Guide to the expression of uncertainty in measurement* (GUM) | https://www.bipm.org/documents/20126/2071204/JCGM_100_2008_E.pdf † | 4.3.3, 4.3.7, 5.2.2 e 6.3.3 **conferidas pela auditoria externa**; 5.1.3 e 6.2.1 a conferir. A 4.3.7 trata de limites conhecidos: ler incerteza sem tipo como limite é hipótese do projeto (D35) |
 | R7 | JCGM 101:2008, *Supplement 1 to the GUM — Propagation of distributions using a Monte Carlo method* | idem † | método das verificações V-D2 a V-D4 |
-| R8 | NIST-JANAF Thermochemical Tables, 4ª ed. (M. W. Chase, *J. Phys. Chem. Ref. Data*, Monografia 9, 1998) | https://janaf.nist.gov † | ΔfH°(CO₂) = −393,51 e ΔfH°(CO) = −110,53 kJ/mol a 298,15 K (V-B7) |
+| R8 | NIST Chemistry WebBook, valores CODATA de ΔfH° a 298,15 K: CO −110,53 kJ/mol; CO₂ −393,51 kJ/mol | https://webbook.nist.gov/cgi/cbook.cgi?ID=C630080&Mask=1EE9 e https://webbook.nist.gov/cgi/cbook.cgi?ID=C124389&Mask=1 † | V-B7, **conferido pela auditoria externa**. A tabela JANAF dá −393,52 kJ/mol para o CO₂ (versão anterior deste documento atribuía os valores ao JANAF: corrigido) |
 | R9 | `docs/fisica_para_revisao.md` (E1–E15) e `tests/golden/` | repositório | especificação e valores de referência do kit |
 | R10 | `lab/referencia_perda_gases.py` | repositório | calculadora de referência escrita fora do motor (V-E1) |
 
@@ -238,9 +241,11 @@ explícito como dependente de hipótese.
    exige a verificação indicada (ex.: conferir a amostragem de umidade, inspecionar os tubos).
 2. **Eficiência absoluta como número firme.** η depende do título (não medido), do uso do
    pátio, da amostragem de umidade e da fronteira (purga fora). Use a faixa, não o número,
-   e nunca para garantia contratual. Os limites do pátio são contábeis: o de cima pode
-   passar do fisicamente possível (ex.: 95,5% na semana 1 do demo, com 12,4% de perda nos
-   gases) e só mostra quanto o pátio pode pesar.
+   e nunca para garantia contratual. Os limites do pátio são cenários contábeis, não
+   intervalo de confiança: o de cima pode ser incompatível com a perda nos gases calculada
+   para o mesmo período, na mesma fronteira e base (ex.: 95,5% na semana 1 do demo, com
+   12,4% de perda nos gases). 95% não é um limite universal; a incompatibilidade é com as
+   outras perdas do mesmo período. Os limites não são cortados.
 3. **Conclusões de períodos curtos com estoque grande.** Quando o estoque é comparável ao
    consumido, o efeito da umidade e o resíduo dependem do pátio; o motor marca
    `nao_avaliavel` ou mostra a faixa.
@@ -249,11 +254,97 @@ explícito como dependente de hipótese.
 5. **Perda nos gases absoluta sem a base do O₂.** Se o analisador medir em base úmida, a
    perda fica subestimada em até ~1,7 p.p. Comparações entre períodos sofrem menos se a
    base for a mesma.
-6. **Mudança detectável sem incerteza cadastrada.** Sem a incerteza dos instrumentos, o
-   motor não decide (`None`) e se abstém.
+6. **Mudança detectável sem incerteza cadastrada.** Sem a incerteza de algum instrumento,
+   o orçamento fica parcial: a comparação nunca diz "sim" (fica "condicional", "não" ou sem
+   decisão), o resíduo direto − indireto não é avaliado e a conclusão se abstém dizendo o
+   que cadastrar (D52).
 7. **Validade fora do caso sintético.** Nenhum resultado foi comparado com uma caldeira
    real medida (P-4).
 8. **Comandos para a caldeira.** Fora do escopo por regra: a saída é sempre uma
    verificação, nunca uma ordem.
+9. **Lotes sem amostra.** O cenário central supõe que têm a média dos lotes medidos (D51);
+   o FIFO não é calculado quando dependeria deles.
 
-Decisões abertas: `docs/perguntas_revisores.md` (Q1–Q17) e `docs/decisoes.md` (D35–D50).
+Decisões abertas: `docs/perguntas_revisores.md` (três decisões prioritárias + Q1–Q17) e
+`docs/decisoes.md` (D35–D57).
+
+---
+
+## 7. Auditoria externa e revisão de confiabilidade (01/10/2026)
+
+Uma auditoria técnica externa examinou a versão `2cd4dc3`. Ela confirmou o que a Fase R
+trouxe de real (orçamento por componentes, cenários do pátio, comparação com bibliotecas
+externas, separação entre explicação compatível e causa comprovada) e encontrou **erros de
+integração e casos incompletos** que os testes não cobriam. A auditoria **não** é
+aprovação científica, ensaio industrial nem certificação, e esta revisão também não.
+
+Evidências registradas pela auditoria: o CI do GitHub rodou 243 testes, sem nenhum pulado
+(CoolProp 8.0.0, Cantera 3.2.0, iapws 1.5.5). Numa reprodução local em Windows, 14 testes
+falharam ao importar o CoolProp porque o Controle de Aplicativo bloqueou a biblioteca —
+limitação daquele ambiente, não divergência física.
+
+### 7.1 Achados e correções
+
+| ID | O que estava errado (contraexemplo da auditoria) | Correção | Decisão | Verificação |
+|---|---|---|---|---|
+| A1 | O FIFO consumia massa sem qualidade conhecida e dividia só pela parte conhecida: 10 t sem PCI + 20 t a 8 + 10 t a 9 → 8,333 MJ/kg apresentados como PCI das 40 t | FIFO **indisponível** com motivo; hipóteses de cada cenário declaradas (`condicoes`) e levadas ao JSON, à tela e a "o que falta" | D51 | V-C10, V-C11 |
+| A2 | A umidade entrava duas vezes na incerteza do resíduo direto − indireto quando o método estava cadastrado (+34% no caso da auditoria: 3,48 × 2,60 p.p.). O teste Monte Carlo V-D4 passava porque usava um modelo próprio, não a montagem real | Orçamento do resíduo em função própria (`orcamento_residuo`): umidade e PCI seco, usados pelos dois caminhos, entram **uma vez** pelo gradiente conjunto; mesma fonte somada dentro do período; decisão em três níveis (r = 0 e r = 1) | D54 | V-D7 (derivada pela cadeia inteira), V-D8 |
+| A3 | Incerteza ausente virava zero: sem instrumentos, Δh saía com incerteza 0,0 e o resíduo era "descartado" com margem de ~±0,3 p.p. | Contrato `completo` / `parcial` / `indisponivel`; o que falta vai para `faltam`, nunca vira zero; comparação parcial nunca diz "sim"; resíduo incompleto é "não avaliável" | D52 | V-D9, V-D10, V-E6 |
+| A4 | Consumo zero ou totalizador parado causavam divisão por zero | Bloqueio com motivo legível | D56 | V-C12, V-C13 |
+| A5 | O₂ úmido de 20,9% devolvia 20,58% seco (a borda da busca), menor que o úmido | Recusa com motivo quando a solução exigiria λ > 50 | D56 | V-B16, V-B17 |
+| Obs. | O relatório usava o campo antigo `detectavel` e misturava "condicional" com "sem incerteza" | Quatro estados com textos diferentes, no relatório e na tela | — | V-E7 |
+| Extra | (encontrado nesta revisão) A tela da investigação não mostrava as hipóteses `oposta` nem a frase de fechamento; o relatório mostrava | Tela igual ao relatório | — | V-E8 |
+
+### 7.2 O que mudou junto, pela mesma regra ("ausente ≠ zero")
+
+- **PCI seco** passou a ter incerteza cadastrável (calorímetro, D55). Ele também é usado
+  pelos dois caminhos, então entra no resíduo uma vez só, como a umidade.
+- **Δh** passou a incluir a dispersão das médias diárias de pressão e água de alimentação;
+  antes só tinha o erro dos instrumentos (D57).
+- **Fechamento**: mostra também as explicações só condicionais e o que fecharia se fossem
+  confirmadas; a próxima verificação aponta o cadastro que falta (D57).
+- **Capacidade "Faixa de incerteza da eficiência"** passa a exigir todos os instrumentos
+  usados no balanço direto.
+- **Construtor de casos de teste**: cadastra todos os instrumentos (valores sintéticos) por
+  padrão; os casos com cadastro parcial são testados à parte.
+- Textos: "fisicamente impossível" virou "incompatível com a perda nos gases do mesmo
+  período, na mesma fronteira e base"; limites do pátio são cenários, não intervalo de
+  confiança, e não são cortados.
+
+### 7.3 Verificação reclassificada
+
+A matriz (`docs/matriz_validacao_fisica.md`) agora tem 57 linhas em categorias: 10
+externas, 8 por outro método, 5 identidades, 25 regras, 4 de consistência, 2 de regressão
+e 3 golden. "53 validações físicas independentes" era um resumo errado: parte daquelas
+verificações usa o próprio motor (ex.: V-A6 pega h_f e h_g do próprio módulo). O teste
+IF97 × IAPWS-95 ganhou 18 **pontos reservados** com tolerância fixada antes de rodar
+(V-A9: 0,01% de Δh; maior diferença 0,0065%).
+
+### 7.4 Correções de interpretação
+
+- Sensibilidades citadas (título, 2 pontos de umidade, base do O₂, cp(T)) valem **nas
+  condições indicadas**; não são constantes universais nem medições de uma instalação.
+- "71% de estoque" no diagnóstico é a razão (S₀ + S₁) / M_f, não um erro de 71% na
+  eficiência.
+- Uma eficiência de 95% não é universalmente impossível; o problema no demo é ela ser
+  incompatível com as outras perdas calculadas para o mesmo período.
+
+### 7.5 Efeito no caso de demonstração
+
+O demo **não** cadastra a incerteza do método de umidade, do termômetro da água de
+alimentação, do termômetro do ar nem da análise de PCI seco. Os dados do demo não foram
+alterados (D53).
+
+| Comparação | Antes (`2cd4dc3`) | Depois |
+|---|---|---|
+| Semanas 1–4 × 5–6 | duas explicações compatíveis: temperatura dos gases e umidade | temperatura dos gases compatível; umidade só "condicional" (43,2% → 46,4%, falta a incerteza do método); **abstenção**: a umidade fecharia a mudança se confirmada; próxima verificação: cadastrar essa incerteza |
+| Semanas 1–4 × 7 | abstenção (sem vapor) | igual |
+| Semanas 1–4 × 8 | umidade compatível | nenhuma explicação confirmada; umidade só "condicional"; abstenção com o mesmo pedido |
+
+Ilustração (valor **não** usado no demo): com uma incerteza de método de umidade de 0,5
+ponto, sem tipo, a mudança das semanas 5–6 passa a "sim" e a conclusão volta a ter duas
+explicações compatíveis. O que separa as duas histórias é esse cadastro.
+
+### 7.6 Versão
+
+Registrada em `PROGRESSO.md` (seção "Revisão de confiabilidade").

@@ -99,10 +99,10 @@ def roteiro(p: Page, url: str) -> None:
     rolar(p, 330, 4500)
     legenda(
         p,
-        "Duas explicações compatíveis (não comprovadas): cavaco mais úmido (F3) e gases 32 °C mais quentes.",
+        "Gases 32 °C mais quentes: compatível. Umidade: só condicional (falta a incerteza da estufa).",
     )
     rolar(p, 650, 5500)
-    legenda(p, "Excesso de ar e perdas ocultas foram descartados — com o motivo.")
+    legenda(p, "Sem essa incerteza, a EULER não conclui: diz o que falta e o que fecharia a conta.")
     rolar(p, 650, 5500)
     legenda(p, "A saída não é uma ordem para a caldeira: é a próxima verificação.")
     p.get_by_text("5. Próxima verificação").scroll_into_view_if_needed()

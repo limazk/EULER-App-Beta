@@ -98,12 +98,23 @@ def _valor(v: float | None, unidade: str) -> str:
     return f"{num(v, casas)} {unidade}"
 
 
-def _mudou(c: dict) -> str:
+ROTULO_DETECCAO = {
+    "sim": "sim",
+    "condicional": "só se o erro do mesmo instrumento se repetir",
+    "nao": "não (variação normal)",
+    None: "sem incerteza para dizer",
+}
+"""Os quatro estados da detecção (D37, A3); 'condicional' e 'sem incerteza' são diferentes."""
+
+
+def mudou_detectavel(c: dict) -> str:
+    """Coluna "Mudou de forma detectável?" (tabela do relatório e da tela)."""
     if c["variacao"] is None:
         return "—"
-    return {True: "sim", False: "não (variação normal)", None: "sem dados para dizer"}[
-        c["detectavel"]
-    ]
+    texto = ROTULO_DETECCAO[c["detectabilidade"]]
+    if c.get("faltam_na_incerteza") and c["detectabilidade"] == "condicional":
+        texto += " (falta cadastrar a incerteza)"
+    return texto
 
 
 def _hipotese_html(h: dict) -> str:
@@ -137,7 +148,7 @@ def gerar_html(investigacao: dict, gerado_em: datetime | None = None) -> str:
         f"<tr><td>{_e(c['nome'][0].upper() + c['nome'][1:])}</td>"
         f"<td>{_e(_valor(c['referencia'], c['unidade']))}</td>"
         f"<td>{_e(_valor(c['comparacao'], c['unidade']))}</td>"
-        f"<td>{_e(_mudou(c))}</td></tr>"
+        f"<td>{_e(mudou_detectavel(c))}</td></tr>"
         for c in j["o_que_mudou"]["indicadores"]
         if c["referencia"] is not None or c["comparacao"] is not None
     )
@@ -175,6 +186,8 @@ def gerar_html(investigacao: dict, gerado_em: datetime | None = None) -> str:
     fechamento = j["o_que_mudou"].get("fechamento")
     if fechamento:
         bloco2 += f'<p class="nota">{_e(fechamento["frase"])}</p>'
+        if fechamento.get("frase_com_condicionais"):
+            bloco2 += f'<p class="nota">{_e(fechamento["frase_com_condicionais"])}</p>'
     bloco2 += (
         '<p class="nota">"Compatível com os dados" não é causa comprovada: cada explicação '
         "precisa da verificação indicada.</p>"

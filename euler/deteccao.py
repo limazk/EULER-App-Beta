@@ -9,6 +9,11 @@ diferença considera os erros que se repetem nos dois períodos (GUM 5.2.2):
 - `sim`: detectável mesmo supondo erros de instrumento independentes (r = 0);
 - `condicional`: só detectável se o erro do mesmo instrumento se repetir (r = 1);
 - `nao`: nem assim; `None`: falta incerteza para decidir (D37).
+
+Orçamento incompleto (auditoria A3): o que falta só pode aumentar a incerteza. Então
+`nao` continua seguro (a diferença cabe na parte conhecida); `sim` nunca sai; se só falta
+o erro sistemático de algum instrumento, uma diferença maior é `condicional` (vale se o
+mesmo erro se repetir nos dois períodos); senão, `None`. O que falta vai em `faltam`.
 """
 
 from __future__ import annotations
@@ -23,6 +28,7 @@ from euler.incerteza import (
     Detectabilidade,
     Orcamento,
     detectabilidade,
+    detectabilidade_parcial,
     u_diferenca,
 )
 from euler.tipos import Grandeza
@@ -65,6 +71,9 @@ class Comparacao:
     incerteza_delta: U = 2u da diferença supondo erros de instrumento independentes (r = 0).
     incerteza_delta_correlacionada: U supondo que o mesmo instrumento repete o erro (r = 1).
     detectavel: True ('sim'), False ('nao'), None ('condicional' ou sem incerteza).
+    faltam: incertezas necessárias que não foram informadas (orçamento incompleto, A3);
+        nesse caso incerteza_delta é None e incerteza_delta_correlacionada é só a parte
+        conhecida (um mínimo).
     """
 
     nome: str
@@ -76,6 +85,7 @@ class Comparacao:
     detectavel: bool | None
     incerteza_delta_correlacionada: float | None = None
     detectabilidade: Detectabilidade | None = None
+    faltam: tuple[str, ...] = ()
 
     @property
     def disponivel(self) -> bool:
@@ -107,15 +117,17 @@ def comparar(
             None, None, None,
         )  # fmt: skip
     delta = float(b.valor - a.valor)
-    if (
-        a.orcamento is not None
-        and b.orcamento is not None
-        and a.incerteza is not None
-        and b.incerteza is not None
-    ):
+    if a.orcamento is not None and b.orcamento is not None:
         u0 = u_diferenca(a.valor, a.orcamento, b.valor, b.orcamento, r_instrumento=0.0)
         u1 = u_diferenca(a.valor, a.orcamento, b.valor, b.orcamento, r_instrumento=1.0)
         u_ind, u_cor = max(u0, u1), min(u0, u1)
+        faltam = list(dict.fromkeys(a.orcamento.faltam + b.orcamento.faltam))
+        if faltam:
+            nivel = detectabilidade_parcial(delta, u_cor, faltam)
+            return Comparacao(
+                nome, unidade, float(a.valor), float(b.valor), delta, None,
+                {"nao": False}.get(nivel), float(2 * u_cor), nivel, tuple(f.nome for f in faltam),
+            )  # fmt: skip
     elif a.incerteza is not None and b.incerteza is not None:
         u_ind = u_cor = sqrt((a.incerteza / 2) ** 2 + (b.incerteza / 2) ** 2)
     else:

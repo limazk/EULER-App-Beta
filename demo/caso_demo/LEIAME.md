@@ -26,9 +26,15 @@ Preços (R$/t úmida): F1 ≈ 180, F2 ≈ 170, F3 ≈ 160. Umidade: F1 ≈ 38%, 
 
 | Comparação | Resposta esperada |
 |---|---|
-| Semanas 5–6 | Consumo por t de vapor **subiu ~10%**; **duas explicações compatíveis com os dados** (não comprovadas): cavaco mais úmido (sobretudo F3) e temperatura dos gases (+32 °C). |
+| Semanas 5–6 | Consumo por t de vapor **subiu ~10%**. Temperatura dos gases (+32 °C): explicação compatível (não comprovada). Umidade recebida (43% → 46%): só **condicional**, porque o demo não cadastra a incerteza do método de umidade. **Não dá para concluir**: a umidade fecharia a mudança se confirmada; próxima verificação: cadastrar essa incerteza. |
 | Semana 7 | **Não dá para concluir** sobre o consumo (sem vapor medido); a temperatura dos gases continua alta. |
-| Semana 8 | Depois da limpeza a temperatura volta ao normal; o consumo ainda está ~5% maior e **sobra a umidade** como explicação compatível. |
+| Semana 8 | Depois da limpeza a temperatura volta ao normal; o consumo ainda está ~5% maior. A umidade fecharia a mudança, mas é só condicional: **não dá para concluir**, com o mesmo pedido de cadastro. |
+
+Por que o demo se abstém (auditoria externa de 01/10/2026, D52 e D53): o demo **não**
+cadastra a incerteza do método de umidade (estufa), do termômetro da água de alimentação,
+do termômetro do ar nem da análise de PCI seco. Incerteza que falta nunca vira zero, então
+a subida da umidade só é real se o erro da estufa se repetir nos dois períodos. Os dados
+do demo não foram alterados para mudar esse resultado.
 
 ## Modelo do gerador (independente do motor `euler`)
 

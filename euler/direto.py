@@ -29,8 +29,8 @@ from dataclasses import dataclass, field
 
 from iapws import IAPWS97
 
-from euler.incerteza import Componente, Orcamento
-from euler.periodos import ResumoPeriodo
+from euler.incerteza import Componente, Falta, Orcamento
+from euler.periodos import ROTULO_LEITURA, ResumoPeriodo
 from euler.tipos import AnaliseBloqueada, Grandeza
 from euler.vapor import delta_h_mj_kg
 
@@ -76,33 +76,39 @@ class BalancoDireto:
 
 
 def _orcamento_delta_h(r: ResumoPeriodo, p: float, t: float, dh: float) -> Orcamento:
-    """Incerteza de Δh pelos instrumentos de pressão e de água de alimentação."""
+    """Incerteza de Δh pelas médias de pressão e de água de alimentação: dispersão das médias
+    diárias e instrumento de cada uma (o que faltar vai para `faltam`, nunca vira zero)."""
     orc = Orcamento()
     for coluna, passo in (("p_vapor_bar_abs", 0.1), ("t_agua_alim_c", 1.0)):
         g = r.leituras_grandeza.get(coluna)
-        inst = (
-            None
-            if g is None or g.orcamento is None
-            else next((c for c in g.orcamento.componentes if c.natureza == "instrumental"), None)
-        )
-        if inst is None:
-            orc.nao_incluidos.append(f"incerteza do instrumento de {coluna}")
+        if g is None or g.orcamento is None:
+            orc.faltam.append(Falta(f"incerteza de {ROTULO_LEITURA[coluna]}", False))
             continue
         args = {"p_vapor_bar_abs": p, "t_agua_alim_c": t}
         args[coluna] += passo
         sens = (
             delta_h_mj_kg(args["p_vapor_bar_abs"], "saturado_seco", args["t_agua_alim_c"]) - dh
         ) / passo
-        u_abs = inst.u_rel * g.valor
-        orc.componentes.append(Componente(inst.nome, sens * u_abs / dh, "instrumental", inst.chave))
+        for c in g.orcamento.componentes:
+            orc.componentes.append(
+                Componente(
+                    f"{ROTULO_LEITURA[coluna]}: {c.nome}",
+                    sens * c.u_rel * g.valor / dh,
+                    c.natureza,
+                    c.chave,
+                    c.nota,
+                    coluna,
+                )
+            )
+        orc.faltam += g.orcamento.faltam
+    orc.faltam = list(dict.fromkeys(orc.faltam))
     orc.nao_incluidos.append("título do vapor não medido (x = 1 assumido)")
     return orc
 
 
-def _grandeza(valor: float, unidade: str, orc: Orcamento, nota: str, com_u: bool) -> Grandeza:
-    return Grandeza(
-        valor, unidade, "estimado", 2 * orc.u_rel() * abs(valor) if com_u else None, nota, orc
-    )
+def _grandeza(valor: float, unidade: str, orc: Orcamento, nota: str) -> Grandeza:
+    """Incerteza só com o orçamento completo; com algo faltando, fica None (A3)."""
+    return Grandeza(valor, unidade, "estimado", orc.incerteza_k2(valor), nota, orc)
 
 
 def balanco_direto(r: ResumoPeriodo) -> BalancoDireto:
@@ -137,7 +143,6 @@ def balanco_direto(r: ResumoPeriodo) -> BalancoDireto:
                 "MJ/kg",
                 _orcamento_delta_h(r, p.media, t_agua.media, dh),
                 f"IF97 a {p.media:.2f} bar abs, água a {t_agua.media:.0f} °C; título x = 1 assumido",
-                com_u=True,
             )
             umido = IAPWS97(P=p.media / 10, x=0.99).h / 1000 - (
                 IAPWS97(P=p.media / 10, x=1).h / 1000 - dh
@@ -154,29 +159,33 @@ def balanco_direto(r: ResumoPeriodo) -> BalancoDireto:
         else:
             q = vapor.valor * b.delta_h_mj_kg.valor  # t × MJ/kg = GJ
             b.metodo_energia_util = "condições médias do período"
-        b.energia_util_gj = _grandeza(
-            q, "GJ", orc_q, b.metodo_energia_util, vapor.incerteza is not None
-        )
+        b.energia_util_gj = _grandeza(q, "GJ", orc_q, b.metodo_energia_util)
     if comb is not None and pci is not None:
         e = comb.valor * pci.valor / 1000
         b.energia_combustivel_gj = _grandeza(
-            e, "GJ", comb.orcamento.mais(pci.orcamento), "cenário 'o que entra é o que queima'",
-            comb.incerteza is not None,
-        )  # fmt: skip
+            e, "GJ", comb.orcamento.mais(pci.orcamento), "cenário 'o que entra é o que queima'"
+        )
 
     if vapor is None or comb is None:
+        return b
+    if vapor.valor <= 0 or comb.valor <= 0:  # defesa (A4): os resumos já bloqueiam zero
+        b.bloqueios.append(
+            AnaliseBloqueada(
+                "Vapor ou combustível do período igual a zero: consumo por tonelada e "
+                "eficiência não se aplicam.",
+                ["vapor e combustível do período"],
+            )
+        )
         return b
     for nome, g in (("medidor de vapor", vapor), ("medição de estoque", comb)):
         if g.incerteza is None:
             b.sem_incerteza.append(nome)
 
-    com_u = vapor.incerteza is not None and comb.incerteza is not None
     b.consumo_t_por_t = _grandeza(
         (comb.valor / 1000) / vapor.valor,
         "t de combustível / t de vapor",
         comb.orcamento.mais(vapor.orcamento, -1),
         "combustível queimado (E9) ÷ vapor do totalizador; não depende da qualidade do combustível",
-        com_u,
     )
     if b.energia_combustivel_gj is None:
         return b
@@ -185,7 +194,6 @@ def balanco_direto(r: ResumoPeriodo) -> BalancoDireto:
         "GJ de combustível / t de vapor",
         b.energia_combustivel_gj.orcamento.mais(vapor.orcamento, -1),
         "cenário 'o que entra é o que queima'",
-        com_u,
     )
     if b.energia_util_gj is None:
         return b
@@ -196,7 +204,6 @@ def balanco_direto(r: ResumoPeriodo) -> BalancoDireto:
         b.energia_util_gj.orcamento.mais(b.energia_combustivel_gj.orcamento, -1),
         "energia útil do vapor ÷ energia do combustível (E10), base PCI; cenário 'o que entra "
         "é o que queima'",
-        com_u,
     )
     if r.pci_queimado is not None:
         cen = r.pci_queimado

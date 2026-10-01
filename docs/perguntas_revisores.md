@@ -1,4 +1,4 @@
-# Perguntas para os revisores do motor físico (Fase R)
+# Perguntas para os revisores do motor físico
 
 Para: professores / doutorandos que revisam a física da EULER. Preparado pelo agente de
 programação em 01/10/2026. Cada pergunta traz **a hipótese atual**, **por que importa**,
@@ -10,6 +10,60 @@ Como responder: escreva a escolha e a fonte ao lado da pergunta (ou em
 `docs/fisica_para_revisao.md`); a decisão correspondente em `docs/decisoes.md` passa de
 "pendente" para "aprovada por …". **Enquanto não houver resposta, o comportamento atual
 continua marcado como proposta.**
+
+Os efeitos citados são **sensibilidades calculadas nas condições indicadas** (casos
+sintéticos), não constantes universais nem valores medidos numa instalação.
+
+## Pauta da reunião: três decisões prioritárias
+
+Recomendação da auditoria externa de 01/10/2026: começar por estas três, cada uma com um
+exemplo e a consequência no relatório. As perguntas Q1–Q17 ficam como apêndice.
+
+### Decisão 1 · Qual combustível foi realmente queimado? (Q7, D22, D38, D51)
+- **Hoje:** o cenário central é "o que entra é o que queima"; lotes sem amostra entram com
+  a média dos medidos (hipótese agora declarada). O FIFO fica indisponível quando
+  queimaria massa sem qualidade conhecida. Mínimo e máximo são limites contábeis.
+- **Exemplo (demo, semanas 5–6):** o FIFO não pode ser calculado (86 t que ele queimaria
+  vêm de lotes sem amostra). Na semana 1, η = 79,3% no cenário central, com limites
+  contábeis de 72,2% a 95,5%. O limite de cima é incompatível com a perda nos gases de
+  12,4% calculada para o mesmo período (mesma fronteira e base PCI); é cenário, não
+  intervalo de confiança, e não é cortado.
+- **No relatório:** o FIFO indisponível e a hipótese dos lotes sem amostra aparecem em
+  "O que falta saber"; a faixa do pátio aparece na tela "Dados e limites".
+- **Decidir:** medir a umidade do pátio ou da alimentação? Aceitar a média dos medidos para
+  lotes sem amostra, ou bloquear? Qual modelo de pilha descreve o manejo do cliente?
+
+### Decisão 2 · Como medir a umidade e o estado do vapor (Q1, Q14, D21, D52)
+- **Hoje:** sem a incerteza do método de umidade cadastrada, a mudança da umidade recebida
+  só é "condicional" (vale se o erro da estufa se repetir nos dois períodos) e **não** vira
+  explicação. Título do vapor assumido x = 1.
+- **Exemplo (demo, semanas 5–6):** umidade 43,2% → 46,4%; parte conhecida da incerteza
+  ±1,7 p.p. → "condicional"; a EULER se abstém e pede o cadastro. Com uma incerteza de
+  método de 0,5 ponto (valor **ilustrativo**, não está no demo), a diferença passa a
+  ±1,9 p.p., a mudança passa a "sim" e a umidade volta a ser explicação compatível. Título
+  x = 0,98 em vez de 1 reduziria Δh em 1,65% (a 11 bar abs, água a 85 °C).
+- **No relatório:** "Não dá para concluir: o resto da mudança seria explicado por
+  combustível mais úmido, mas essa mudança ainda não está confirmada (falta incerteza do
+  método de umidade)"; próxima verificação: cadastrar essa incerteza.
+- **Decidir:** que incerteza declarar para o método de umidade (e com que tipo)? Quantas
+  amostras por lote? Medir o título?
+
+### Decisão 3 · Como interpretar incertezas, correlações e o critério D29 (Q8, Q9, Q11, Q16)
+- **Hoje:** incerteza sem tipo = limite ±a (hipótese do projeto, D35; o GUM 4.3.7 só trata
+  de limites conhecidos). Erro do mesmo instrumento: calculamos r = 0 e r = 1. Fator de
+  relevância D29 = 0,5.
+- **Exemplo (demo, semanas 5–6):** consumo +10,1%; incerteza ±3,6% com r = 0 e ±1,1% com
+  r = 1. Com D29 = 0,5 a temperatura dos gases é explicação compatível (efeito +3,1%,
+  limiar 1,8%); com D29 = 1,0 seria descartada. "3% da leitura" sem tipo dá u = 1,73%;
+  com k = 2, daria 1,50%.
+- **No relatório:** "Mudou de forma detectável?" mostra quatro estados (sim / só se o erro
+  do mesmo instrumento se repetir / não / sem incerteza para dizer).
+- **Decidir:** manter a leitura "sem tipo = limite"? Aceitar os dois extremos de r ou
+  fixar outro valor? Qual fator D29?
+
+---
+
+## Apêndice: perguntas Q1–Q17
 
 Prioridade: **A** = pode mudar a conclusão de uma investigação; **B** = muda números
 absolutos, raramente a conclusão; **C** = forma de apresentar.
@@ -97,20 +151,21 @@ absolutos, raramente a conclusão; **C** = forma de apresentar.
 
 ### Q7 · Uso do pátio: recebido × queimado (prioridade alta)
 - **Hipótese atual:** a qualidade do combustível queimado não é conhecida. O motor mostra
-  cenários: `recebido` ("o que entra é o que queima", D22), `fifo` e os limites
-  `minimo`/`maximo` (D38). O efeito da umidade sai com a faixa recebido–FIFO; o resíduo que
-  muda de veredito conforme o cenário fica `nao_avaliavel`.
+  cenários: `recebido` ("o que entra é o que queima", D22; lotes sem amostra com a média
+  dos medidos, D51), `fifo` (indisponível se queimaria massa sem qualidade conhecida) e os
+  limites `minimo`/`maximo` (D38). O efeito da umidade sai com a faixa recebido–FIFO; o
+  resíduo que muda de veredito conforme o cenário fica `nao_avaliavel`.
 - **Por que importa:** em períodos curtos o estoque é grande perto do consumido. No demo,
   (S₀+S₁)/M_f vai de 17% (4 semanas) a 81% (1 semana).
 - **Alternativas:** (a) cenários (atual); (b) medir a umidade do **pátio** ou da
   alimentação da fornalha; (c) modelo de pilha (mistura completa, LIFO) se o cliente
-  descrever o manejo; (d) exigir períodos longos (≥ 4 semanas); (e) cortar os limites pela
-  física (η ≤ 1 − perda nos gases) — mais estreito, mas mistura os dois caminhos que o E12
-  quer independentes.
-- **Exemplo:** semana 1 do demo: η = 0,793 (recebido), limites 0,722–0,955. O limite de
-  cima é só contábil: com perda nos gases de 12,4%, η acima de 0,876 é impossível. Semanas
-  1–4: 0,775–0,842. Efeito da umidade nas semanas 5–6: +7,0% a +7,8% no consumo; semana 8:
-  +5,3% a +7,7%.
+  descrever o manejo; (d) exigir períodos longos (≥ 4 semanas). Cortar os limites num teto
+  para parecerem plausíveis **não** é alternativa: esconderia quanto o pátio pesa.
+- **Exemplo:** semana 1 do demo: η = 0,793 (recebido), limites contábeis 0,722–0,955. O de
+  cima é incompatível com a perda nos gases de 12,4% do mesmo período (mesma fronteira e
+  base); não é intervalo de confiança. Semanas 1–4: 0,775–0,842. Nas semanas 5–6 o FIFO
+  não pode ser calculado (lotes sem amostra), e o efeito da umidade fica só no cenário
+  recebido (+7,8% no consumo).
 
 ### Q8 · Correlação do erro do mesmo instrumento entre períodos (prioridade alta)
 - **Hipótese atual:** mesma leitura nos dois períodos → r = 1 exato. Mesmo instrumento sem
@@ -145,13 +200,15 @@ absolutos, raramente a conclusão; **C** = forma de apresentar.
   diferença máxima 0,11% em ΔH.
 
 ### Q11 · Como ler a incerteza declarada (prioridade alta)
-- **Hipótese atual:** colunas `incerteza_tipo` e `incerteza_k`. Sem tipo, ou "expandida"
-  sem k → limites ±a com distribuição retangular, u = a/√3 (GUM 4.3.7). Resultados com
-  U = 2u, sem prometer 95% (D35, D36).
+- **Hipótese atual:** colunas `incerteza_tipo` e `incerteza_k`. `limite` → u = a/√3 (GUM
+  4.3.7, limites conhecidos). Sem tipo, ou "expandida" sem k → **hipótese do projeto**: o
+  valor é lido como limite e recebe o mesmo modelo retangular. O GUM não determina isso.
+  Resultados com U = 2u, sem prometer 95% (D35, D36; GUM 6.3.3 dá as condições para ~95%).
 - **Por que importa:** muda a largura de todos os intervalos e, com isso, o que é
   detectável.
-- **Alternativas:** (a) retangular por padrão (atual, mais conservador); (b) k = 2 por
-  padrão (antiga D24); (c) bloquear sem tipo declarado.
+- **Alternativas:** (a) limite por padrão (atual: mais cauteloso que k = 2, menos que
+  supor incerteza-padrão); (b) k = 2 por padrão (antiga D24); (c) bloquear sem tipo
+  declarado.
 - **Exemplo:** estoque com "3% da leitura": u = 1,73% (retangular) × 1,50% (k = 2).
   Diferença de 15% na largura do intervalo.
 

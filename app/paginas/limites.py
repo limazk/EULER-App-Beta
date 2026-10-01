@@ -52,8 +52,13 @@ def mostrar(pacote) -> None:
                 st.markdown("**Para liberar:**\n" + "\n".join(f"- {o}" for o in c.o_que_fazer))
 
 
-def _com_incerteza(valor: float, incerteza: float | None, fmt) -> str:
-    return fmt(valor) + ("" if incerteza is None else f" ± {fmt(incerteza)}")
+def _com_incerteza(valor: float, incerteza: float | None, fmt, orcamento=None) -> str:
+    """Valor ± U; sem incerteza completa, diz isso (nunca mostra ± 0, auditoria A3)."""
+    if incerteza is not None:
+        return f"{fmt(valor)} ± {fmt(incerteza)}"
+    if orcamento is not None and orcamento.faltam:
+        return f"{fmt(valor)} (incerteza incompleta)"
+    return fmt(valor)
 
 
 def _faixa_patio(cenarios: dict[str, float] | None) -> str:
@@ -70,12 +75,15 @@ def por_periodo(pacote) -> None:
     st.markdown("### Período a período")
     st.caption(
         "Cada linha vai de uma medição de estoque à seguinte. ✕ = não dá para concluir "
-        "naquele período; o motivo está na última coluna. A eficiência direta supõe que o "
+        'naquele período; o motivo está na última coluna. "Incerteza incompleta": falta '
+        "cadastrar a incerteza de algum instrumento usado no cálculo (ver Faixa de incerteza "
+        "da eficiência, acima). A eficiência direta supõe que o "
         "combustível queimado tem a qualidade do recebido no período; a coluna seguinte mostra "
         "os limites possíveis conforme o uso do pátio (quanto maior o estoque perto do "
-        "consumido, mais larga a faixa). Esses limites são só de contabilidade do pátio: um "
-        "limite acima de 100% menos a perda nos gases é fisicamente impossível e indica quanto "
-        "o pátio pode pesar no resultado."
+        "consumido, mais larga a faixa). São cenários de contabilidade do pátio, não intervalo "
+        "de confiança nem desempenho validado: um limite acima de 100% menos a perda nos gases "
+        "calculada para o mesmo período (mesma fronteira e base PCI) é incompatível com ela e "
+        "só mostra quanto o pátio pode pesar no resultado. Os limites não são cortados."
     )
     p_gases = pacote.p_atm_bar or P_ATM_NIVEL_DO_MAR_BAR
     linhas = []
@@ -95,7 +103,9 @@ def por_periodo(pacote) -> None:
                 else num(r.combustivel_kg.valor / 1000, 0),
                 "Eficiência direta": "✕"
                 if b.eficiencia is None
-                else _com_incerteza(b.eficiencia.valor, b.eficiencia.incerteza, pct),
+                else _com_incerteza(
+                    b.eficiencia.valor, b.eficiencia.incerteza, pct, b.eficiencia.orcamento
+                ),
                 "Estoque / consumido": "—"
                 if r.fracao_estoque is None
                 else pct(r.fracao_estoque, 0),

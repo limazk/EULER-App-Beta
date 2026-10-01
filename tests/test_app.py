@@ -98,11 +98,12 @@ def test_extrato_sem_dados_orienta_a_importar():
     assert any("Nenhum dado importado" in i.value for i in at.info)
 
 
-def test_dados_e_limites_com_demo_libera_tudo():
+def test_dados_e_limites_com_demo_bloqueia_so_a_faixa_de_incerteza():
     at = abrir_com_demo("limites.py")
     assert not at.exception, at.exception
     valores = {m.label: m.value for m in at.metric}
-    assert valores["Bloqueadas"] == "0"
+    # auditoria A3: o demo não cadastra todos os instrumentos usados na eficiência
+    assert valores["Bloqueadas"] == "1"
 
 
 def test_dados_e_limites_com_modelos_mostra_bloqueios():
@@ -113,12 +114,13 @@ def test_dados_e_limites_com_modelos_mostra_bloqueios():
     assert any("Por quê" in m.value for m in at.markdown)
 
 
-def test_investigacao_com_demo_sustenta_temperatura_dos_gases():
+def test_investigacao_com_demo_mostra_o_que_falta_para_concluir():
     at = abrir_com_demo("investigacao.py")
     assert not at.exception, at.exception
-    # Fase R (D44): "Os dados sustentam" virou "Explicações compatíveis com os dados"
-    assert any("Explicações compatíveis" in s.value for s in at.success)
+    # Auditoria A3: sem a incerteza do método de umidade, a EULER se abstém e diz o que cadastrar
+    assert any(w.value.startswith("Não dá para concluir") for w in at.warning)
     assert any("Mais calor saindo pela chaminé" in m.value for m in at.markdown)
+    assert any("Cadastrar em instrumentos.csv" in i.value for i in at.info)
     assert any(c.value == RODAPE_SEGURANCA for c in at.caption)
 
 
@@ -141,3 +143,23 @@ def test_relatorio_depois_da_investigacao_gera_html():
     clicar(at, "Gerar relatório")
     assert not at.exception, at.exception
     assert any(c.value == RODAPE_SEGURANCA for c in at.caption)
+
+
+def test_investigacao_mostra_fator_que_mudou_no_sentido_contrario():
+    """Explicações concorrentes (matriz V-E1) na tela real: o fator oposto aparece no bloco
+    2 com o rótulo próprio, junto da frase de fechamento (antes ele sumia da tela)."""
+    from construtor_caso import Periodo, montar
+    from test_validacao_combustivel_incerteza import _referencia_lab
+
+    perda = 100 * _referencia_lab()(230, 8, 0.36)[0]
+    pacote, _ = montar([Periodo(11.773, umidade=0.40), Periodo(perda, t_gases_c=230, umidade=0.36)])
+    at = abrir()
+    at.session_state["arquivos"] = tuple(
+        sorted((f"{nome}.csv", dados) for nome, dados in pacote._arquivos_teste.items())
+    )
+    at.session_state["rotulo_dados"] = "caso de teste: explicações concorrentes"
+    at.session_state["altitude_m"] = 0.0
+    at.switch_page("paginas/investigacao.py").run()
+    assert not at.exception, at.exception
+    assert any("Mudou no sentido contrário" in m.value for m in at.markdown)
+    assert any("fecham dentro da incerteza" in c.value for c in at.caption)

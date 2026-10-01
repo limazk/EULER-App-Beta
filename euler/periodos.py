@@ -19,11 +19,13 @@ from dataclasses import dataclass, field
 from itertools import pairwise
 from math import sqrt
 
+import numpy as np
 import pandas as pd
 
 from euler.combustivel import combustivel_queimado_kg, extrato_por_fornecedor
 from euler.deteccao import Estatistica, estatistica_diaria
-from euler.incerteza import Componente, Orcamento, incerteza_padrao
+from euler.formato import num, pct
+from euler.incerteza import Componente, Falta, Orcamento, incerteza_padrao
 from euler.io import Pacote
 from euler.io.leitura import FUSO_PADRAO
 from euler.tipos import AnaliseBloqueada, Grandeza
@@ -52,7 +54,19 @@ INSTRUMENTOS = {
     "p_vapor_bar_abs": (("manometro", "pressao"), ("manômetro", "manometro", "pressão")),
     "t_agua_alim_c": (("agua",), ("água de alimentação", "agua de alimentacao")),
     "t_ar_c": (("ar_combustao", "temperatura_ar"), ("ar de combustão",)),
+    "pci_seco": (("calorimetro", "pci"), ("calorímetro", "calorimetro", "poder calorífico")),
 }
+
+
+ROTULO_LEITURA = {
+    "t_gases_c": "temperatura dos gases",
+    "o2_seco_pct": "O₂ nos gases",
+    "p_vapor_bar_abs": "pressão do vapor",
+    "t_agua_alim_c": "temperatura da água de alimentação",
+    "t_ar_c": "temperatura do ar de combustão",
+}
+FALTA_METODO_UMIDADE = "incerteza do método de umidade (estufa; cadastrar em pontos de %)"
+FALTA_PCI_SECO = "incerteza da análise de PCI seco (calorímetro; cadastrar em % da leitura)"
 
 
 # ---------------------------------------------------------------- instrumentos
@@ -140,17 +154,25 @@ def chave_instrumento(
 class Cenarios:
     """Grandeza do combustível **queimado** sob hipóteses de uso do pátio (D38).
 
-    recebido: o que entra no período é o que queima (D22, estimativa central).
+    recebido: o que entra no período é o que queima (D22, estimativa central). Lotes do
+        período sem amostra entram com a média dos medidos — hipótese declarada em
+        `condicoes` (D51).
     fifo: o pátio usa primeiro o material mais antigo (estoque inicial = últimos lotes
-        recebidos antes do período). None se os dados não cobrem o estoque inicial.
-    minimo/maximo: limites para **qualquer** uso do pátio, com o estoque inicial de
-        qualidade desconhecida dentro da faixa observada nos lotes.
+        recebidos antes do período). None quando os dados não cobrem o estoque inicial ou
+        quando parte do material que o FIFO queimaria não tem qualidade conhecida (A1); o
+        motivo fica em `fifo_indisponivel`.
+    minimo/maximo: limites **contábeis** para qualquer uso do pátio, supondo o estoque
+        inicial e os lotes sem amostra dentro da faixa observada nos lotes medidos. Não são
+        intervalo de confiança nem desempenho validado.
+    condicoes: hipóteses de cada cenário, em texto, para o JSON, a tela e o relatório.
     """
 
     recebido: float
     fifo: float | None
     minimo: float
     maximo: float
+    fifo_indisponivel: str | None = None
+    condicoes: tuple[str, ...] = ()
 
     @property
     def faixa_plausivel(self) -> tuple[float, float]:
@@ -177,6 +199,7 @@ class ResumoPeriodo:
     umidade_queimada: Cenarios | None = None
     fracao_estoque: float | None = None
     pci_seco_mistura: float | None = None
+    pci_seco: Grandeza | None = None
     composicao: dict[str, float] | None = None
     composicao_origem: str | None = None
     preco_brl_t: float | None = None
@@ -251,6 +274,12 @@ def _vapor(pacote: Pacote, diario: pd.DataFrame, r: ResumoPeriodo) -> None:
         )
         return
     valores = tot["totalizador_vapor_t"].astype(float).values
+    if not np.isfinite(valores).all():
+        r.bloqueios["vapor"] = AnaliseBloqueada(
+            "Leitura do totalizador de vapor inválida (não é um número finito) neste período.",
+            falta,
+        )
+        return
     reinicio = [i for i in range(1, len(valores)) if valores[i] < valores[i - 1]]
     if reinicio:
         linha = int(tot["linha"].iloc[reinicio[0]])
@@ -273,6 +302,21 @@ def _vapor(pacote: Pacote, diario: pd.DataFrame, r: ResumoPeriodo) -> None:
         return
     horas_lidas = (ultima - primeira).total_seconds() / 3600
     medido = float(valores[-1] - valores[0])
+    if horas_lidas <= 0:
+        r.bloqueios["vapor"] = AnaliseBloqueada(
+            "As leituras do totalizador de vapor deste período têm todas o mesmo horário: não "
+            "há intervalo para medir o vapor.",
+            falta,
+        )
+        return
+    if medido <= 0:
+        r.bloqueios["vapor"] = AnaliseBloqueada(
+            f"O totalizador de vapor não avançou no período ({valores[0]:.1f} t do início ao "
+            "fim): caldeira parada ou totalizador travado. Sem vapor produzido, consumo por "
+            "tonelada e eficiência não se aplicam.",
+            ["vapor produzido no período (totalizador funcionando)"],
+        )
+        return
     vapor = medido * r.horas / horas_lidas
     _energia_util_intervalos(tot, r, r.horas / horas_lidas)
 
@@ -307,15 +351,13 @@ def _vapor(pacote: Pacote, diario: pd.DataFrame, r: ResumoPeriodo) -> None:
                 inst.interpretacao,
             )
         )
-        u_rel = orc.u_rel()
     else:
-        orc.nao_incluidos.append("incerteza do medidor de vapor (não cadastrada em % da leitura)")
-        u_rel = None
+        orc.faltam.append(Falta("incerteza do medidor de vapor (cadastrar em % da leitura)"))
     r.vapor_t = Grandeza(
         vapor,
         "t",
         "estimado" if abs(horas_lidas - r.horas) > 1e-6 else "medido",
-        incerteza=None if u_rel is None else 2 * u_rel * vapor,
+        incerteza=orc.incerteza_k2(vapor),
         nota=(
             f"totalizador lido de {primeira:%d/%m %H:%M} a {ultima:%d/%m %H:%M} "
             f"({horas_lidas:.0f} h de {r.horas:.0f} h); bordas pela vazão média do período"
@@ -384,6 +426,14 @@ def _combustivel(pacote: Pacote, r: ResumoPeriodo) -> None:
         r.bloqueios["combustivel"] = b
         return
     r.estoque_inicial_kg, r.estoque_final_kg = s0, s1
+    if not np.isfinite(m) or m <= 0:
+        r.bloqueios["combustivel"] = AnaliseBloqueada(
+            f"O combustível queimado no período dá zero ({m:.0f} kg: estoque inicial + "
+            "recebimentos − estoque final): caldeira parada ou medições de estoque repetidas. "
+            "Consumo por tonelada e eficiência não se aplicam.",
+            ["medições de estoque e recebimentos do período"],
+        )
+        return
 
     orc = Orcamento()
     inst_est = buscar_instrumento(pacote, "estoque")
@@ -401,10 +451,8 @@ def _combustivel(pacote: Pacote, r: ResumoPeriodo) -> None:
         orc.nao_incluidos.append(
             "parcela sistemática comum às medições de estoque (método), não declarada à parte"
         )
-        u_rel = orc.u_rel()
     else:
-        orc.nao_incluidos.append("incerteza da medição de estoque (não cadastrada em % da leitura)")
-        u_rel = None
+        orc.faltam.append(Falta("incerteza da medição de estoque (cadastrar em % da leitura)"))
     inst_bal = buscar_instrumento(pacote, "balanca")
     if inst_bal is not None and not inst_bal.relativa and len(receb):
         # O cadastro não separa a parte aleatória da sistemática (calibração): o erro é
@@ -420,17 +468,16 @@ def _combustivel(pacote: Pacote, r: ResumoPeriodo) -> None:
                 + "; erro tratado como comum a todas as pesagens (limite superior)",
             )
         )
-        u_rel = orc.u_rel() if u_rel is not None else None
     elif len(receb):
-        orc.nao_incluidos.append("incerteza da balança dos recebimentos")
+        orc.faltam.append(Falta("incerteza da balança dos recebimentos (cadastrar em kg)"))
     origens = set(receb["massa_origem"].dropna())
     if "estimado" in origens:
-        orc.nao_incluidos.append("incerteza da densidade usada nos recebimentos medidos por volume")
+        orc.faltam.append(Falta("incerteza da densidade usada nos recebimentos medidos por volume"))
     r.combustivel_kg = Grandeza(
         m,
         "kg",
         "medido" if origens <= {"medido"} else "estimado",
-        incerteza=None if u_rel is None else 2 * u_rel * m,
+        incerteza=orc.incerteza_k2(m),
         nota=f"estoque inicial + {len(receb)} recebimentos − estoque final (E9)",
         orcamento=orc,
     )
@@ -443,7 +490,12 @@ def _media_ponderada(df: pd.DataFrame, col: str) -> float:
 def _cenarios(
     lotes_todos: pd.DataFrame, col: str, r: ResumoPeriodo, recebido: float
 ) -> Cenarios | None:
-    """Qualidade do combustível queimado sob uso FIFO do pátio e limites para qualquer uso."""
+    """Qualidade do combustível queimado sob uso FIFO do pátio e limites para qualquer uso.
+
+    Nada é preenchido em silêncio: massa sem qualidade conhecida nunca some do denominador.
+    O FIFO fica indisponível se queimaria massa sem qualidade conhecida (A1); as hipóteses
+    dos outros cenários vão para `condicoes`.
+    """
     if r.estoque_inicial_kg is None or r.estoque_final_kg is None or r.combustivel_kg is None:
         return None
     m_queimado = r.combustivel_kg.valor
@@ -455,9 +507,17 @@ def _cenarios(
     no_periodo = lotes_todos[
         (lotes_todos["data"] > r.inicio) & (lotes_todos["data"] <= r.fim)
     ].sort_values("data")
+    qualidade = "umidade" if col == "umidade_bu_frac" else "PCI"
+    condicoes = []
+    sem_q = float(no_periodo.loc[no_periodo[col].isna(), "massa_kg"].sum())
+    if sem_q > 0:
+        condicoes.append(
+            f"recebido: {_t(sem_q)} de lotes do período sem amostra ({pct(sem_q / float(no_periodo['massa_kg'].sum()))} "
+            f"da massa recebida) entram com a média dos lotes medidos (hipótese, D51)"
+        )
 
     # FIFO: estoque inicial = últimos lotes antes do início, até completar S0
-    fifo = None
+    fifo, fifo_indisponivel = None, None
     estoque_ini, falta = [], r.estoque_inicial_kg
     for _, lote in antes.iloc[::-1].iterrows():
         if falta <= 0:
@@ -465,9 +525,14 @@ def _cenarios(
         usar = min(falta, float(lote["massa_kg"]))
         estoque_ini.insert(0, (usar, lote[col]))
         falta -= usar
-    if falta <= 1e-6:
+    if falta > 1e-6:
+        fifo_indisponivel = (
+            f"os lotes registrados antes do período cobrem só {_t(r.estoque_inicial_kg - falta)} "
+            f"dos {_t(r.estoque_inicial_kg)} do estoque inicial"
+        )
+    else:
         fila = estoque_ini + [(float(x["massa_kg"]), x[col]) for _, x in no_periodo.iterrows()]
-        massa_q, soma_q, restante = 0.0, 0.0, m_queimado
+        massa_q, soma_q, sem_qualidade, restante = 0.0, 0.0, 0.0, m_queimado
         for massa, q in fila:
             if restante <= 0:
                 break
@@ -476,7 +541,16 @@ def _cenarios(
             if pd.notna(q):
                 massa_q += usar
                 soma_q += usar * float(q)
-        if massa_q > 0 and restante <= 1e-6:
+            else:
+                sem_qualidade += usar
+        if sem_qualidade > 1e-6:
+            fifo_indisponivel = (
+                f"{_t(sem_qualidade)} do combustível que o FIFO queimaria vêm de lotes sem "
+                f"{qualidade} conhecida"
+            )
+        elif restante > 1e-6 or massa_q <= 0:
+            fifo_indisponivel = "os lotes registrados não cobrem o combustível queimado"
+        else:
             fifo = soma_q / massa_q
 
     def limite(maximo: bool) -> float:
@@ -498,7 +572,25 @@ def _cenarios(
         total = sum(massa * q for massa, q in material)
         return (total - no_final) / m_queimado
 
-    return Cenarios(recebido, fifo, limite(False), limite(True))
+    faixa = f"{_q(col, q_min)} a {_q(col, q_max)}"
+    condicoes.append(
+        "mínimo e máximo: limites contábeis para qualquer uso do pátio, supondo o estoque "
+        + "inicial"
+        + (" e os lotes sem amostra" if sem_q > 0 else "")
+        + f" dentro da faixa observada nos lotes medidos ({faixa}); não são intervalo de "
+        "confiança"
+    )
+    return Cenarios(
+        recebido, fifo, limite(False), limite(True), fifo_indisponivel, tuple(condicoes)
+    )
+
+
+def _t(kg: float) -> str:
+    return f"{num(kg / 1000, 0)} t"
+
+
+def _q(col: str, valor: float) -> str:
+    return pct(valor) if col == "umidade_bu_frac" else f"{num(valor, 2)} MJ/kg"
 
 
 def _mistura(pacote: Pacote, r: ResumoPeriodo) -> None:
@@ -531,7 +623,14 @@ def _mistura(pacote: Pacote, r: ResumoPeriodo) -> None:
     # mudou além do normal); não é incerteza de medição (ER-1)
     var_lotes = float(medidos["umidade_bu_frac"].std(ddof=1) / sqrt(len(medidos))) / w
     orc_w = Orcamento(
-        [Componente("variação entre lotes (dispersão do processo)", var_lotes, "aleatoria")], []
+        [
+            Componente(
+                "variação entre lotes (dispersão do processo)",
+                var_lotes,
+                "aleatoria",
+                entrada="umidade_bu_frac",
+            )
+        ]
     )
     inst_w = buscar_instrumento(pacote, "umidade")
     chave_w = (
@@ -541,21 +640,66 @@ def _mistura(pacote: Pacote, r: ResumoPeriodo) -> None:
     )
     if chave_w is not None:
         orc_w.componentes.append(
-            Componente(f"método de umidade ({inst_w.id})", inst_w.u / w, "instrumental", chave_w)
+            Componente(
+                f"método de umidade ({inst_w.id})",
+                inst_w.u / w,
+                "instrumental",
+                chave_w,
+                inst_w.interpretacao,
+                "umidade_bu_frac",
+            )
         )
     else:
-        orc_w.nao_incluidos.append("incerteza do método de umidade (estufa) não cadastrada")
+        orc_w.faltam.append(Falta(FALTA_METODO_UMIDADE))
     orc_w.nao_incluidos.append("representatividade da amostra de cada lote (E11)")
     nota = f"média dos {len(medidos)} lotes recebidos com umidade medida, ponderada pela massa" + (
         f"; {r.fracao_massa_sem_umidade:.0%} da massa sem umidade medida"
         if r.fracao_massa_sem_umidade
         else ""
     )
-    r.umidade_mistura = Grandeza(w, "fração", "estimado", 2 * orc_w.u_rel() * w, nota, orc_w)
+    r.umidade_mistura = Grandeza(w, "fração", "estimado", orc_w.incerteza_k2(w), nota, orc_w)
 
     pci = _media_ponderada(det, "pci_umido_mj_kg")
     r.pci_seco_mistura = _media_ponderada(det, "pci_seco_mj_kg")
     orc_pci = Orcamento()
+    # PCI seco: entra nos dois caminhos (PCI úmido → η; denominador da perda nos gases)
+    orc_s = Orcamento()
+    inst_c = buscar_instrumento(pacote, "pci_seco")
+    if inst_c is not None:
+        u_s = inst_c.u * r.pci_seco_mistura if inst_c.relativa else inst_c.u
+        chave_c = chave_instrumento(pacote, inst_c, "pci_seco", r.inicio, r.fim)
+        orc_s.componentes.append(
+            Componente(
+                f"análise de PCI seco ({inst_c.id})",
+                u_s / r.pci_seco_mistura,
+                "instrumental",
+                chave_c,
+                inst_c.interpretacao,
+                "pci_seco_mj_kg",
+            )
+        )
+        orc_pci.componentes.append(
+            Componente(
+                f"análise de PCI seco ({inst_c.id})",
+                (1 - w) * u_s / pci,  # ∂PCI_u/∂PCI_s = 1 − w (E5)
+                "instrumental",
+                chave_c,
+                inst_c.interpretacao,
+                "pci_seco_mj_kg",
+            )
+        )
+    else:
+        orc_s.faltam.append(Falta(FALTA_PCI_SECO))
+        orc_pci.faltam.append(Falta(FALTA_PCI_SECO))
+    orc_s.nao_incluidos.append("representatividade da amostra de cada lote (E11)")
+    r.pci_seco = Grandeza(
+        r.pci_seco_mistura,
+        "MJ/kg",
+        "estimado",
+        orc_s.incerteza_k2(r.pci_seco_mistura),
+        "PCI seco médio dos lotes recebidos, ponderado pela massa",
+        orc_s,
+    )
     if chave_w is not None:
         orc_pci.componentes.append(
             Componente(
@@ -563,12 +707,13 @@ def _mistura(pacote: Pacote, r: ResumoPeriodo) -> None:
                 -(r.pci_seco_mistura + 2.442) * inst_w.u / pci,  # ∂PCI_u/∂w (E5)
                 "instrumental",
                 chave_w,
+                inst_w.interpretacao,
+                "umidade_bu_frac",
             )
         )
     else:
-        orc_pci.nao_incluidos.append("incerteza do método de umidade (estufa) não cadastrada")
+        orc_pci.faltam.append(Falta(FALTA_METODO_UMIDADE))
     orc_pci.nao_incluidos += [
-        "incerteza da análise de PCI seco",
         "representatividade da amostra de cada lote (E11)",
         "diferença entre o combustível recebido e o queimado (ver cenários do pátio, D38)",
     ]
@@ -627,7 +772,7 @@ def grandeza_leitura(
             Componente("dispersão das médias diárias", est.erro_padrao / est.media, "aleatoria")
         )
     else:
-        orc.nao_incluidos.append("dispersão (menos de dois dias com leitura)")
+        orc.faltam.append(Falta("dispersão das médias diárias (menos de dois dias)", False))
     if coluna in INSTRUMENTOS:
         inst = buscar_instrumento(pacote, coluna, id_instrumento)
         if inst is not None:
@@ -642,10 +787,9 @@ def grandeza_leitura(
                 )
             )
         else:
-            orc.nao_incluidos.append("incerteza do instrumento (não cadastrado)")
-    u = orc.u_rel() * abs(est.media) if est.erro_padrao is not None else None
+            orc.faltam.append(Falta(f"incerteza do instrumento de {ROTULO_LEITURA[coluna]}"))
     return Grandeza(
-        est.media, est.unidade, "medido", None if u is None else 2 * u, "média do período", orc
+        est.media, est.unidade, "medido", orc.incerteza_k2(est.media), "média do período", orc
     )
 
 

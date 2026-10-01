@@ -12,6 +12,7 @@ from euler.capacidades import avaliar
 from euler.formato import num, pct
 from euler.investigacao import investigar
 from euler.periodos import periodos_entre_estoques
+from euler.relatorio import mudou_detectavel
 from euler.textos import PERGUNTA_CENTRAL
 
 st.title("Investigação")
@@ -101,18 +102,16 @@ def _indicadores(j) -> None:
                 casas = 3 if u == "MJ/kg" else 1
                 return "—" if v is None else f"{num(v, casas)} {u}"
 
-        detect = {True: "sim", False: "não (variação normal)", None: "sem dados para dizer"}[
-            c["detectavel"]
-        ]
         linhas.append(
             {
                 "Indicador": c["nome"][0].upper() + c["nome"][1:],
                 "Referência": f(c["referencia"]),
                 "Comparação": f(c["comparacao"]),
-                "Mudou de forma detectável?": detect if c["variacao"] is not None else "—",
+                "Mudou de forma detectável?": mudou_detectavel(c),
             }
         )
-    st.dataframe(pd.DataFrame(linhas), hide_index=True, width="stretch")
+    # tabela simples: quebra o texto (a coluna da detecção tem frases longas)
+    st.table(pd.DataFrame(linhas).set_index("Indicador"))
 
 
 def mostrar(pacote) -> None:
@@ -162,6 +161,18 @@ def mostrar(pacote) -> None:
     _hipoteses(
         [h for h in hips if h["status"] == "sustentada"],
         "Nenhuma explicação é sustentada pelos dados.",
+    )
+    opostas = [h for h in hips if h["status"] == "oposta"]
+    if opostas:
+        _hipoteses(opostas, "")
+    fechamento = j["o_que_mudou"].get("fechamento")
+    if fechamento:
+        st.caption(md(fechamento["frase"]))
+        if fechamento.get("frase_com_condicionais"):
+            st.caption(md(fechamento["frase_com_condicionais"]))
+    st.caption(
+        '"Compatível com os dados" não é causa comprovada: cada explicação precisa da '
+        "verificação indicada."
     )
     descartadas = [h for h in hips if h["status"] == "descartada"]
     if descartadas:

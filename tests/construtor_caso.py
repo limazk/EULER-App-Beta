@@ -4,6 +4,11 @@ Modelo do construtor: rendimento = 1 − (perda nos gases + outras perdas)/100, 
 perda nos gases tirada da tabela golden (valores revisados), nunca do código testado.
 Cada período começa e termina numa medição de estoque; uma entrega por dia repõe o
 que foi queimado.
+
+Instrumentos (SINTÉTICOS, só para teste): por padrão todos os que o motor usa são
+cadastrados, para que os casos testem as regras da investigação com o orçamento de
+incerteza completo. `instrumentos="basico"` cadastra só o medidor de vapor e o estoque;
+uma tupla de códigos cadastra só esses; `False` não cadastra nenhum.
 """
 
 from __future__ import annotations
@@ -40,8 +45,24 @@ class Periodo:
     totalizador: bool = True
 
 
+INSTRUMENTOS_SINTETICOS = {
+    "MED-V": "MED-V,medidor_vazao_vapor,LINHA,pct_da_leitura,0.1,1",
+    "EST": "EST,levantamento_estoque,PATIO,pct_da_leitura,100,1",
+    "TERMO-G": "TERMO-G,termopar_gases,CHAMINE,c,1,2",
+    "ANALIS": "ANALIS,analisador_o2,CHAMINE,pct_seco,0.1,0.3",
+    "TERMO-AR": "TERMO-AR,temperatura_ar_combustao,ENTRADA,c,1,1",
+    "MANOM": "MANOM,manometro,TUBULAO,bar,0.1,0.2",
+    "TERMO-AGUA": "TERMO-AGUA,termometro_agua_alimentacao,LINHA,c,1,1",
+    "ESTUFA": "ESTUFA,estufa_umidade,LAB,pct,0.1,0.5",
+    "CALOR": "CALOR,calorimetro_pci,LAB,pct_da_leitura,0.01,1",
+    "BALANCA": "BALANCA,balanca_rodoviaria,PORTARIA,kg,10,20",
+}
+
+
 def montar(
-    periodos: list[Periodo], semente: int = 7, instrumentos: bool = True
+    periodos: list[Periodo],
+    semente: int = 7,
+    instrumentos: bool | str | tuple[str, ...] = True,
 ) -> tuple[Pacote, list[tuple]]:
     """Devolve (pacote, [(início, fim) de cada período])."""
     rng = np.random.default_rng(semente)
@@ -103,18 +124,22 @@ def montar(
         limites.append((inicio, fim))
         inicio = fim
 
-    tabela_instrumentos = (
-        "instrumento_id,tipo,ponto,unidade,resolucao,incerteza_declarada\n"
-        "MED-V,medidor_vazao_vapor,LINHA,pct_da_leitura,0.1,1\n"
-        "EST,levantamento_estoque,PATIO,pct_da_leitura,100,1\n"
+    if instrumentos is True:
+        codigos = tuple(INSTRUMENTOS_SINTETICOS)
+    elif instrumentos == "basico":
+        codigos = ("MED-V", "EST")
+    else:
+        codigos = tuple(instrumentos or ())
+    tabela_instrumentos = "\n".join(
+        ["instrumento_id,tipo,ponto,unidade,resolucao,incerteza_declarada"]
+        + [INSTRUMENTOS_SINTETICOS[c] for c in codigos]
     )
-    pacote = importar_pacote(
-        {
-            "diario": "\n".join(diario).encode(),
-            "combustivel": "\n".join(comb).encode(),
-            "amostras": "\n".join(amos).encode(),
-            **({"instrumentos": tabela_instrumentos.encode()} if instrumentos else {}),
-        },
-        p_atm_bar=P_ATM,
-    )
+    arquivos = {
+        "diario": "\n".join(diario).encode(),
+        "combustivel": "\n".join(comb).encode(),
+        "amostras": "\n".join(amos).encode(),
+        **({"instrumentos": tabela_instrumentos.encode()} if codigos else {}),
+    }
+    pacote = importar_pacote(arquivos, p_atm_bar=P_ATM)
+    pacote.__dict__["_arquivos_teste"] = arquivos  # para abrir o mesmo caso na tela (AppTest)
     return pacote, [(pd.Timestamp(a), pd.Timestamp(b)) for a, b in limites]

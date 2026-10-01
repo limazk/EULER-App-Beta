@@ -280,8 +280,9 @@ def perda_co_pct(
     """Perda por CO não queimado, % do PCI (Fase R, experimental, D42).
 
     q_CO = y_CO · n_gases_secos · ΔH_c(CO) / (PCI_seco − 2,442·w/(1−w))
-    com y_CO em base seca (ppm × 10⁻⁶) e ΔH_c(CO) = 282,98 MJ/kmol (polinômios NASA,
-    igual ao valor de formação do NIST). Não corrige o λ (o CO consome menos O₂ que o CO₂).
+    com y_CO em base seca (ppm × 10⁻⁶) e ΔH_c(CO) = 282,98 MJ/kmol (polinômios NASA; confere
+    com os valores CODATA de formação publicados no NIST WebBook). Não corrige o λ (o CO
+    consome menos O₂ que o CO₂).
     """
     if co_ppm < 0:
         raise AnaliseBloqueada(f"CO de {co_ppm:g} ppm não pode ser negativo.")
@@ -306,6 +307,11 @@ def umidade_absoluta_ar(
     return 0.622 * umidade_relativa * p_sat / (p_bar_abs - umidade_relativa * p_sat)
 
 
+LAMBDA_MAXIMO_CONVERSAO = 50.0
+"""Limite da busca de λ na conversão úmido → seco. λ = 50 já corresponde a O₂ seco de
+~20,6% com a composição de referência; acima disso a leitura não descreve combustão."""
+
+
 def o2_seco_equivalente(
     o2_umido_pct: float, composicao_seca: Mapping[str, float], umidade_bu_frac: float
 ) -> float:
@@ -326,7 +332,16 @@ def o2_seco_equivalente(
         n_o2 = (lam - 1) * a
         return n_o2, c / 12 + s / 32 + n_o2 + RAZAO_N2_O2_AR * lam * a + n / 28
 
-    lo, hi = 1.0, 50.0
+    lo, hi = 1.0, LAMBDA_MAXIMO_CONVERSAO
+    n_o2_hi, n_s_hi = secos(hi)
+    if alvo >= n_o2_hi / (n_s_hi + n_h2o):
+        # a solução está fora do intervalo de busca: recusar, nunca devolver a borda (A5)
+        raise AnaliseBloqueada(
+            f"O₂ úmido de {o2_umido_pct:g}% exigiria excesso de ar acima de λ = "
+            f"{LAMBDA_MAXIMO_CONVERSAO:g} (O₂ úmido máximo nesse limite: "
+            f"{100 * n_o2_hi / (n_s_hi + n_h2o):.2f}%). Leitura perto de 21% indica ar sem "
+            "combustão (queimador apagado, entrada falsa de ar ou sonda fora dos gases)."
+        )
     for _ in range(200):  # bissecção: y_O2 úmido cresce com λ
         meio = (lo + hi) / 2
         n_o2, n_s = secos(meio)

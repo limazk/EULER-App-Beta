@@ -228,6 +228,10 @@ def test_explicacoes_concorrentes_que_se_compensam():
     assert "compensou" in j["conclusao"]["texto"]
     # a próxima verificação aponta as duas: a explicação e o fator que compensou
     assert j["proxima_verificacao"]["separa"] == ["umidade_combustivel", "temperatura_gases"]
+    # o relatório mostra o fator oposto (não some entre as descartadas)
+    from euler.relatorio import gerar_html
+
+    assert "Mudou no sentido contrário" in gerar_html(j)
 
 
 def test_erro_da_balanca_nao_cai_com_raiz_de_n():

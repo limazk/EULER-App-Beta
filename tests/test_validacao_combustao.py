@@ -119,8 +119,12 @@ def test_coeficientes_nasa_iguais_ao_arquivo_de_origem():
 
 
 def test_entalpia_de_combustao_do_co_contra_valores_de_formacao():
-    """ΔH_c(CO) = ΔfH(CO₂) − ΔfH(CO) = −393,51 − (−110,53) = −282,98 kJ/mol (valores de
-    formação do NIST-JANAF a 298,15 K, citados de memória técnica: conferir)."""
+    """ΔH_c(CO) = ΔfH(CO₂) − ΔfH(CO) = −393,51 − (−110,53) = −282,98 kJ/mol a 298,15 K.
+
+    Fonte: valores CODATA publicados no NIST Chemistry WebBook (CO: C630080; CO₂: C124389),
+    conferidos pela auditoria externa de 01/10/2026. A tabela JANAF dá −393,52 kJ/mol para o
+    CO₂; a diferença (0,01 kJ/mol) fica dentro da tolerância. O motor usa os polinômios NASA
+    (TM-4513), que são outra fonte: o teste compara as duas."""
     from euler.propriedades_gases import entalpia_combustao_co_kj_kmol
 
     assert entalpia_combustao_co_kj_kmol() / 1000 == pytest.approx(393.51 - 110.53, abs=0.05)

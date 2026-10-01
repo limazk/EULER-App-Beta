@@ -41,7 +41,14 @@ from euler import __version__
 from euler.deteccao import Comparacao, comparar
 from euler.direto import MEDICOES_DIRETO, BalancoDireto, balanco_direto
 from euler.formato import num, pct
-from euler.incerteza import Componente, Orcamento, contribuicoes, u_combinada
+from euler.incerteza import (
+    Componente,
+    Falta,
+    Orcamento,
+    agregar_por_fonte,
+    detectabilidade,
+    u_combinada,
+)
 from euler.indireto import ResultadoPerdaGases, perda_gases
 from euler.io import Pacote
 from euler.periodos import ResumoPeriodo, resumir_periodo
@@ -63,20 +70,36 @@ CRITERIO_RELEVANCIA = 0.5
 """D29: efeito relevante ≥ 0,5 × menor mudança de consumo detectável (proposta)."""
 ALTERNATIVAS_D29 = (0.0, 0.5, 1.0)
 LIMITACOES_INDIRETO = (
-    "cp constante (modo de referência): com cp(T) a perda sai ~0,3–0,4 p.p. menor",
-    "umidade do ar de combustão não incluída (~+0,2 p.p. a 25 °C e UR 60%)",
-    "O₂ suposto em base seca: se o analisador medir em base úmida, a perda sai ~0,8–0,9 p.p. menor",
+    (
+        "cp constante (modo de referência): com cp(T) a perda sai 0,3 a 0,4 p.p. menor nos "
+        "casos golden (sensibilidade calculada nessas condições)"
+    ),
+    "umidade do ar de combustão não incluída (+0,2 p.p. no caso G01 a 25 °C e UR 60%)",
+    (
+        "O₂ suposto em base seca: se o analisador medir em base úmida, a perda fica "
+        "subestimada (0,4 a 1,7 p.p. nos casos golden)"
+    ),
     "CO e incombustos fora desta perda",
     "orvalho ácido não modelado",
-    "incerteza da composição elementar e do PCI seco não declarada",
+    "incerteza da composição elementar não declarada (fora do contrato de dados)",
 )
 ROTULO_ENTRADA = {
     "t_gases_c": "temperatura dos gases",
     "o2_seco_pct": "O₂",
     "t_ar_c": "temperatura do ar",
     "umidade_bu_frac": "umidade",
+    "pci_seco_mj_kg": "PCI seco",
 }
-PASSO = {"t_gases_c": 1.0, "o2_seco_pct": 0.1, "t_ar_c": 1.0, "umidade_bu_frac": 0.005}
+PASSO = {
+    "t_gases_c": 1.0,
+    "o2_seco_pct": 0.1,
+    "t_ar_c": 1.0,
+    "umidade_bu_frac": 0.005,
+    "pci_seco_mj_kg": 0.1,
+}
+COMPARTILHADAS = ("umidade_bu_frac", "pci_seco_mj_kg")
+"""Entradas usadas pelos dois caminhos (E12): no resíduo entram uma vez só, pelo gradiente
+conjunto (auditoria A2)."""
 
 
 # ---------------------------------------------------------------- caminho indireto
@@ -117,16 +140,12 @@ def _entradas_indireto(
         "o2_seco_pct": r.leituras["o2_seco_pct"].media,
         "umidade_bu_frac": r.umidade_mistura.valor if umidade is None else umidade,
         "t_ar_c": r.leituras["t_ar_c"].media,
+        "pci_seco_mj_kg": r.pci_seco_mistura,
     }
 
 
 def _perda(r: ResumoPeriodo, entradas: dict[str, float], p_gases: float) -> ResultadoPerdaGases:
-    return perda_gases(
-        composicao_seca=r.composicao,
-        pci_seco_mj_kg=r.pci_seco_mistura,
-        p_gases_bar_abs=p_gases,
-        **entradas,
-    )
+    return perda_gases(composicao_seca=r.composicao, p_gases_bar_abs=p_gases, **entradas)
 
 
 def indireto_periodo(r: ResumoPeriodo, p_gases: float, umidade: float | None = None) -> Indireto:
@@ -144,18 +163,20 @@ def indireto_periodo(r: ResumoPeriodo, p_gases: float, umidade: float | None = N
         "o2_seco_pct": r.leituras_grandeza.get("o2_seco_pct"),
         "t_ar_c": r.leituras_grandeza.get("t_ar_c"),
         "umidade_bu_frac": r.umidade_mistura,
+        "pci_seco_mj_kg": r.pci_seco,
     }
-    orc, completo, sens = Orcamento(), True, {}
+    orc, sens = Orcamento(), {}
     for chave, g in fontes.items():
         try:
             mais = _perda(r, {**entradas, chave: entradas[chave] + PASSO[chave]}, p_gases).perda_pct
         except AnaliseBloqueada:
-            completo = False
+            orc.faltam.append(
+                Falta(f"sensibilidade à {ROTULO_ENTRADA[chave]} (cálculo bloqueado)", False)
+            )
             continue
         sens[chave] = (mais - res.perda_pct) / PASSO[chave]
-        if g is None or g.orcamento is None or g.incerteza is None:
-            completo = False
-            orc.nao_incluidos.append(f"incerteza de {ROTULO_ENTRADA[chave]}")
+        if g is None or g.orcamento is None:
+            orc.faltam.append(Falta(f"incerteza de {ROTULO_ENTRADA[chave]}", False))
             continue
         for c in g.orcamento.componentes:
             orc.componentes.append(
@@ -165,15 +186,18 @@ def indireto_periodo(r: ResumoPeriodo, p_gases: float, umidade: float | None = N
                     c.natureza,
                     c.chave,
                     c.nota,
+                    chave,
                 )
             )
         orc.nao_incluidos += g.orcamento.nao_incluidos
+        orc.faltam += g.orcamento.faltam
     orc.nao_incluidos = list(dict.fromkeys(orc.nao_incluidos + list(LIMITACOES_INDIRETO)))
+    orc.faltam = list(dict.fromkeys(orc.faltam))
     perda = Grandeza(
         res.perda_pct,
         "% do PCI",
         "estimado",
-        2 * orc.u_rel() * res.perda_pct if completo else None,
+        orc.incerteza_k2(res.perda_pct),
         "perda sensível nos gases com as médias do período (E6, cp constante)",
         orc,
     )
@@ -193,12 +217,98 @@ def _efeito_isolado(
     return trocada.perda_pct - i_ref.resultado.perda_pct
 
 
+# ---------------------------------------------------------------- resíduo direto − indireto
+
+
+@dataclass
+class OrcamentoResiduo:
+    """Incerteza do resíduo R = −Δ(100·η) − Δperda, em p.p., com cada fonte uma vez só.
+
+    contribuicoes: por período, (contribuição com sinal em p.p., chave da fonte, nome).
+    faltam: incertezas necessárias não informadas em qualquer dos dois caminhos (A3).
+    """
+
+    contribuicoes: dict[str, list[tuple[float, str | None, str]]]
+    faltam: list[Falta]
+
+    @property
+    def situacao(self) -> str:
+        if not self.faltam:
+            return "completo"
+        return "parcial" if any(self.contribuicoes.values()) else "indisponivel"
+
+    def u(self, r_instrumento: float) -> float:
+        """Junta a mesma fonte dentro de cada período e combina os períodos (GUM 5.2.2)."""
+        lista = []
+        for itens in self.contribuicoes.values():
+            lista += agregar_por_fonte([(u, chave) for u, chave, _ in itens])
+        return u_combinada(lista, r_instrumento)
+
+    def json(self) -> dict:
+        completo = self.situacao == "completo"
+        return {
+            "situacao": self.situacao,
+            "faltam": [f.nome for f in self.faltam],
+            "incerteza_k2_r0": 2 * self.u(0.0) if completo else None,
+            "incerteza_k2_r1": 2 * self.u(1.0) if completo else None,
+            **{
+                periodo: [{"fonte": n, "chave": ch, "u_pp": u} for u, ch, n in itens]
+                for periodo, itens in self.contribuicoes.items()
+            },
+        }
+
+
+def orcamento_residuo(
+    periodos: tuple[tuple[str, ResumoPeriodo, BalancoDireto, Indireto, float], ...],
+) -> OrcamentoResiduo:
+    """Orçamento do resíduo (E12 no número, auditoria A2).
+
+    periodos: (nome, resumo, balanço direto, indireto, sinal no resíduo: +1 referência,
+    −1 comparação). Cada entrada primária contribui uma vez: as fontes de um só caminho
+    entram pelo orçamento dele; as **compartilhadas** (umidade e PCI seco) saem dos dois
+    orçamentos e entram pelo gradiente conjunto ∂R/∂x = sinal·(100·∂η/∂x + ∂perda/∂x).
+    Só o erro de medição dessas entradas entra: a variação entre lotes é dispersão do
+    processo, não erro da média (ER-1).
+    """
+    contrib, faltam = {}, []
+    for nome, r, b, ind, sinal in periodos:
+        eta, perda, lista = b.eficiencia, ind.perda, []
+        for c in eta.orcamento.componentes:
+            if c.entrada not in COMPARTILHADAS:
+                lista.append((sinal * 100 * c.u_rel * eta.valor, c.chave, f"η: {c.nome}"))
+        for c in perda.orcamento.componentes:
+            if c.entrada not in COMPARTILHADAS:
+                lista.append((sinal * c.u_rel * perda.valor, c.chave, f"perda: {c.nome}"))
+        pci_u, w = r.pci_umido_mistura.valor, r.umidade_mistura.valor
+        deta = {  # ∂η/∂x com Q e M fixos: η = Q / (M · PCI_u), PCI_u = (1 − w)·PCI_s − 2,442·w
+            "umidade_bu_frac": eta.valor * (r.pci_seco_mistura + 2.442) / pci_u,
+            "pci_seco_mj_kg": -eta.valor * (1 - w) / pci_u,
+        }
+        for entrada, g in (("umidade_bu_frac", r.umidade_mistura), ("pci_seco_mj_kg", r.pci_seco)):
+            if g is None or g.orcamento is None:
+                continue
+            s = sinal * (100 * deta[entrada] + ind.sensibilidades.get(entrada, 0.0))
+            for c in g.orcamento.componentes:
+                if c.natureza == "instrumental":
+                    lista.append(
+                        (s * c.u_rel * g.valor, c.chave, f"{ROTULO_ENTRADA[entrada]}: {c.nome}")
+                    )
+        contrib[nome] = lista
+        faltam += eta.orcamento.faltam + perda.orcamento.faltam
+    return OrcamentoResiduo(contrib, list(dict.fromkeys(faltam)))
+
+
 # ---------------------------------------------------------------- utilidades
 
 
 def _simples(pontos_log: float | None) -> float | None:
     """Pontos log (100·ln) → variação percentual simples."""
     return None if pontos_log is None else 100 * (exp(pontos_log / 100) - 1)
+
+
+def _lista(itens) -> str:
+    itens = list(itens)
+    return itens[0] if len(itens) == 1 else ", ".join(itens[:-1]) + " e " + itens[-1]
 
 
 def _subiu(delta: float) -> str:
@@ -224,15 +334,22 @@ def _limpar(obj):
 
 
 def _grandeza_json(g: Grandeza | None) -> dict | None:
+    """Valor, origem e incerteza; com o orçamento incompleto, a incerteza é None e a parte
+    conhecida sai separada, identificada como parcial (A3)."""
     if g is None:
         return None
+    orc = g.orcamento
+    parcial = orc is not None and orc.situacao == "parcial"
     return {
         "valor": g.valor,
         "unidade": g.unidade,
         "origem": g.origem,
         "incerteza_k2": g.incerteza,
+        "situacao_incerteza": None if orc is None else orc.situacao,
+        "faltam_na_incerteza": [] if orc is None else [f.nome for f in orc.faltam],
+        "incerteza_parcial_k2": 2 * orc.u_rel() * abs(g.valor) if parcial else None,
         "nota": g.nota,
-        "nao_incluido_na_incerteza": [] if g.orcamento is None else g.orcamento.nao_incluidos,
+        "nao_incluido_na_incerteza": [] if orc is None else orc.nao_incluidos,
     }
 
 
@@ -247,6 +364,7 @@ def _comparacao_json(c: Comparacao) -> dict:
         "incerteza_variacao_correlacionada": c.incerteza_delta_correlacionada,
         "detectabilidade": c.detectabilidade,
         "detectavel": c.detectavel,
+        "faltam_na_incerteza": list(c.faltam),
     }
 
 
@@ -285,10 +403,20 @@ def _texto_mudanca(
         return f"{num(v, casas)} p.p." if unidade == "%" else f(v)
 
     variacao = f"{f(c.referencia)} → {f(c.comparacao)}"
+    if c.detectabilidade == "nao" and c.faltam:
+        return (
+            f"{inicio} ficou estável ({variacao}): a diferença cabe até na parte conhecida da "
+            f"incerteza (falta {_lista(c.faltam)})."
+        )
     if c.detectabilidade == "nao":
         return (
             f"{inicio} ficou estável ({variacao}): a diferença está dentro da incerteza "
             f"(±{fu(c.incerteza_delta_correlacionada)})."
+        )
+    if c.detectabilidade == "condicional" and c.faltam:
+        return (
+            f"{inicio} variou ({variacao}), mas falta {_lista(c.faltam)}: a diferença só é maior "
+            "que a incerteza se o erro desse instrumento se repetir nos dois períodos."
         )
     if c.detectabilidade == "condicional":
         return (
@@ -465,6 +593,12 @@ def investigar(
                 f"O consumo de combustível por tonelada de vapor {_subiu(c_cons.delta)} "
                 f"{num(abs(variacao_pct), 1)}% ({de_para}; incerteza ±{num(u0, 1)}%)."
             )
+        elif c_cons.detectabilidade == "condicional" and c_cons.faltam:
+            frase_consumo = (
+                f"O consumo por tonelada de vapor variou {_sinal(variacao_pct)}% ({de_para}), mas "
+                f"falta {_lista(c_cons.faltam)}: só é uma mudança real se o erro desses "
+                "instrumentos for o mesmo nos dois períodos."
+            )
         elif c_cons.detectabilidade == "condicional":
             frase_consumo = (
                 f"O consumo por tonelada de vapor variou {_sinal(variacao_pct)}% ({de_para}). Só é "
@@ -474,13 +608,23 @@ def investigar(
         elif c_cons.detectabilidade == "nao":
             frase_consumo = (
                 f"O consumo por tonelada de vapor variou {_sinal(variacao_pct)}% ({de_para}), dentro "
-                f"da incerteza das medições (±{num(u1, 1)}%): não dá para afirmar que mudou."
+                "da incerteza das medições"
+                + (
+                    f" (mesmo sem {_lista(c_cons.faltam)})"
+                    if c_cons.faltam
+                    else f" (±{num(u1, 1)}%)"
+                )
+                + ": não dá para afirmar que mudou."
             )
         else:
             frase_consumo = (
                 f"O consumo por tonelada de vapor variou {_sinal(variacao_pct)}% ({de_para}); sem "
-                "incerteza declarada dos instrumentos, não dá para dizer se é mais que o erro de "
-                "medição."
+                + (
+                    f"{_lista(c_cons.faltam)}"
+                    if c_cons.faltam
+                    else "incerteza declarada dos instrumentos"
+                )
+                + ", não dá para dizer se é mais que o erro de medição."
             )
     else:
         motivos = [b.motivo for b in (*b_ref.bloqueios, *b_comp.bloqueios)]
@@ -688,30 +832,22 @@ def investigar(
     )
 
     # ------------------------------------------------ resíduo direto − indireto (E12 no número)
-    residuo = u_res0 = faixa_residuo = None
+    residuo = orc_res = faixa_residuo = None
     if (
         c_eta.disponivel
         and c_perda.disponivel
         and b_ref.eficiencia.orcamento is not None
         and i_ref.perda.orcamento is not None
+        and b_comp.eficiencia.orcamento is not None
+        and i_comp.perda.orcamento is not None
     ):
         residuo = -100 * c_eta.delta - c_perda.delta
-        contrib = []
-        for g, fator in ((b_comp.eficiencia, -100), (b_ref.eficiencia, +100)):
-            contrib += contribuicoes(g.valor, g.orcamento, fator)
-        for ind, fator in ((i_comp, -1), (i_ref, +1)):
-            sem_umidade = Orcamento(
-                [c for c in ind.perda.orcamento.componentes if not c.nome.startswith("umidade")]
+        orc_res = orcamento_residuo(
+            (
+                ("referencia", ref, b_ref, i_ref, +1.0),
+                ("comparacao", comp, b_comp, i_comp, -1.0),
             )
-            contrib += contribuicoes(ind.perda.valor, sem_umidade, fator)
-        # umidade compartilhada: o mesmo erro move η (via PCI) e a perda (via água nos gases)
-        for r, b, ind, sinal in ((comp, b_comp, i_comp, -1), (ref, b_ref, i_ref, +1)):
-            if r.umidade_mistura is None or r.umidade_mistura.orcamento is None:
-                continue
-            deta_dw = b.eficiencia.valor * (r.pci_seco_mistura + 2.442) / r.pci_umido_mistura.valor
-            s = sinal * (100 * deta_dw + ind.sensibilidades.get("umidade_bu_frac", 0.0))
-            contrib += contribuicoes(r.umidade_mistura.valor, r.umidade_mistura.orcamento, s)
-        u_res0 = max(u_combinada(contrib, 0.0), u_combinada(contrib, 1.0))
+        )
         if b_ref.eficiencia_cenarios and b_comp.eficiencia_cenarios:
             plaus = [
                 -100 * (b_comp.eficiencia_cenarios[nc] - b_ref.eficiencia_cenarios[nr])
@@ -733,27 +869,42 @@ def investigar(
             "Sem balanço direto e perda nos gases nos dois períodos, não dá para ver se sobra perda "
             "sem explicação."
         )
-    else:
-        u_lim = 2 * u_res0
-        av_res["mudanca_detectavel"] = "sim" if abs(residuo) > u_lim else "nao"
-        depende_patio = faixa_residuo is not None and any(
-            (abs(x) > u_lim) != (abs(residuo) > u_lim) for x in faixa_residuo
+    elif orc_res.situacao != "completo":
+        # ausente ≠ zero (A3): sem todas as incertezas, nem confirmar nem descartar
+        st_res = "nao_avaliavel"
+        porque = (
+            f"A diferença entre o balanço direto e a perda nos gases é de {_sinal(residuo)} p.p., "
+            f"mas faltam incertezas para avaliá-la: {_lista(f.nome for f in orc_res.faltam)}. "
+            "Sem elas, não dá para dizer se sobra perda sem explicação nem descartar essa hipótese."
         )
-        if depende_patio and av_res["mudanca_detectavel"] == "nao":
+    else:
+        u_ind, u_cor = max(orc_res.u(0.0), orc_res.u(1.0)), min(orc_res.u(0.0), orc_res.u(1.0))
+        nivel = detectabilidade(residuo, u_ind, u_cor)
+        texto_u = (
+            f"±{num(2 * u_ind, 1)} p.p."
+            if abs(u_ind - u_cor) < 0.05
+            else f"±{num(2 * u_ind, 1)} p.p.; ±{num(2 * u_cor, 1)} p.p. conforme os erros dos "
+            "mesmos instrumentos se repitam ou não entre os períodos"
+        )
+        av_res["mudanca_detectavel"] = nivel
+        depende_patio = faixa_residuo is not None and any(
+            detectabilidade(x, u_ind, u_cor) != nivel for x in faixa_residuo
+        )
+        if depende_patio and nivel == "nao":
             st_res = "nao_avaliavel"
             porque = (
                 f"Com o cenário 'o que entra é o que queima', o balanço direto e a perda nos gases "
-                f"concordam (diferença de {_sinal(residuo)} p.p., incerteza ±{num(u_lim, 1)} p.p.). "
+                f"concordam (diferença de {_sinal(residuo)} p.p., incerteza {texto_u}). "
                 f"Mas, conforme o uso do pátio, a diferença vai de {_sinal(faixa_residuo[0])} a "
                 f"{_sinal(faixa_residuo[1])} p.p.: sem medir o combustível do pátio, não dá para "
                 "avaliar com segurança se sobra perda sem explicação."
             )
-        elif av_res["mudanca_detectavel"] == "nao":
+        elif nivel == "nao":
             st_res = "descartada"
             porque = (
                 "O balanço direto e a perda nos gases contam a mesma história, dentro da incerteza "
-                f"(diferença de {_sinal(residuo)} p.p., incerteza ±{num(u_lim, 1)} p.p., já contando "
-                "que os dois caminhos usam a mesma umidade)."
+                f"(diferença de {_sinal(residuo)} p.p., incerteza {texto_u}; a umidade e o PCI "
+                "seco, usados pelos dois caminhos, entram uma vez só)."
             )
         elif residuo < 0:
             st_res = "descartada"
@@ -765,9 +916,14 @@ def investigar(
             st_res = "possivel"
             porque = (
                 f"O balanço direto mostra {_sinal(residuo)} p.p. de perda além do que a chaminé "
-                f"explica (incerteza ±{num(u_lim, 1)} p.p.). Pode ser purga, casco, vazamento de "
-                "vapor ou combustão incompleta: os registros atuais não separam essas causas."
+                f"explica (incerteza {texto_u}). Pode ser purga, casco, vazamento de vapor ou "
+                "combustão incompleta: os registros atuais não separam essas causas."
             )
+            if nivel == "condicional":
+                porque += (
+                    " A diferença só passa da incerteza numa das hipóteses sobre os erros dos "
+                    "instrumentos: pode ser real, mas não é certa."
+                )
             if depende_patio:
                 porque += (
                     f" Conforme o uso do pátio, a diferença vai de {_sinal(faixa_residuo[0])} a "
@@ -796,6 +952,7 @@ def investigar(
             por_perda(residuo) if st_res == "possivel" else None,
         )
     )
+    hipoteses[-1]["orcamento_residuo"] = None if orc_res is None else orc_res.json()
 
     # ------------------------------------------------ fechamento: as explicações cobrem a mudança?
     termos = {
@@ -805,6 +962,13 @@ def investigar(
         "umidade do combustível": (ef_w, c_w),
         "energia por kg de vapor": (ef_dh, c_dh),
     }
+    hipotese_do_termo = {
+        "temperatura dos gases": "temperatura_gases",
+        "O₂ nos gases": "excesso_ar",
+        "umidade do combustível": "umidade_combustivel",
+        "energia por kg de vapor": "condicao_vapor",
+    }
+    por_id = {h["id"]: h for h in hipoteses}
     fechamento = None
     if c_cons.disponivel and c_cons.incerteza_delta is not None:
         incluidos = {
@@ -850,9 +1014,36 @@ def investigar(
                 "medido compensou."
             ),
         }
+        # explicações 'possíveis' cuja mudança é só condicional (ex.: falta a incerteza de um
+        # instrumento): mostram o que fecharia SE a mudança for confirmada (A3)
+        condicionais = {
+            k: e
+            for k, (e, c) in termos.items()
+            if e is not None
+            and c.detectabilidade == "condicional"
+            and k in hipotese_do_termo
+            and por_id[hipotese_do_termo[k]]["status"] == "possivel"
+            and por_id[hipotese_do_termo[k]]["avaliacao"]["compativel_com_consumo"]
+        }
+        veredito_cond = frase_cond = None
+        if condicionais and veredito == "sobra":
+            soma_cond = soma_log + sum(condicionais.values())
+            veredito_cond = veredito_de(observado_log - soma_cond)
+            frase_cond = (
+                f"Contando também {_lista(condicionais)} (mudança ainda não confirmada), as "
+                f"mudanças explicariam {_sinal(_simples(soma_cond))}%: "
+                + {
+                    "fecha": "fechariam dentro da incerteza.",
+                    "sobra": "ainda sobraria parte sem explicação.",
+                    "excede": "passariam do observado.",
+                }[veredito_cond]
+            )
         fechamento = {
             "observado_pct": observado,
             "explicado_pct": soma,
+            "termos_condicionais": {k: _simples(v) for k, v in condicionais.items()},
+            "veredito_com_condicionais": veredito_cond,
+            "frase_com_condicionais": frase_cond,
             "explicado_pct_faixa_patio": soma_faixa,
             "diferenca_pontos_log": dif,
             "incerteza_diferenca_k2_pontos_log": 2 * u_dif,
@@ -893,15 +1084,22 @@ def investigar(
             falta += ind.bloqueio.falta
     if not purgas_registradas:
         falta.append("registro de purgas (número e duração) nos dois períodos")
-    for nome in dict.fromkeys(b_ref.sem_incerteza + b_comp.sem_incerteza):
-        falta.append(f"incerteza declarada do(a) {nome} (instrumentos.csv)")
+    # incertezas necessárias não informadas (A3): em instrumentos.csv
+    for g in (
+        b_ref.eficiencia, b_comp.eficiencia, b_ref.consumo_t_por_t, b_comp.consumo_t_por_t,
+        i_ref.perda, i_comp.perda,
+    ):  # fmt: skip
+        if g is not None and g.orcamento is not None:
+            falta += [f.nome for f in g.orcamento.faltam if f.sistematica]
     for g in (b_comp.eficiencia, b_comp.consumo_t_por_t):
         if g is not None and g.orcamento is not None:
-            falta += [
-                n
-                for n in g.orcamento.nao_incluidos
-                if n.startswith(("incerteza do método", "título"))
-            ]
+            falta += [n for n in g.orcamento.nao_incluidos if n.startswith("título")]
+    for r in (ref, comp):
+        if r.pci_queimado is not None and r.pci_queimado.fifo_indisponivel:
+            falta.append(
+                f"qualidade do combustível do estoque no período {r.rotulo()}: o cenário FIFO "
+                f"não pode ser calculado ({r.pci_queimado.fifo_indisponivel})"
+            )
     for r in (ref, comp):
         if r.fracao_massa_sem_umidade:
             falta.append(
@@ -916,6 +1114,13 @@ def investigar(
     falta = list(dict.fromkeys(falta))
 
     # ------------------------------------------------ conclusão e abstenção
+    # explicações que fechariam a mudança se fossem confirmadas (dependem do que falta, A3)
+    pendentes, faltas_pendentes = [], []
+    if fechamento is not None and fechamento["veredito_com_condicionais"] == "fecha":
+        for k in fechamento["termos_condicionais"]:
+            pendentes.append(por_id[hipotese_do_termo[k]])
+            faltas_pendentes += list(termos[k][1].faltam)
+        faltas_pendentes = list(dict.fromkeys(faltas_pendentes))
     sustentadas = [h for h in hipoteses if h["status"] == "sustentada"]
     possiveis = [h for h in hipoteses if h["status"] == "possivel"]
     sobra = fechamento is not None and fechamento["veredito"] == "sobra"
@@ -929,14 +1134,25 @@ def investigar(
         abstem, motivo = (
             True,
             (
-                "a variação do consumo só é real se o erro do medidor de vapor for o mesmo nos dois "
-                "períodos"
+                f"falta {_lista(c_cons.faltam)}; a variação do consumo só é real se o erro desses "
+                "instrumentos for o mesmo nos dois períodos"
+                if c_cons.faltam
+                else "a variação do consumo só é real se o erro do medidor de vapor for o mesmo "
+                "nos dois períodos"
             ),
         )
     elif c_cons.detectabilidade is None:
         abstem, motivo = (
             True,
             ("sem incerteza declarada, não dá para saber se a variação do consumo é real"),
+        )
+    elif sobra and pendentes and not residuo_aberto:
+        abstem, motivo = (
+            True,
+            "o resto da mudança seria explicado por "
+            + _lista(h["titulo"].lower() for h in pendentes)
+            + ", mas essa mudança ainda não está confirmada"
+            + (f" (falta {_lista(faltas_pendentes)})" if faltas_pendentes else ""),
         )
     elif sobra or residuo_aberto:
         abstem, motivo = True, "parte da mudança não é explicada pelos registros"
@@ -950,6 +1166,7 @@ def investigar(
             for h in hipoteses
             if h["status"] in ("sustentada", "oposta", "possivel")
             and h["id"] != "perdas_nao_medidas"
+            and h["avaliacao"]["mudanca_detectavel"] == "sim"
         ]
         if mudaram:
             texto += (
@@ -989,6 +1206,23 @@ def investigar(
             ),
             "separa": [],
             "porque": "A conclusão depende de o erro do medidor ser o mesmo nos dois períodos.",
+        }
+    elif sobra and pendentes and not residuo_aberto:
+        principal = max(pendentes, key=lambda h: abs(h["efeito"]["consumo_pct"] or 0))
+        acao = principal["verificacao"]
+        if faltas_pendentes:
+            acao = (
+                f"Cadastrar em instrumentos.csv a {_lista(faltas_pendentes)}, informando o tipo da "
+                f"incerteza; e {acao[0].lower()}{acao[1:]}"
+            )
+        prox = {
+            "acao": acao,
+            "separa": [h["id"] for h in pendentes],
+            "porque": (
+                f"Decide se {_lista(h['titulo'].lower() for h in pendentes)} explica o resto da "
+                "mudança: hoje essa mudança só passa da incerteza se o erro do instrumento se "
+                "repetir nos dois períodos."
+            ),
         }
     elif residuo_aberto or sobra:
         h = next(h for h in hipoteses if h["id"] == "perdas_nao_medidas")
@@ -1095,8 +1329,10 @@ def investigar(
             else {
                 "recebido": cen.recebido,
                 "fifo": cen.fifo,
+                "fifo_indisponivel": cen.fifo_indisponivel,
                 "minimo": cen.minimo,
                 "maximo": cen.maximo,
+                "condicoes": list(cen.condicoes),
             },
             "composicao_origem": r.composicao_origem,
             "eficiencia_direta": _grandeza_json(b.eficiencia),

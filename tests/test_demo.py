@@ -119,9 +119,21 @@ def test_demo_conta_a_historia_da_investigacao(pacote_demo):
         j = investigar(pacote_demo, base, comp)
         return {h["id"] for h in j["hipoteses"] if h["status"] == "sustentada"}, j
 
-    causas, _ = sustentadas((s[4][0], s[5][1]))
-    assert causas == {"temperatura_gases", "umidade_combustivel"}
+    # Auditoria A3 (01/10/2026): o demo não cadastra a incerteza do método de umidade, então a
+    # subida da umidade recebida é só 'condicional' (real se o erro da estufa se repetir).
+    # A EULER se abstém e pede o cadastro; a umidade fecharia a mudança se confirmada (D53).
+    def umidade(j):
+        return next(h for h in j["hipoteses"] if h["id"] == "umidade_combustivel")
+
+    causas, j = sustentadas((s[4][0], s[5][1]))
+    assert causas == {"temperatura_gases"}
+    assert umidade(j)["avaliacao"]["mudanca_detectavel"] == "condicional"
+    assert j["o_que_mudou"]["fechamento"]["veredito_com_condicionais"] == "fecha"
+    assert j["conclusao"]["abstencao"] is True
+    assert j["proxima_verificacao"]["acao"].startswith("Cadastrar em instrumentos.csv")
     causas, j = sustentadas(s[6])
     assert j["conclusao"]["abstencao"] is True
-    causas, _ = sustentadas(s[7])
-    assert causas == {"umidade_combustivel"}
+    causas, j = sustentadas(s[7])
+    assert causas == set()
+    assert umidade(j)["avaliacao"]["mudanca_detectavel"] == "condicional"
+    assert j["o_que_mudou"]["fechamento"]["veredito_com_condicionais"] == "fecha"

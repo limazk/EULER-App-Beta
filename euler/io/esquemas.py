@@ -459,8 +459,10 @@ INSTRUMENTOS = Tabela(
             "categoria",
             "—",
             False,
-            "Como a incerteza foi declarada. Sem esta informação, a EULER trata o valor como "
-            "limite ±a (distribuição retangular, GUM 4.3.7).",
+            "Como a incerteza foi declarada (padrao, expandida ou limite). Sem esta "
+            "informação, a EULER supõe que o valor é um limite ±a (hipótese do projeto, "
+            "D35) e usa u = a/√3 (modelo retangular do GUM 4.3.7); informe o tipo para "
+            "evitar essa suposição.",
             "",
             categorias=("padrao", "expandida", "limite"),
         ),

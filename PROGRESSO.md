@@ -22,7 +22,7 @@
 | Incerteza por componentes (GUM) e correlação entre períodos | **concluída** | **pendente** (Q8, Q11, Q12, Q16) | `euler/incerteza.py` |
 | Recebido × queimado (cenários do pátio) | **concluída** | **pendente** (Q7) | `euler/periodos.py` |
 | Regras da investigação (vocabulário, `oposta`, fechamento) | **concluída** | **pendente** (Q9, Q17) | `euler/investigacao.py` |
-| Verificação independente | **concluída**: 53 testes em `tests/test_validacao_*.py`, mais regressões do gerador em `tests/test_demo.py` (V-A a V-E) | não se aplica: verificar ≠ aprovar | `docs/matriz_validacao_fisica.md` |
+| Verificação | **concluída**, mas a auditoria mostrou que "53 verificações independentes" era um resumo errado; reclassificada em categorias (ver revisão de confiabilidade) | não se aplica: verificar ≠ aprovar | `docs/matriz_validacao_fisica.md` |
 | Comparação com caldeira real | **não feita** (sem dados reais no repositório) | — | matriz, P-4 |
 | Perguntas aos revisores | **prontas** (Q1–Q17) | aguardando respostas | `docs/perguntas_revisores.md` |
 | Decisões | D35–D50 propostas; D08, D24 e D26 substituídas | **todas pendentes** | `docs/decisoes.md` |
@@ -39,7 +39,38 @@ que a especificação esteja certa.
   `www.bipm.org`.
 - Print `05_dados_e_limites` refeito (tabela com as colunas do pátio).
 
-**Próximo passo:** respostas dos revisores às perguntas Q1–Q17 (a física continua como proposta até lá). Em paralelo: concluir a Etapa 7 (vídeo, prints 04, 06 e 07) e seguir para a Etapa 8.
+## Revisão de confiabilidade (auditoria externa de 01/10/2026)
+
+Auditoria técnica externa da versão `2cd4dc3` (não é aprovação científica). Escopo fechado:
+corrigir A1–A5, reclassificar as verificações e corrigir as referências, sem mexer nos
+golden nem nos dados do demo.
+
+| Item | Implementação | Aprovação científica | Onde ver |
+|---|---|---|---|
+| A1 · FIFO com massa sem qualidade conhecida | **corrigido**: FIFO indisponível com motivo; hipóteses dos cenários declaradas | **pendente** (decisão 1) | D51; V-C10, V-C11 |
+| A2 · umidade duas vezes no resíduo | **corrigido**: cada fonte uma vez, conferido perturbando os dados pela cadeia inteira | **pendente** (decisão 3) | D54; V-D7, V-D8 |
+| A3 · incerteza ausente virando zero | **corrigido**: orçamento completo / parcial / indisponível; nunca "sim" com orçamento incompleto | **pendente** (decisão 3) | D52; V-D9, V-D10, V-E6 |
+| A4 · divisão por zero (consumo ou vapor zero) | **corrigido**: bloqueio com motivo | não se aplica | D56; V-C12, V-C13 |
+| A5 · O₂ úmido fora do domínio | **corrigido**: recusa com motivo | não se aplica | D56; V-B16, V-B17 |
+| Relatório: quatro estados da detecção | **corrigido** (relatório e tela) | não se aplica | V-E7 |
+| Tela sem as hipóteses `oposta` (achado desta revisão) | **corrigido** | não se aplica | V-E8 |
+| PCI seco e dispersão de Δh no orçamento | **implementado** | **pendente** | D55, D57 |
+| Matriz reclassificada (57 linhas, 4 categorias + consistência, regressão, golden); 18 pontos reservados IF97 × IAPWS-95 | **concluída** | não se aplica | `docs/matriz_validacao_fisica.md` |
+| Referências corrigidas (GUM 4.3.7 como hipótese do projeto; CODATA × JANAF; IAPWS conferido pela auditoria) | **concluída** | — | `docs/revisao_motor_fisico.md` §2 e §7 |
+| Pauta de revisão humana: três decisões prioritárias + Q1–Q17 | **pronta** | aguardando reunião | `docs/perguntas_revisores.md` |
+| Demo: história mudou (umidade só condicional, abstenção) sem alterar dados | **feito**; gabarito, exemplos de relatório, roteiro e prints 05/06 atualizados | — | D53 (**decisão do Adryan**) |
+| Comparação externa e piloto com dados autorizados | **não feita** | — | matriz, P-4 e P-7 |
+
+- Versão examinada pela auditoria: `2cd4dc3`. Versão desta revisão: ver `git log` (commit
+  "Revisão de confiabilidade").
+- `pytest -q`: 299 testes passando; `ruff check .` e `ruff format --check .` sem erros;
+  `tests/golden/` e `lab/` sem alteração.
+
+**Próximo passo:** reunião com os revisores começando pelas três decisões prioritárias
+(`docs/perguntas_revisores.md`); decisão do Adryan sobre o demo (D53). Depois: casos
+reservados montados fora da lógica do motor e piloto com dados autorizados de uma caldeira.
+Vídeo e prints 04 e 07 da Etapa 7 são apresentação do fluxo sintético, não evidência de
+validação.
 
 **Modo de trabalho:** automático (pedido do Adryan em 01/10/2026): seguir as etapas sem esperar "ok"; decisões não especificadas vão para `docs/decisoes.md` como propostas pendentes.
 

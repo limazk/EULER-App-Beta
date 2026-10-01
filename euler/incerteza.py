@@ -6,9 +6,11 @@ Conceitos usados (seções do GUM citadas para conferência do revisor):
   k = 2 só corresponde a ~95% se a distribuição combinada for aproximadamente normal
   (GUM 6.3.3); por isso os textos dizem "k = 2", sem prometer 95% (D36).
 - **Incerteza declarada** de um instrumento é convertida conforme o tipo informado:
-  `padrao` → u = valor; `expandida` com k → u = valor/k (GUM 4.3.3); sem tipo, ou
-  "expandida" sem k → tratada como limites ±a de distribuição retangular, u = a/√3
-  (GUM 4.3.7). Nunca se assume k = 2 sem declaração (substitui D24, ver D35).
+  `padrao` → u = valor; `expandida` com k → u = valor/k (GUM 4.3.3); `limite` → limites
+  ±a com distribuição retangular, u = a/√3 (GUM 4.3.7). **Sem tipo, ou "expandida" sem k:
+  hipótese do projeto (D35), não determinação do GUM** — o valor é lido como limite ±a e
+  recebe o modelo retangular do GUM 4.3.7. É mais cauteloso que supor k = 2 (u = a/2),
+  mas menos que supor incerteza-padrão (u = a). Nunca se assume k = 2 sem declaração.
 - **Componentes** carregam a contribuição relativa **com sinal** para a grandeza final
   (coeficiente de sensibilidade × u, GUM 5.1.3) e uma **chave** da fonte de erro:
     * `medicao:` → é literalmente a mesma leitura usada em dois cálculos (ex.: o estoque
@@ -19,8 +21,13 @@ Conceitos usados (seções do GUM citadas para conferência do revisor):
       com r = 1 (GUM 5.2.2, D37);
     * sem chave → independente.
 - **Natureza**: `instrumental` (calibração/especificação), `aleatoria` (dispersão dos
-  dados), `modelo` (hipótese de cálculo quantificada). Limitações de modelo que não podem
-  ser quantificadas com os dados vão para `nao_incluidos`, nunca viram número inventado.
+  dados), `modelo` (hipótese de cálculo quantificada).
+- **O que falta × o que não se inclui** (auditoria A3): uma incerteza **necessária** que não
+  foi informada (instrumento sem cadastro, dispersão sem dias suficientes) vai para
+  `faltam` e **nunca vira zero**: o orçamento fica `parcial` (ou `indisponivel`) e a
+  grandeza fica sem incerteza (`None`). Limitações de modelo que o contrato de dados não
+  permite quantificar (representatividade da amostra, título do vapor, uso do pátio) vão
+  para `nao_incluidos`: são declaradas no resultado, nunca viram número inventado.
 """
 
 from __future__ import annotations
@@ -46,11 +53,14 @@ def incerteza_padrao(
         return valor, "declarada como incerteza-padrão"
     if tipo == "expandida" and k:
         return valor / k, f"declarada como expandida com k = {k:g} (GUM 4.3.3)"
+    if tipo == "limite":
+        return valor / sqrt(3), "declarada como limites ±a: retangular, u = a/√3 (GUM 4.3.7)"
     motivo = "expandida sem k declarado" if tipo == "expandida" else "sem tipo declarado"
-    return (
-        valor / sqrt(3),
-        f"{motivo}: tratada como limites ±a, distribuição retangular, u = a/√3 (GUM 4.3.7)",
+    como = (
+        f"{motivo}: por hipótese do projeto (D35), lida como limites ±a; modelo retangular "
+        "do GUM 4.3.7, u = a/√3"
     )
+    return valor / sqrt(3), como
 
 
 @dataclass(frozen=True)
@@ -59,6 +69,8 @@ class Componente:
 
     u_rel: contribuição relativa **com sinal** (sensibilidade × incerteza-padrão ÷ valor).
     chave: identifica a fonte de erro ("medicao:..." ou "instrumento:..."); None = independente.
+    entrada: dado primário pelo qual o erro entra (ex.: "umidade_bu_frac"); permite que uma
+        entrada usada por dois caminhos entre uma vez só, pelo gradiente conjunto (A2).
     """
 
     nome: str
@@ -66,18 +78,55 @@ class Componente:
     natureza: Natureza
     chave: str | None = None
     nota: str = ""
+    entrada: str | None = None
 
     def escalado(self, fator: float) -> Componente:
         """Mesma fonte, com sensibilidade multiplicada (ex.: −1 para quem está no denominador)."""
-        return Componente(self.nome, self.u_rel * fator, self.natureza, self.chave, self.nota)
+        return Componente(
+            self.nome, self.u_rel * fator, self.natureza, self.chave, self.nota, self.entrada
+        )
+
+
+@dataclass(frozen=True)
+class Falta:
+    """Incerteza necessária que não foi informada.
+
+    sistematica: True quando é o erro de um instrumento ou método (o mesmo erro se repete
+    se for o mesmo instrumento nos dois períodos); False para o resto (ex.: dispersão).
+    """
+
+    nome: str
+    sistematica: bool = True
+
+
+Situacao = Literal["completo", "parcial", "indisponivel"]
+
+
+def _unir_faltas(*listas: list[Falta]) -> list[Falta]:
+    return list(dict.fromkeys(f for lista in listas for f in lista))
 
 
 @dataclass
 class Orcamento:
-    """Orçamento de incerteza relativa de uma grandeza de um período."""
+    """Orçamento de incerteza relativa de uma grandeza de um período.
+
+    componentes: contribuições conhecidas; nao_incluidos: limitações declaradas e não
+    quantificáveis; faltam: incertezas necessárias que não foram informadas (A3).
+    """
 
     componentes: list[Componente] = field(default_factory=list)
     nao_incluidos: list[str] = field(default_factory=list)
+    faltam: list[Falta] = field(default_factory=list)
+
+    @property
+    def situacao(self) -> Situacao:
+        if not self.faltam:
+            return "completo"
+        return "parcial" if self.componentes else "indisponivel"
+
+    def incerteza_k2(self, valor: float) -> float | None:
+        """U = 2u absoluta, só com o orçamento completo; o que falta nunca vira zero."""
+        return 2 * self.u_rel() * abs(valor) if self.situacao == "completo" else None
 
     def u_rel(self) -> float:
         """Incerteza-padrão relativa combinada (GUM 5.1.2/5.2.2).
@@ -98,6 +147,7 @@ class Orcamento:
         return Orcamento(
             self.componentes + [c.escalado(fator) for c in outro.componentes],
             list(dict.fromkeys(self.nao_incluidos + outro.nao_incluidos)),
+            _unir_faltas(self.faltam, outro.faltam),
         )
 
     def incluindo(
@@ -106,6 +156,7 @@ class Orcamento:
         return Orcamento(
             self.componentes + list(componentes),
             list(dict.fromkeys(self.nao_incluidos + (nao_incluidos or []))),
+            list(self.faltam),
         )
 
 
@@ -151,18 +202,21 @@ def u_diferenca(
     """
     a = contribuicoes(valor_a, orc_a, -1.0)
     b = contribuicoes(valor_b, orc_b, +1.0)
+    return u_combinada(agregar_por_fonte(a) + agregar_por_fonte(b), r_instrumento)
 
-    # dentro de cada período a mesma chave é a mesma fonte (r = 1): agrega antes
-    def agrega(lista: list[tuple[float, str | None]]) -> list[tuple[float, str | None]]:
-        saida, por_chave = [], {}
-        for u, chave in lista:
-            if chave is None:
-                saida.append((u, None))
-            else:
-                por_chave[chave] = por_chave.get(chave, 0.0) + u
-        return saida + [(u, chave) for chave, u in por_chave.items()]
 
-    return u_combinada(agrega(a) + agrega(b), r_instrumento)
+def agregar_por_fonte(
+    lista: list[tuple[float, str | None]],
+) -> list[tuple[float, str | None]]:
+    """Dentro de UM período, a mesma chave é o mesmo erro (r = 1): soma com sinal antes de
+    combinar com outro período, onde r pode ser desconhecido (GUM 5.2.2)."""
+    saida, por_chave = [], {}
+    for u, chave in lista:
+        if chave is None:
+            saida.append((u, None))
+        else:
+            por_chave[chave] = por_chave.get(chave, 0.0) + u
+    return saida + [(u, chave) for chave, u in por_chave.items()]
 
 
 Detectabilidade = Literal["sim", "condicional", "nao"]
@@ -180,3 +234,15 @@ def detectabilidade(
     if abs(delta) > k * u_correlacionado:
         return "condicional"
     return "nao"
+
+
+def detectabilidade_parcial(
+    delta: float, u_conhecida: float, faltam: list[Falta], k: float = K_PADRAO
+) -> Detectabilidade | None:
+    """Detecção com orçamento incompleto (A3). O que falta só pode aumentar a incerteza,
+    então 'nao' (|Δ| ≤ k·u da parte conhecida) continua valendo; 'sim' nunca é possível.
+    Se só faltam erros sistemáticos de instrumento (que se cancelam quando o mesmo erro se
+    repete nos dois períodos), uma diferença maior é 'condicional'; senão, None."""
+    if abs(delta) <= k * u_conhecida:
+        return "nao"
+    return "condicional" if all(f.sistematica for f in faltam) else None

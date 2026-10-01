@@ -23,14 +23,15 @@ def test_fluxo_completo_do_caso_de_demonstracao():
     at = AppTest.from_file(str(APP), default_timeout=60).run()
     next(b for b in at.button if b.label.startswith("Começar com o caso")).click().run()
     assert not at.exception, at.exception
-    # o botão leva direto a "Dados e limites", com tudo liberado
-    assert {m.label: m.value for m in at.metric}.get("Bloqueadas") == "0"
+    # o botão leva direto a "Dados e limites"; só a faixa de incerteza da eficiência fica
+    # bloqueada (o demo não cadastra todos os instrumentos; auditoria A3)
+    assert {m.label: m.value for m in at.metric}.get("Bloqueadas") == "1"
     assert _rodape_ok(at)
 
     at.switch_page("paginas/investigacao.py").run()
     assert not at.exception, at.exception
-    # Fase R (D44): "Os dados sustentam" virou "Explicações compatíveis com os dados"
-    assert any("Explicações compatíveis" in s.value for s in at.success)
+    # auditoria A3: abstenção com o que cadastrar (antes: "Explicações compatíveis")
+    assert any(w.value.startswith("Não dá para concluir") for w in at.warning)
     assert _rodape_ok(at)
 
     at.switch_page("paginas/extrato.py").run()

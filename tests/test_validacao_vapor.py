@@ -63,3 +63,27 @@ def test_titulo_do_vapor_a_mao():
     h_f = vapor.h_vapor_mj_kg(10, "umido", titulo=0.0)
     h_g = vapor.h_vapor_mj_kg(10, "saturado_seco")
     assert vapor.h_vapor_mj_kg(10, "umido", titulo=0.98) == pytest.approx(h_f + 0.98 * (h_g - h_f))
+
+
+# Pontos reservados (auditoria externa, 01/10/2026): definidos ANTES de rodar, sem uso na
+# escolha da tolerância. Domínio do produto: caldeiras de 2 a 40 bar abs, água de alimentação
+# de 20 °C até 5 °C abaixo da saturação, vapor saturado seco.
+# Tolerância a priori: 0,01% de Δh. Motivo: a EULER mostra a eficiência com 0,1 ponto
+# percentual (≈ 0,125% relativo de uma η de 80%); 0,01% é mais de 10 vezes menor.
+PONTOS_RESERVADOS = [
+    (p, t)
+    for p in (2.0, 5.0, 10.0, 20.0, 40.0)
+    for t in (20.0, 80.0, 105.0, 150.0)
+    if t <= vapor.t_sat_c(p) - 5
+]
+
+
+@pytest.mark.parametrize(("p_bar", "t_agua_c"), PONTOS_RESERVADOS)
+def test_delta_h_contra_iapws95_pontos_reservados(p_bar, t_agua_c):
+    coolprop = pytest.importorskip("CoolProp.CoolProp")
+    p = p_bar * 1e5
+    h_s = coolprop.PropsSI("H", "P", p, "Q", 1, "HEOS::Water") / 1e6
+    h_a = coolprop.PropsSI("H", "P", p, "T", t_agua_c + 273.15, "HEOS::Water") / 1e6
+    referencia = h_s - h_a
+    motor = vapor.delta_h_mj_kg(p_bar, "saturado_seco", t_agua_c)
+    assert motor == pytest.approx(referencia, rel=1e-4)

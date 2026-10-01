@@ -15,7 +15,11 @@ from typing import Literal
 import pandas as pd
 
 from euler.io import Pacote
-from euler.periodos import incerteza_relativa_instrumento, medicoes_de_estoque
+from euler.periodos import (
+    buscar_instrumento,
+    incerteza_relativa_instrumento,
+    medicoes_de_estoque,
+)
 
 Situacao = Literal["habilitada", "parcial", "bloqueada"]
 ELEMENTOS = ("C", "H", "O", "N", "S")
@@ -242,12 +246,31 @@ def avaliar(pacote: Pacote) -> list[Capacidade]:
         "Sem incerteza declarada da medição de estoque.",
         "Cadastrar o levantamento de estoque em instrumentos.csv (unidade pct_da_leitura).",
     )
+    # a eficiência também depende destes; sem eles, a incerteza fica indisponível (A3)
+    for grandeza, nome, unidade in (
+        ("balanca", "da balança dos recebimentos", "kg"),
+        ("p_vapor_bar_abs", "do manômetro do vapor", "bar"),
+        ("t_agua_alim_c", "do termômetro da água de alimentação", "°C"),
+        ("umidade", "do método de umidade (estufa)", "pontos de %, unidade pct"),
+        ("pci_seco", "da análise de PCI seco (calorímetro)", "pct_da_leitura"),
+    ):
+        v.exigir(
+            buscar_instrumento(pacote, grandeza) is not None,
+            f"Sem incerteza declarada {nome}.",
+            f"Cadastrar em instrumentos.csv a incerteza {nome} ({unidade}), com o tipo.",
+        )
     caps.append(
         v.capacidade(
             "incerteza",
             "Faixa de incerteza da eficiência (E15)",
             "Quanto o resultado pode estar errado?",
-            ("eficiência direta", "incerteza do medidor de vapor", "incerteza do estoque"),
+            (
+                "eficiência direta",
+                (
+                    "incerteza de cada instrumento usado no balanço direto (vapor, estoque, "
+                    "balança, pressão, água de alimentação, umidade, PCI seco)"
+                ),
+            ),
         )
     )
 
