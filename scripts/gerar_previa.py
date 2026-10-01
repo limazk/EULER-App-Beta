@@ -3,7 +3,7 @@
 A página mostra as telas com o visual do app e os resultados **calculados pelo motor** para o
 caso de demonstração sintético: nada é recalculado nem inventado no navegador. A
 investigação é calculada para as combinações de períodos que a prévia oferece (referência
-começando em 03/08 e comparação depois dela).
+começando em 03/08 e comparação depois dela, mais o antes × depois da limpeza do demo).
 
 Uso:
     python scripts/gerar_previa.py                 # demo/previa/index.html
@@ -302,14 +302,18 @@ def dados_da_previa() -> dict:
     )
     periodos = periodos_entre_estoques(pacote)
     n = len(periodos)
+    # referência começando em 03/08 (todas as comparações depois dela) e, à parte, a
+    # intervenção do demo: semanas antes da limpeza de 21/09 × a semana depois dela
+    escolhas = [
+        (0, r, a, b) for r in range(REF_FIM_MAX + 1) for a in range(r + 1, n) for b in range(a, n)
+    ]
+    escolhas += [(4, 5, 7, 7), (4, 4, 7, 7), (5, 5, 7, 7)]
     combos = {}
-    for r in range(REF_FIM_MAX + 1):
-        for a in range(r + 1, n):
-            for b in range(a, n):
-                ref = (periodos[0][0], periodos[r][1])
-                comp = (periodos[a][0], periodos[b][1])
-                combos[f"{r}|{a}-{b}"] = _investigacao(investigar(pacote, ref, comp))
-                print(f"  comparação {r}|{a}-{b}", flush=True)
+    for r0, r, a, b in escolhas:
+        ref = (periodos[r0][0], periodos[r][1])
+        comp = (periodos[a][0], periodos[b][1])
+        combos[f"{r0}-{r}|{a}-{b}"] = _investigacao(investigar(pacote, ref, comp))
+        print(f"  comparação {r0}-{r}|{a}-{b}", flush=True)
     avisos = pacote.tabela_avisos()
     atencao = avisos[avisos["Gravidade"].isin(["Erro", "Atenção"])]
     return {
@@ -339,7 +343,7 @@ def dados_da_previa() -> dict:
         "series": _series(pacote),
         "extrato": _extrato(pacote),
         "combos": combos,
-        "padrao": [3, 4, 5],
+        "padrao": [0, 3, 4, 5],
     }
 
 

@@ -217,13 +217,14 @@ select { background: var(--campo); color: var(--texto); border: 1px solid #3F3F3
 const D = JSON.parse(document.getElementById("dados").textContent);
 const N = D.periodos.length;
 const SERIES = Object.keys(D.series);
-const estado = { tela: "inicio", r: D.padrao[0], a: D.padrao[1], b: D.padrao[2], aba: 0,
+const estado = { tela: "inicio", r0: D.padrao[0], r: D.padrao[1], a: D.padrao[2], b: D.padrao[3], aba: 0,
   serie: SERIES[0], filtro: new Set(["Erro", "Atenção", "Informação"]), gerado: new Set() };
 
 const e = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const nf = (v, casas) => v.toLocaleString("pt-BR", { minimumFractionDigits: casas, maximumFractionDigits: casas });
 const plural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
-const combo = () => D.combos[`${estado.r}|${estado.a}-${estado.b}`];
+const chave = () => `${estado.r0}-${estado.r}|${estado.a}-${estado.b}`;
+const combo = () => D.combos[chave()];
 const selo = (cor, texto) => `<span class="selo s-${cor}">${e(texto)}</span>`;
 
 const ICONES = {
@@ -352,19 +353,19 @@ function periodosHtml() {
   const p = D.periodos;
   const opt = (de, ate, sel, rot) => Array.from({ length: ate - de + 1 }, (_, k) => de + k).map((i) => `<option value="${i}" ${i === sel ? "selected" : ""}>${rot(i)}</option>`).join("");
   const celulas = p.map((x, i) => {
-    const classe = i <= estado.r ? "ref" : i >= estado.a && i <= estado.b ? "comp" : "";
+    const classe = i >= estado.r0 && i <= estado.r ? "ref" : i >= estado.a && i <= estado.b ? "comp" : "";
     return `<button class="celula ${classe}" data-celula="${i}" title="${e(x.ini)} a ${e(x.fim)}${i > estado.r ? " · clique para comparar só esta semana" : ""}">${e(x.ini)}</button>`;
   }).join("");
   const dias = (de, ate) => Math.round((new Date(p[ate].fim_iso) - new Date(p[de].ini_iso)) / 864e5);
-  const atalhos = [["Semanas 5–6 (padrão)", 3, 4, 5], ["Semana 7 · sem medidor de vapor", 3, 6, 6], ["Semana 8 · depois da limpeza", 3, 7, 7], ["Semanas 5–7", 3, 4, 6]];
+  const atalhos = [["Semanas 5–6 (padrão)", 0, 3, 4, 5], ["Semana 7 · sem medidor de vapor", 0, 3, 6, 6], ["Semana 8 · depois da limpeza", 0, 3, 7, 7], ["Antes × depois da limpeza (intervenção)", 4, 5, 7, 7]];
   return `<div class="cartao"><b>Períodos comparados</b>
     <div class="controles">
-      <div class="controle">Período de referência (como era)<div class="linha">de ${e(p[0].ini)} até <select id="ref-fim" aria-label="Fim da referência">${opt(0, 3, estado.r, (i) => p[i].fim)}</select></div></div>
+      <div class="controle">Período de referência (como era)<div class="linha">de <select id="ref-ini" aria-label="Início da referência">${opt(0, N - 2, estado.r0, (i) => p[i].ini)}</select> até <select id="ref-fim" aria-label="Fim da referência">${opt(estado.r0, N - 2, estado.r, (i) => p[i].fim)}</select></div></div>
       <div class="controle">Período de comparação (como ficou)<div class="linha">de <select id="comp-ini" aria-label="Início da comparação">${opt(estado.r + 1, N - 1, estado.a, (i) => p[i].ini)}</select> até <select id="comp-fim" aria-label="Fim da comparação">${opt(estado.a, N - 1, estado.b, (i) => p[i].fim)}</select></div></div>
     </div>
     <div class="tempo">${celulas}</div>
-    <div class="legenda-tempo"><span><span class="q ref"></span><b>Referência</b> · ${e(p[0].ini)} a ${e(p[estado.r].fim)} · ${plural(dias(0, estado.r), "dia", "dias")}</span><span><span class="q comp"></span><b>Comparação</b> · ${e(p[estado.a].ini)} a ${e(p[estado.b].fim)} · ${plural(dias(estado.a, estado.b), "dia", "dias")}</span></div>
-    <div class="atalhos"><span class="legenda">Atalhos:</span>${atalhos.map(([t, r, a, b]) => `<button class="chip" data-atalho="${r},${a},${b}" aria-pressed="${estado.r === r && estado.a === a && estado.b === b}">${e(t)}</button>`).join("")}</div>
+    <div class="legenda-tempo"><span><span class="q ref"></span><b>Referência</b> · ${e(p[estado.r0].ini)} a ${e(p[estado.r].fim)} · ${plural(dias(estado.r0, estado.r), "dia", "dias")}</span><span><span class="q comp"></span><b>Comparação</b> · ${e(p[estado.a].ini)} a ${e(p[estado.b].fim)} · ${plural(dias(estado.a, estado.b), "dia", "dias")}</span></div>
+    <div class="atalhos"><span class="legenda">Atalhos:</span>${atalhos.map(([t, r0, r, a, b]) => `<button class="chip" data-atalho="${r0},${r},${a},${b}" aria-pressed="${estado.r0 === r0 && estado.r === r && estado.a === a && estado.b === b}">${e(t)}</button>`).join("")}</div>
   </div>`;
 }
 
@@ -374,8 +375,13 @@ function hipoteses(lista, vazio) {
 }
 const seloDeteccao = (p) => (p ? `${selo(p[0], p[1])}${p[2] ? " " + e(p[2]) : ""}` : "—");
 
+function foraDaPrevia() {
+  return `<div class="cartao"><b>Esta combinação de semanas não foi calculada para a prévia.</b><p class="legenda">No app, qualquer par de períodos funciona. Aqui, use a referência começando em 03/08 (com a comparação depois dela) ou um dos atalhos, como <b>Antes × depois da limpeza</b>.</p></div>`;
+}
+
 function telaInvestigacao() {
   const c = combo();
+  if (!c) return `${cabecalho("Passo 3 de 5", "Investigação", e(D.textos.pergunta))}${periodosHtml()}${foraDaPrevia()}`;
   const kc = c.kpi_consumo, kv = c.kpi_valor;
   const abas = ["1. O que mudou", `2. O que os dados sustentam (${c.sustentadas.length + c.opostas.length})`, `3. Explicações possíveis (${c.abertas.length})`, `4. O que falta saber (${c.falta_cadastrar.length + c.falta_outros.length})`];
   let detalhe = "";
@@ -446,8 +452,8 @@ function telaExtrato() {
 
 function telaRelatorio() {
   const c = combo();
-  const chave = `${estado.r}|${estado.a}-${estado.b}`;
-  const gerado = estado.gerado.has(chave);
+  if (!c) return `${cabecalho("Passo 5 de 5", "Relatório", "")}${foraDaPrevia()}`;
+  const gerado = estado.gerado.has(chave());
   return `${cabecalho("Passo 5 de 5", "Relatório", "Relatório em linguagem simples, com os 5 blocos fixos: <b>O que mudou · O que os dados sustentam · Explicações possíveis · O que falta saber · Próxima verificação</b>.")}
     <p class="legenda">Comparação em uso: <b>${e(c.rotulo_ref)}</b> (referência) × <b>${e(c.rotulo_comp)}</b> (comparação). Para trocar, volte à Investigação.</p>
     <div class="linha-botoes"><button class="botao primario" id="gerar">${icone("relatorio")} Gerar relatório</button>${gerado ? '<span class="legenda">No app, aqui aparecem Baixar HTML, Baixar PDF e Imprimir ou salvar como PDF.</span>' : ""}</div>
@@ -491,7 +497,7 @@ function graficoSerie(s) {
   const linha = pts.map(([d, v], i) => `${i ? "L" : "M"}${X(+d).toFixed(1)},${Y(v).toFixed(1)}`).join("");
   const pontos = pts.map(([d, v]) => `<circle cx="${X(+d).toFixed(1)}" cy="${Y(v).toFixed(1)}" r="2.6" fill="var(--serie)"/>`).join("");
   return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${e(s.titulo)}" data-serie-grafico>
-    ${faixa(0, estado.r, "#2A3646", "Referência")}${faixa(estado.a, estado.b, "#45321F", "Comparação")}
+    ${faixa(estado.r0, estado.r, "#2A3646", "Referência")}${faixa(estado.a, estado.b, "#45321F", "Comparação")}
     ${grade}${marcas}<path d="${linha}" fill="none" stroke="var(--serie)" stroke-width="2"/>${pontos}
     <line id="cursor" x1="0" x2="0" y1="${m.t}" y2="${H - m.b}" stroke="#8A8A8A" stroke-dasharray="3 3" visibility="hidden"/>
     <circle id="cursor-ponto" r="4.5" fill="var(--serie)" stroke="#212121" stroke-width="2" visibility="hidden"/>
@@ -544,6 +550,7 @@ function ir(tela) {
 }
 
 function ajustarComparacao() {
+  if (estado.r < estado.r0) estado.r = estado.r0;
   if (estado.a <= estado.r) estado.a = estado.r + 1;
   if (estado.b < estado.a) estado.b = estado.a;
 }
@@ -554,14 +561,15 @@ document.addEventListener("click", (ev) => {
   if (alvo.dataset.ir) return ir(alvo.dataset.ir);
   if (alvo.dataset.aba) { estado.aba = +alvo.dataset.aba; return mostrar(); }
   if (alvo.dataset.serie) { estado.serie = alvo.dataset.serie; return mostrar(); }
-  if (alvo.dataset.atalho) { [estado.r, estado.a, estado.b] = alvo.dataset.atalho.split(",").map(Number); return mostrar(); }
+  if (alvo.dataset.atalho) { [estado.r0, estado.r, estado.a, estado.b] = alvo.dataset.atalho.split(",").map(Number); return mostrar(); }
   if (alvo.dataset.celula) { const i = +alvo.dataset.celula; if (i > estado.r) { estado.a = estado.b = i; mostrar(); } return; }
   if (alvo.dataset.filtro) { const g = alvo.dataset.filtro; estado.filtro.has(g) ? estado.filtro.delete(g) : estado.filtro.add(g); return mostrar(); }
-  if (alvo.id === "gerar") { estado.gerado.add(`${estado.r}|${estado.a}-${estado.b}`); return mostrar(); }
+  if (alvo.id === "gerar") { estado.gerado.add(chave()); return mostrar(); }
 });
 document.addEventListener("change", (ev) => {
   const id = ev.target.id;
-  if (id === "ref-fim") estado.r = +ev.target.value;
+  if (id === "ref-ini") estado.r0 = +ev.target.value;
+  else if (id === "ref-fim") estado.r = +ev.target.value;
   else if (id === "comp-ini") estado.a = +ev.target.value;
   else if (id === "comp-fim") estado.b = +ev.target.value;
   else return;

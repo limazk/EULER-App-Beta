@@ -60,7 +60,7 @@ Sem o Chromium, o app oferece só **Baixar HTML**; abra no navegador e use
 | `euler/` | motor (física, importação, investigação, relatório) |
 | `app/` | telas Streamlit |
 | `tests/` | testes; `tests/golden/` são valores de referência **somente leitura** |
-| `demo/` | caso sintético, passeio pelas telas, guia da demonstração ao vivo, roteiro do vídeo |
+| `demo/` | caso sintético, **Entenda a EULER** (`ENTENDA_A_EULER.md`), passeio pelas telas, guia da demonstração ao vivo, roteiro do vídeo |
 | `docs/` | visão de produto, física para revisão, decisões, revisão do motor, matriz de validação, perguntas aos revisores, contrato de dados, exemplos de relatório |
 | `docs/revisao/` | PDFs para enviar aos revisores |
 | `templates/` | modelos de CSV e planilha para o cliente preencher |
