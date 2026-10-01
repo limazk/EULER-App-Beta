@@ -169,6 +169,7 @@ As demais (Q1–Q17, D05–D57) estão em `docs/perguntas_revisores.md` e `docs/
 | Achados da auditoria (A1–A5) | `tests/test_confiabilidade.py` |
 | Verificação independente da física | `pip install -e ".[validacao]"` e `pytest -q tests/test_validacao_*.py`; matriz em `docs/matriz_validacao_fisica.md` |
 | Prints, vídeo, PDFs | `python scripts/prints.py` · `python scripts/gravar_video_demo.py` · `python scripts/gerar_pdfs_revisao.py` (extra `prints`) |
+| Prévia interativa (sem Streamlit) | `python scripts/gerar_previa.py` → `demo/previa/index.html`: as telas com os resultados do motor para o demo (74 comparações); publicada como Artifact para o Adryan |
 
 ## 8. Fora deste repositório
 

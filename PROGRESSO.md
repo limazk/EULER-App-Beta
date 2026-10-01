@@ -144,6 +144,8 @@ cara de aplicativo, **sem mexer em cálculos, demo, incertezas nem resultados in
 | Windows | `ABRIR-EULER.cmd` dentro do projeto | **feito**, com teste |
 | Código | formatação das telas em `app/formatacao.py` (sem Streamlit), usada também pela prévia | **feito** |
 
+| Prévia interativa | página que abre na conversa, com o visual e as telas do app e os resultados do motor para o demo (`scripts/gerar_previa.py`) | **feito** |
+
 - Cálculos, demo, incertezas e `tests/golden/` **sem alteração**.
 
 **Modo de trabalho:** automático (pedido do Adryan em 01/10/2026): seguir as etapas sem esperar "ok"; decisões não especificadas vão para `docs/decisoes.md` como propostas pendentes.

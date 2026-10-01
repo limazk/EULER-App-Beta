@@ -32,16 +32,26 @@ SELO_DETECCAO = {
 }
 
 
-def selo_deteccao(c) -> str:
+def partes_do_selo(c) -> tuple[str, str, str] | None:
+    """(cor, selo curto, texto depois do selo) da detecção; None quando não há variação."""
     texto = mudou_detectavel(c)
     if texto == "—":
-        return texto
+        return None
     cor, curto = SELO_DETECCAO[c["detectabilidade"]]
     if c["detectabilidade"] == "condicional":
-        return f":{cor}-badge[{curto}] {texto}"
+        return cor, curto, texto
     if c["detectabilidade"] == "nao":
-        return f":{cor}-badge[{curto}] variação normal"
-    return f":{cor}-badge[{curto}]"
+        return cor, curto, "variação normal"
+    return cor, curto, ""
+
+
+def selo_deteccao(c) -> str:
+    """Selo da detecção em Markdown do Streamlit (ex.: ":blue-badge[Sim]")."""
+    partes = partes_do_selo(c)
+    if partes is None:
+        return "—"
+    cor, curto, resto = partes
+    return f":{cor}-badge[{curto}]" + (f" {resto}" if resto else "")
 
 
 # Séries diárias que podem ir para o gráfico: coluna → (botão, título, unidade, formato).

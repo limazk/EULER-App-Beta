@@ -45,6 +45,7 @@ playwright install chromium
 python scripts/prints.py           # prints/ (8 telas)
 python scripts/gravar_video_demo.py  # demo/video/ (rascunho sem narração; MP4 com ffmpeg)
 python scripts/gerar_pdfs_revisao.py # docs/revisao/ (PDFs para os revisores)
+python scripts/gerar_previa.py      # demo/previa/index.html (prévia interativa, sem Streamlit)
 ```
 
 Sem o Chromium, o app oferece só **Baixar HTML**; abra no navegador e use
