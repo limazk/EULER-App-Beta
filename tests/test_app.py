@@ -131,10 +131,69 @@ def test_investigacao_semana_sem_vapor_abstem():
     assert any(w.value.startswith("Não dá para concluir") for w in at.warning)
 
 
-def test_relatorio_sem_investigacao_orienta():
+def test_relatorio_sem_dados_manda_importar():
     at = abrir("relatorio.py")
     assert not at.exception
+    assert any("Nenhum dado importado" in i.value for i in at.info)
+
+
+def test_relatorio_com_dados_mas_sem_investigacao_orienta():
+    at = clicar(abrir("importar.py"), "Caso de demonstração")
+    at.switch_page("paginas/relatorio.py").run()
+    assert not at.exception
     assert any("Investigação" in i.value for i in at.info)
+
+
+# --- revisão de uso para a demonstração (Etapa 7): resultados antigos nunca aparecem
+# como se fossem dos dados novos
+
+
+def test_relatorio_nao_usa_investigacao_de_dados_anteriores():
+    """Falha real: depois de investigar o demo e trocar para os Modelos, a tela Relatório
+    ainda oferecia a comparação do demo."""
+    at = abrir_com_demo("investigacao.py")
+    at.switch_page("paginas/importar.py").run()
+    clicar(at, "Modelos")
+    at.switch_page("paginas/relatorio.py").run()
+    assert not at.exception
+    assert not any("Comparação em uso" in c.value for c in at.caption)
+    assert any("bloqueada" in i.value for i in at.info)  # Modelos não têm dois períodos
+
+
+def test_relatorio_avisa_quando_a_altitude_mudou_depois_da_investigacao():
+    at = abrir_com_demo("investigacao.py")
+    at.switch_page("paginas/importar.py").run()
+    at.number_input[0].set_value(500.0).run()
+    at.switch_page("paginas/relatorio.py").run()
+    assert not at.exception
+    assert any("dados mudaram" in w.value for w in at.warning)
+    assert not any("Comparação em uso" in c.value for c in at.caption)
+
+
+def test_relatorio_segue_os_periodos_escolhidos():
+    at = abrir_com_demo("investigacao.py")
+    at.select_slider[1].set_value((6, 6)).run()  # semana 7
+    at.switch_page("paginas/relatorio.py").run()
+    assert any("14/09/2026 07:30 a 21/09/2026 07:30" in c.value for c in at.caption)
+
+
+def test_relatorio_continua_na_tela_depois_de_outra_interacao():
+    """Baixar o arquivo recarrega a página: o relatório gerado não pode sumir."""
+    at = abrir_com_demo("investigacao.py")
+    at.switch_page("paginas/relatorio.py").run()
+    clicar(at, "Gerar relatório")
+    assert len(at.get("download_button")) >= 1
+    at.run()  # nova execução, sem clicar em "Gerar relatório"
+    assert not at.exception
+    assert len(at.get("download_button")) >= 1
+
+
+def test_barra_lateral_diz_quando_os_dados_sao_sinteticos():
+    at = abrir()
+    assert any("sem dados carregados" in c.value for c in at.sidebar.caption)
+    at = abrir_com_demo("limites.py")
+    assert any("dados sintéticos" in c.value for c in at.sidebar.caption)
+    assert any("DADOS SINTÉTICOS" in c.value for c in at.caption)
 
 
 def test_relatorio_depois_da_investigacao_gera_html():
@@ -163,3 +222,38 @@ def test_investigacao_mostra_fator_que_mudou_no_sentido_contrario():
     assert not at.exception, at.exception
     assert any("Mudou no sentido contrário" in m.value for m in at.markdown)
     assert any("fecham dentro da incerteza" in c.value for c in at.caption)
+
+
+def test_escolha_de_periodos_sobrevive_a_ida_e_volta_entre_telas():
+    """Falha real: escolher a semana 7, ir ao Relatório e voltar trocava a comparação em
+    silêncio de volta ao padrão (semanas 5–6), e o relatório mudava junto."""
+    at = abrir_com_demo("investigacao.py")
+    at.select_slider[1].set_value((6, 6)).run()
+    at.switch_page("paginas/relatorio.py").run()
+    at.switch_page("paginas/investigacao.py").run()
+    assert at.select_slider[1].value == (6, 6)
+    at.select_slider[1].set_value((7, 7)).run()  # mover de novo continua funcionando
+    at.select_slider[1].set_value((5, 7)).run()
+    assert at.select_slider[1].value == (5, 7)
+    at.switch_page("paginas/relatorio.py").run()
+    legendas = [c.value for c in at.caption if "Comparação em uso" in c.value]
+    assert legendas and "**07/09/2026 07:30 a 28/09/2026 07:30** (comparação)" in legendas[0]
+
+
+def test_escolha_de_periodos_volta_ao_padrao_com_dados_novos():
+    at = abrir_com_demo("investigacao.py")
+    at.select_slider[1].set_value((6, 6)).run()
+    at.switch_page("paginas/importar.py").run()
+    clicar(at, "Caso de demonstração")  # recarregar os dados também é "dados novos"
+    at.number_input[0].set_value(900.0).run()
+    at.switch_page("paginas/investigacao.py").run()
+    assert at.select_slider[1].value == (4, 5)
+
+
+def test_dados_e_limites_resume_os_avisos_de_qualidade():
+    """O botão de demonstração leva direto a Dados e limites: os avisos de qualidade (lacuna,
+    totalizador reiniciado, registros tardios) precisam aparecer ali também."""
+    at = abrir_com_demo("limites.py")
+    texto = " ".join(m.value for m in at.markdown)
+    assert "Qualidade dos registros:" in texto and "4 avisos de atenção" in texto
+    assert "Sem leituras entre 12/09/2026" in texto and "Totalizador voltou" in texto

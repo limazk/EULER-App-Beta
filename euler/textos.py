@@ -21,3 +21,32 @@ PERGUNTA_CENTRAL = (
 AVISO_PROTOTIPO = (
     "Protótipo em construção (Fase 0). Todos os dados usados aqui são sintéticos ou públicos."
 )
+
+SITUACAO_MODELO = (
+    "Situação do modelo: cálculos implementados e verificados por testes automáticos; "
+    "hipóteses físicas em revisão científica, ainda sem aprovação; sem validação com dados "
+    "reais de caldeira."
+)
+"""Frase única usada na tela inicial e no relatório (separa as três situações)."""
+
+ESTAGIOS_MODELO = (
+    (
+        "Implementado e verificado",
+        (
+            "Cálculos de vapor (IAPWS-IF97), combustão, balanço e incerteza, e as regras da "
+            "investigação. Cerca de 300 testes automáticos, parte deles contra referências "
+            "externas."
+        ),
+    ),
+    (
+        "Em revisão científica",
+        (
+            "Equações, critérios e hipóteses (ex.: uso do pátio, amostragem de umidade, "
+            "leitura das incertezas) aguardam revisores. Nenhuma está aprovada ainda."
+        ),
+    ),
+    (
+        "Ainda não feito",
+        "Validação com dados reais de uma caldeira, com resultado de referência medido.",
+    ),
+)

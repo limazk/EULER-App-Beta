@@ -58,94 +58,82 @@ def ir_para(p: Page, menu: str, esperar: str) -> None:
     p.wait_for_timeout(600)
 
 
+def mover(p: Page, alca: int, tecla: str, vezes: int = 1) -> None:
+    """Move uma alça dos controles de período (0–1: referência; 2–3: comparação)."""
+    p.get_by_role("slider").nth(alca).focus()
+    for _ in range(vezes):
+        p.keyboard.press(tecla)
+        p.wait_for_timeout(900)
+
+
 def roteiro(p: Page, url: str) -> None:
+    """Cenas de demo/ROTEIRO_VIDEO.md (as legendas resumem a narração)."""
     p.goto(url)
     p.get_by_text("Não é um Registro de Segurança").wait_for(timeout=60_000)
 
-    # 0:00 Início
-    legenda(
-        p,
-        "Uma fábrica compra cavaco por tonelada. Mas a caldeira consome energia — e o consumo mudou.",
-    )
-    p.wait_for_timeout(5000)
-    rolar(p, 300, 4500)
-
-    # 0:10 Importar
-    ir_para(p, "1. Importar dados", "Arraste os arquivos aqui")
-    legenda(
-        p,
-        "A EULER usa os registros que a fábrica já tem: diário do operador, recebimentos e amostras.",
-    )
-    p.get_by_role("button", name="Caso de demonstração (8 semanas)").click()
-    p.get_by_text("Resultado da importação").first.wait_for(timeout=60_000)
-    p.wait_for_timeout(3500)
-    rolar(p, 700, 2500)
-    legenda(p, "Ela aponta os problemas — lacunas, medidor zerado — sem corrigir nada em silêncio.")
-    rolar(p, 450, 5000)
-
-    # 0:24 Dados e limites
-    ir_para(p, "2. Dados e limites", "Análises liberadas")
-    legenda(p, "Antes de concluir, ela mostra o que dá e o que não dá para saber.")
-    p.wait_for_timeout(3500)
-    p.get_by_text("Período a período").scroll_into_view_if_needed()
-    p.wait_for_timeout(800)
-    legenda(p, "Nesta semana, o medidor de vapor estava fora: ali, não dá para fechar a conta.")
-    p.wait_for_timeout(6500)
-
-    # 0:36 Investigação
-    ir_para(p, "3. Investigação", "Próxima verificação")
-    legenda(p, "Agosto × as duas semanas seguintes: o consumo por tonelada de vapor subiu 10%.")
-    p.wait_for_timeout(4500)
-    rolar(p, 330, 4500)
-    legenda(
-        p,
-        "Gases 32 °C mais quentes: compatível. Umidade: só condicional (falta a incerteza da estufa).",
-    )
-    rolar(p, 650, 5500)
-    legenda(p, "Sem essa incerteza, a EULER não conclui: diz o que falta e o que fecharia a conta.")
-    rolar(p, 650, 5500)
-    legenda(p, "A saída não é uma ordem para a caldeira: é a próxima verificação.")
-    p.get_by_text("5. Próxima verificação").scroll_into_view_if_needed()
-    p.wait_for_timeout(7000)
-
-    # 1:06 Extrato
-    ir_para(p, "4. Extrato por fornecedor", "Custo por energia")
-    legenda(p, "O fornecedor mais barato por tonelada nem sempre é o mais barato por energia.")
-    p.wait_for_timeout(3000)
-    rolar(p, 480, 6000)
-    legenda(p, "O F3 cobra menos por tonelada, mas o cavaco dele ficou mais úmido semana a semana.")
-    p.get_by_text("Umidade do cavaco por semana").scroll_into_view_if_needed()
-    p.wait_for_timeout(7500)
-
-    # 1:24 Relatório
-    ir_para(p, "5. Relatório", "Gerar relatório")
-    legenda(
-        p,
-        "Tudo vira um relatório em linguagem simples, com cinco blocos fixos e o aviso de segurança.",
-    )
-    p.get_by_role("button", name="Gerar relatório").click()
-    p.get_by_text("Prévia").wait_for(timeout=60_000)
-    p.wait_for_timeout(3000)
-    rolar(p, 600, 6500)
+    # 0:00 Início · o problema do gestor (dados sintéticos desde o começo)
+    legenda(p, "Caso SINTÉTICO, criado para demonstração: uma caldeira a cavaco de 20 t/h.")
     p.wait_for_timeout(4000)
-
-    # 1:40 Abstenção: comparar com a semana sem medidor de vapor
-    ir_para(p, "3. Investigação", "Próxima verificação")
-    legenda(p, "E quando falta dado? Vamos olhar a semana em que o medidor de vapor estava fora.")
-    alca = p.get_by_role("slider")
-    alca.nth(3).focus()
-    p.keyboard.press("ArrowRight")
-    p.wait_for_timeout(1500)
-    alca.nth(2).focus()
-    p.keyboard.press("ArrowRight")
-    p.wait_for_timeout(1200)
-    p.keyboard.press("ArrowRight")
-    p.get_by_text("Não dá para concluir").first.wait_for(timeout=60_000)
-    legenda(p, "A resposta honesta: não dá para concluir — e a EULER diz exatamente o que medir.")
-    p.wait_for_timeout(7000)
-
-    # 1:54 Encerramento
+    legenda(p, "O consumo de cavaco subiu e o gestor não sabe dizer por quê.")
+    p.get_by_text("Em que pé está a EULER").scroll_into_view_if_needed()
+    p.wait_for_timeout(5500)
     p.evaluate(TOPO_JS)
+    p.get_by_role("button", name="Começar com o caso de demonstração").click()
+
+    # 0:16 Dados e limites · qualidade dos registros
+    p.get_by_text("Qualidade dos registros").first.wait_for(timeout=60_000)
+    legenda(p, "A EULER lê os registros que a fábrica já tem e aponta os problemas.")
+    p.wait_for_timeout(5000)
+    legenda(p, "Lacuna no diário, medidor de vapor zerado: nada é corrigido em silêncio.")
+    p.wait_for_timeout(6000)
+
+    # 0:28 Extrato por fornecedor · valor do extrato por energia
+    ir_para(p, "4. Extrato por fornecedor", "Custo por energia")
+    legenda(p, "O mais barato por tonelada (F3) é o mais caro por energia: R$ 20/GJ × R$ 17/GJ.")
+    p.wait_for_timeout(6000)
+    rolar(p, 380, 5000)
+    legenda(p, "O cavaco do F3 ficou mais úmido semana a semana. A caldeira compra energia.")
+    p.get_by_text("Umidade do cavaco por semana").scroll_into_view_if_needed()
+    p.wait_for_timeout(9000)
+
+    # 0:52 Investigação · a mudança de consumo
+    ir_para(p, "3. Investigação", "Próxima verificação")
+    rolar(p, 450, 1500)
+    legenda(p, "Agosto × as duas semanas seguintes: o consumo por tonelada de vapor subiu 10%.")
+    p.wait_for_timeout(6000)
+    rolar(p, 650, 3000)
+    legenda(p, "Gases 32 °C mais quentes: explicação compatível com os dados, não comprovada.")
+    p.get_by_text("2. O que os dados sustentam").scroll_into_view_if_needed()
+    p.wait_for_timeout(7000)
+    legenda(p, "A umidade também subiu, mas falta a incerteza do método de umidade…")
+    p.get_by_text("3. Explicações que continuam possíveis").scroll_into_view_if_needed()
+    p.wait_for_timeout(6000)
+
+    # 1:18 Dados insuficientes
+    p.evaluate(TOPO_JS)
+    legenda(p, "…por isso a EULER não conclui: diz o que fecharia a conta se fosse confirmado.")
+    p.wait_for_timeout(6500)
+    mover(p, 3, "ArrowRight")  # comparação: 31/08–21/09
+    mover(p, 2, "ArrowRight", 2)  # comparação: só 14/09–21/09 (medidor de vapor fora)
+    p.get_by_text("Não dá para saber se o consumo").first.wait_for(timeout=60_000)
+    legenda(p, "Sem o medidor de vapor, ela nem tenta: não dá para saber se o consumo mudou.")
+    p.wait_for_timeout(6000)
+    mover(p, 2, "ArrowLeft", 2)  # volta para 31/08–14/09
+    mover(p, 3, "ArrowLeft")
+    p.get_by_text("subiu 10,1%").first.wait_for(timeout=60_000)
+
+    # 1:38 Relatório e próxima verificação
+    ir_para(p, "5. Relatório", "Gerar relatório")
+    legenda(p, "Tudo vira um relatório em linguagem simples, com cinco blocos fixos.")
+    p.get_by_role("button", name="Gerar relatório").click()
+    p.get_by_text("Prévia").wait_for(timeout=90_000)
+    p.wait_for_timeout(3500)
+    quadro = p.frame_locator("iframe").first
+    quadro.get_by_text("5. Próxima verificação").scroll_into_view_if_needed()
+    legenda(p, "A saída nunca é uma ordem para a caldeira: é a próxima verificação.")
+    p.wait_for_timeout(8000)
+
+    # 1:56 Encerramento
     legenda(
         p,
         "EULER: quanto de energia a fábrica comprou, quanto virou vapor e onde o resto foi parar.",

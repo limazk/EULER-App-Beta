@@ -3,7 +3,7 @@
 import estado
 import streamlit as st
 
-from euler.formato import num
+from euler.formato import num, plural
 from euler.io.esquemas import TABELAS
 from euler.io.modelos import ARQUIVO_PLANILHA
 
@@ -42,21 +42,27 @@ with st.container(border=True):
     )
     if st.button("Importar os arquivos enviados", type="primary", disabled=not enviados):
         estado.definir_arquivos(
-            {f.name: f.getvalue() for f in enviados}, f"{len(enviados)} arquivo(s) enviado(s)"
+            {f.name: f.getvalue() for f in enviados},
+            plural(len(enviados), "arquivo enviado", "arquivos enviados"),
         )
     st.markdown("Ou use um exemplo **sintético**:")
     b1, b2, b3 = st.columns(3)
-    if b1.button("Caso de demonstração (8 semanas)", icon=":material/play_circle:"):
+    if b1.button(
+        "Caso de demonstração", icon=":material/play_circle:", help="8 semanas, sintético"
+    ):
         estado.usar_caso_demo()
         st.rerun()
     if b2.button("Modelos (1 linha de exemplo)"):
         estado.definir_arquivos(
-            estado.ler_pasta(estado.RAIZ / "templates"), "modelos de exemplo (sintéticos)"
+            estado.ler_pasta(estado.RAIZ / "templates"),
+            "modelos de exemplo (sintéticos)",
+            sinteticos=True,
         )
     if b3.button("Exemplo com problemas (sintético)"):
         estado.definir_arquivos(
             estado.ler_pasta(estado.RAIZ / "demo" / "qualidade"),
             "exemplo com problemas de propósito (sintético)",
+            sinteticos=True,
         )
     st.download_button(
         "Baixar a planilha modelo (.xlsx)",

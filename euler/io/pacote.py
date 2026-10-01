@@ -33,6 +33,19 @@ class Pacote:
             return None
         return imp.dados
 
+    def origens_de_dado(self) -> set[str]:
+        """Valores da coluna `origem_dado` em todas as tabelas (ex.: {"sintetico"})."""
+        origens: set[str] = set()
+        for imp in self.importacoes.values():
+            if "origem_dado" in imp.dados:
+                origens |= set(imp.dados["origem_dado"].dropna().astype(str))
+        return origens
+
+    @property
+    def sintetico(self) -> bool:
+        """True só quando todas as linhas com origem declarada dizem `sintetico`."""
+        return self.origens_de_dado() == {"sintetico"}
+
     @property
     def avisos(self) -> list[Aviso]:
         todos = [a for imp in self.importacoes.values() for a in imp.avisos]
@@ -43,7 +56,7 @@ class Pacote:
         linhas = [
             {
                 "Gravidade": ROTULO_GRAVIDADE[a.gravidade],
-                "Tabela": a.tabela,
+                "Tabela": _arquivo(a.tabela),
                 "Linha": a.linha,
                 "Coluna": a.coluna or "",
                 "Aviso": a.mensagem,
@@ -173,3 +186,8 @@ def importar_pasta(
     pasta = Path(pasta)
     fontes = {n: pasta / t.arquivo for n, t in TABELAS.items() if (pasta / t.arquivo).exists()}
     return importar_pacote(fontes, p_atm_bar=p_atm_bar, fuso=fuso)
+
+
+def _arquivo(tabela: str | None) -> str:
+    """Nome do arquivo de uma tabela (é o que o usuário enviou e o que a linha numera)."""
+    return TABELAS[tabela].arquivo if tabela in TABELAS else (tabela or "—")

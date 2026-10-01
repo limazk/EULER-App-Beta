@@ -3,6 +3,7 @@
 Rodar com: streamlit run app/main.py
 """
 
+import estado
 import streamlit as st
 from componentes import rodape
 
@@ -29,7 +30,14 @@ paginas = {
 }
 
 navegacao = st.navigation(paginas)
-st.sidebar.caption(f"EULER · protótipo v{euler.__version__} · dados sintéticos")
 # As telas não usam st.stop(): o rodapé de segurança precisa aparecer sempre.
 navegacao.run()
 rodape()
+# depois da tela: um clique que troca os dados já aparece nesta mesma execução
+if not st.session_state.get("arquivos"):
+    situacao_dados = "sem dados carregados"
+elif estado.dados_sinteticos():
+    situacao_dados = "**dados sintéticos** em uso"
+else:
+    situacao_dados = "dados enviados em uso (não sintéticos)"
+st.sidebar.caption(f"EULER · protótipo v{euler.__version__} · {situacao_dados}")

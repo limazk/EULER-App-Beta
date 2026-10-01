@@ -3,7 +3,7 @@
 import estado
 import streamlit as st
 
-from euler.textos import AVISO_PROTOTIPO, FRASE_PRODUTO, PERGUNTA_CENTRAL
+from euler.textos import AVISO_PROTOTIPO, ESTAGIOS_MODELO, FRASE_PRODUTO, PERGUNTA_CENTRAL
 
 st.title("EULER")
 st.subheader(FRASE_PRODUTO)
@@ -19,8 +19,9 @@ st.markdown(
 with st.container(border=True):
     st.markdown("### Experimente em 5 minutos")
     st.markdown(
-        "Uma caldeira **sintética** de 20 t/h a cavaco, 8 semanas de registros, 3 fornecedores. "
-        "Algo mudou no meio do caminho: descubra o quê."
+        "Uma caldeira **sintética** (dados inventados para teste) de 20 t/h a cavaco, 8 semanas "
+        "de registros, 3 fornecedores. O consumo mudou no meio do caminho: veja o que a EULER "
+        "consegue explicar e o que falta medir para concluir."
     )
     if st.button(
         "Começar com o caso de demonstração", type="primary", icon=":material/play_circle:"
@@ -40,6 +41,13 @@ for pagina, titulo, texto in passos:
     c1, c2 = st.columns([1, 3])
     c1.page_link(pagina, label=titulo)
     c2.markdown(texto)
+
+st.markdown("### Em que pé está a EULER")
+icones = (":material/verified:", ":material/rate_review:", ":material/hourglass_empty:")
+for (titulo, texto), icone, coluna in zip(ESTAGIOS_MODELO, icones, st.columns(3), strict=True):
+    with coluna.container(border=True):
+        st.markdown(f"{icone} **{titulo}**")
+        st.caption(texto)
 
 st.markdown("### Como funciona")
 st.markdown(

@@ -16,7 +16,7 @@ from html import escape
 from zoneinfo import ZoneInfo
 
 from euler.formato import num, pct
-from euler.textos import PERGUNTA_CENTRAL, RODAPE_SEGURANCA
+from euler.textos import PERGUNTA_CENTRAL, RODAPE_SEGURANCA, SITUACAO_MODELO
 
 BLOCOS = (
     "O que mudou",
@@ -63,8 +63,10 @@ h1 { font-size: 26px; margin: 4px 0 6px; line-height: 1.2; }
 .conclusao { padding: 12px 16px; border-radius: 6px; margin: 0 0 22px; font-weight: 600; }
 .conclusao.ok { background: var(--ok-fundo); color: var(--ok); }
 .conclusao.abstencao { background: var(--alerta-fundo); color: var(--alerta); }
-section { margin: 0 0 22px; break-inside: avoid-page; }
-h2 { font-size: 18px; margin: 0 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--linha); }
+section { margin: 0 0 22px; }
+h2 { font-size: 18px; margin: 0 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--linha);
+     break-after: avoid-page; }
+tr, .conclusao, li { break-inside: avoid; }
 h2 .n { color: var(--destaque); margin-right: 6px; }
 table { width: 100%; border-collapse: collapse; font-size: 14px; margin: 8px 0; }
 th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--linha); vertical-align: top; }
@@ -139,7 +141,14 @@ def gerar_html(investigacao: dict, gerado_em: datetime | None = None) -> str:
     j = investigacao
     gerado_em = gerado_em or datetime.now(ZoneInfo("America/Sao_Paulo"))
     ref, comp = j["periodos"]["referencia"], j["periodos"]["comparacao"]
-    sintetico = "sintetico" in j.get("origem_dados", [])
+    origens = set(j.get("origem_dados", []))
+    selo = (
+        '<span class="selo">DADOS SINTÉTICOS</span>'
+        if origens == {"sintetico"}
+        else '<span class="selo">CONTÉM DADOS SINTÉTICOS</span>'
+        if "sintetico" in origens
+        else ""
+    )
     conclusao = j["conclusao"]
     hips = j["hipoteses"]
 
@@ -245,7 +254,8 @@ def gerar_html(investigacao: dict, gerado_em: datetime | None = None) -> str:
   <h1>Relatório de investigação · {_e(caldeira)}</h1>
   <p class="meta">Referência: {_e(ref["rotulo"])} · Comparação: {_e(comp["rotulo"])}</p>
   <p class="meta">Gerado em {gerado_em:%d/%m/%Y %H:%M} · EULER v{_e(j["versao_euler"])}</p>
-  {'<span class="selo">DADOS SINTÉTICOS</span>' if sintetico else ""}
+  {selo}
+  <p class="meta">{_e(SITUACAO_MODELO)}</p>
 </header>
 <p class="pergunta">{_e(PERGUNTA_CENTRAL)}</p>
 <div class="conclusao {classe}">{_e(conclusao["texto"])}</div>

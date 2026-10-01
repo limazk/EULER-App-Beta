@@ -32,23 +32,45 @@ def _rotulo_periodo(p) -> str:
 
 
 def _escolher_periodos(periodos):
+    """Períodos de referência e de comparação.
+
+    A escolha fica guardada na sessão junto com a assinatura dos dados: ir a outra tela e
+    voltar não troca a comparação em silêncio; dados novos voltam ao padrão. O Streamlit
+    apaga o estado de um controle quando a tela sai de cena; com `key`, o controle é
+    identificado só pela chave, então o valor salvo entra como `value` sem reiniciá-lo.
+    """
     n = len(periodos)
     rotulos = [_rotulo_periodo(p) for p in periodos]
     ref_fim = max(1, n // 2)
     comp_fim = min(n, ref_fim + 2)
+    padrao = {"ref": (0, ref_fim - 1), "comp": (min(ref_fim, n - 1), comp_fim - 1)}
+    salvo = st.session_state.get("periodos_escolhidos")
+    valido = (
+        salvo is not None
+        and salvo["assinatura"] == estado.assinatura()
+        and max(*salvo["ref"], *salvo["comp"]) < n
+    )
+    inicial = salvo if valido else padrao
     c1, c2 = st.columns(2)
     ref = c1.select_slider(
         "Período de referência (como era)",
         options=list(range(n)),
-        value=(0, ref_fim - 1),
+        value=inicial["ref"],
+        key="periodo_ref",
         format_func=lambda i: rotulos[i],
     )
     comp = c2.select_slider(
         "Período de comparação (como ficou)",
         options=list(range(n)),
-        value=(min(ref_fim, n - 1), comp_fim - 1),
+        value=inicial["comp"],
+        key="periodo_comp",
         format_func=lambda i: rotulos[i],
     )
+    st.session_state["periodos_escolhidos"] = {
+        "assinatura": estado.assinatura(),
+        "ref": tuple(ref),
+        "comp": tuple(comp),
+    }
     return (periodos[ref[0]][0], periodos[ref[1]][1]), (periodos[comp[0]][0], periodos[comp[1]][1])
 
 
@@ -117,17 +139,19 @@ def _indicadores(j) -> None:
 def mostrar(pacote) -> None:
     caps = {c.id: c for c in avaliar(pacote)}
     if not caps["comparacao"].habilitada:
+        estado.esquecer_resultados()  # nada de relatório de uma comparação que não existe
         st.warning("**Investigação bloqueada.** " + " ".join(caps["comparacao"].motivos))
         st.markdown("Para liberar: " + " ".join(caps["comparacao"].o_que_fazer))
         return
     periodos = periodos_entre_estoques(pacote)
     ref, comp = _escolher_periodos(periodos)
     if not (ref[1] <= comp[0] or comp[1] <= ref[0]):
+        estado.esquecer_resultados()
         st.warning("Os dois períodos se sobrepõem. Escolha períodos separados.")
         return
 
     j = investigar(pacote, ref, comp)
-    st.session_state["investigacao"] = j
+    estado.guardar_investigacao(j)
 
     conclusao = j["conclusao"]
     if conclusao["abstencao"]:

@@ -7,7 +7,7 @@ import streamlit as st
 from componentes import md
 
 from euler.combustivel import extrato_por_fornecedor, extrato_semanal, frase_tonelada_vs_energia
-from euler.formato import num, pct
+from euler.formato import num, pct, plural
 
 st.title("Extrato de energia por fornecedor")
 st.markdown("#### O fornecedor mais barato por tonelada nem sempre é o mais barato por energia.")
@@ -113,7 +113,7 @@ def mostrar(pacote) -> None:
         )
 
     alertas = extrato.alertas_umidade
-    st.markdown(f"#### Umidade fora da faixa histórica · {len(alertas)} lote(s)")
+    st.markdown(f"#### Umidade fora da faixa histórica · {plural(len(alertas), 'lote', 'lotes')}")
     st.caption(
         "Faixa histórica: média ± 3 desvios-padrão dos primeiros 10 lotes medidos de cada "
         "fornecedor (proposta D20). É um sinal para conferir a amostragem e o lote, não uma "
@@ -144,7 +144,7 @@ def mostrar(pacote) -> None:
             )
 
     nao_det = extrato.lotes_nao_determinados
-    st.markdown(f"#### Energia não determinada · {len(nao_det)} lote(s)")
+    st.markdown(f"#### Energia não determinada · {plural(len(nao_det), 'lote', 'lotes')}")
     if len(nao_det):
         st.caption("A EULER não assume umidade: sem medição, a energia do lote fica em aberto.")
         st.dataframe(

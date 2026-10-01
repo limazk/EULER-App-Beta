@@ -14,6 +14,7 @@ from typing import Literal
 
 import pandas as pd
 
+from euler.formato import plural
 from euler.io import Pacote
 from euler.periodos import (
     buscar_instrumento,
@@ -171,7 +172,12 @@ def avaliar(pacote: Pacote) -> list[Capacidade]:
     )
     v.exigir(
         n_estoques >= 2,
-        f"Só {n_estoques} medição(ões) de estoque: é preciso uma no início e outra no fim do período.",
+        (
+            "Nenhuma medição de estoque"
+            if n_estoques == 0
+            else f"Só {plural(n_estoques, 'medição', 'medições')} de estoque"
+        )
+        + ": é preciso uma no início e outra no fim do período.",
         "Medir o estoque do pátio no início e no fim de cada período (linha tipo = estoque).",
     )
     caps.append(
@@ -305,7 +311,13 @@ def avaliar(pacote: Pacote) -> list[Capacidade]:
     tem_diario(v)
     v.exigir(
         n_estoques >= 3,
-        f"Com {n_estoques} medição(ões) de estoque há menos de dois períodos para comparar.",
+        (
+            "Sem medição de estoque, não há período para comparar"
+            if n_estoques == 0
+            else f"Com {plural(n_estoques, 'medição', 'medições')} de estoque "
+            + ("não há período completo" if n_estoques < 2 else "há um período só")
+        )
+        + ": para comparar são precisos dois períodos (três medições de estoque).",
         "Medir o estoque em datas fixas (ex.: toda segunda-feira).",
     )
     caps.append(

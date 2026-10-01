@@ -6,7 +6,7 @@ import streamlit as st
 
 from euler.capacidades import avaliar
 from euler.direto import balanco_direto
-from euler.formato import num, pct
+from euler.formato import num, pct, plural
 from euler.investigacao import indireto_periodo
 from euler.periodos import periodos_entre_estoques, resumir_periodo
 from euler.vapor import P_ATM_NIVEL_DO_MAR_BAR
@@ -26,7 +26,32 @@ ICONE = {
 ROTULO = {"habilitada": "Dá para concluir", "parcial": "Dá, com limites", "bloqueada": "Bloqueada"}
 
 
+def qualidade(pacote) -> None:
+    """Resumo dos avisos de qualidade (a lista completa fica em Importar dados)."""
+    avisos = pacote.tabela_avisos()
+    n = avisos["Gravidade"].value_counts()
+    with st.container(border=True):
+        st.markdown(
+            "**Qualidade dos registros:** "
+            f"{plural(int(n.get('Erro', 0)), 'erro', 'erros')} · "
+            f"{plural(int(n.get('Atenção', 0)), 'aviso de atenção', 'avisos de atenção')} · "
+            f"{plural(int(n.get('Informação', 0)), 'informação', 'informações')}. "
+            "Nada foi corrigido nem preenchido em silêncio."
+        )
+        atencao = avisos[avisos["Gravidade"].isin(["Erro", "Atenção"])]
+        if len(atencao):
+            st.markdown(
+                "\n".join(f"- {linha.Tabela}: {linha.Aviso}" for linha in atencao.itertuples())
+            )
+        st.page_link(
+            "paginas/importar.py",
+            label="Ver todos os avisos em Importar dados",
+            icon=":material/list_alt:",
+        )
+
+
 def mostrar(pacote) -> None:
+    qualidade(pacote)
     caps = avaliar(pacote)
     contagem = {s: sum(c.situacao == s for c in caps) for s in ROTULO}
     m1, m2, m3 = st.columns(3)
@@ -37,7 +62,7 @@ def mostrar(pacote) -> None:
     periodos = periodos_entre_estoques(pacote)
     if periodos:
         st.caption(
-            f"{len(periodos)} período(s) entre medições de estoque, de "
+            f"{plural(len(periodos), 'período', 'períodos')} entre medições de estoque, de "
             f"{periodos[0][0]:%d/%m/%Y} a {periodos[-1][1]:%d/%m/%Y}."
         )
 

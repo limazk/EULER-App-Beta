@@ -65,8 +65,8 @@ ROTULO_LEITURA = {
     "t_agua_alim_c": "temperatura da água de alimentação",
     "t_ar_c": "temperatura do ar de combustão",
 }
-FALTA_METODO_UMIDADE = "incerteza do método de umidade (estufa; cadastrar em pontos de %)"
-FALTA_PCI_SECO = "incerteza da análise de PCI seco (calorímetro; cadastrar em % da leitura)"
+FALTA_METODO_UMIDADE = "incerteza do método de umidade (estufa)"
+FALTA_PCI_SECO = "incerteza da análise de PCI seco (calorímetro)"
 
 
 # ---------------------------------------------------------------- instrumentos
@@ -352,7 +352,7 @@ def _vapor(pacote: Pacote, diario: pd.DataFrame, r: ResumoPeriodo) -> None:
             )
         )
     else:
-        orc.faltam.append(Falta("incerteza do medidor de vapor (cadastrar em % da leitura)"))
+        orc.faltam.append(Falta("incerteza do medidor de vapor"))
     r.vapor_t = Grandeza(
         vapor,
         "t",
@@ -452,7 +452,7 @@ def _combustivel(pacote: Pacote, r: ResumoPeriodo) -> None:
             "parcela sistemática comum às medições de estoque (método), não declarada à parte"
         )
     else:
-        orc.faltam.append(Falta("incerteza da medição de estoque (cadastrar em % da leitura)"))
+        orc.faltam.append(Falta("incerteza da medição de estoque"))
     inst_bal = buscar_instrumento(pacote, "balanca")
     if inst_bal is not None and not inst_bal.relativa and len(receb):
         # O cadastro não separa a parte aleatória da sistemática (calibração): o erro é
@@ -469,7 +469,7 @@ def _combustivel(pacote: Pacote, r: ResumoPeriodo) -> None:
             )
         )
     elif len(receb):
-        orc.faltam.append(Falta("incerteza da balança dos recebimentos (cadastrar em kg)"))
+        orc.faltam.append(Falta("incerteza da balança dos recebimentos"))
     origens = set(receb["massa_origem"].dropna())
     if "estimado" in origens:
         orc.faltam.append(Falta("incerteza da densidade usada nos recebimentos medidos por volume"))

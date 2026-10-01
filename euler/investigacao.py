@@ -40,7 +40,7 @@ import pandas as pd
 from euler import __version__
 from euler.deteccao import Comparacao, comparar
 from euler.direto import MEDICOES_DIRETO, BalancoDireto, balanco_direto
-from euler.formato import num, pct
+from euler.formato import num, pct, plural
 from euler.incerteza import (
     Componente,
     Falta,
@@ -406,7 +406,7 @@ def _texto_mudanca(
     if c.detectabilidade == "nao" and c.faltam:
         return (
             f"{inicio} ficou estável ({variacao}): a diferença cabe até na parte conhecida da "
-            f"incerteza (falta {_lista(c.faltam)})."
+            f"incerteza (falta cadastrar a {_lista(c.faltam)})."
         )
     if c.detectabilidade == "nao":
         return (
@@ -415,7 +415,7 @@ def _texto_mudanca(
         )
     if c.detectabilidade == "condicional" and c.faltam:
         return (
-            f"{inicio} variou ({variacao}), mas falta {_lista(c.faltam)}: a diferença só é maior "
+            f"{inicio} variou ({variacao}), mas falta cadastrar a {_lista(c.faltam)}: a diferença só é maior "
             "que a incerteza se o erro desse instrumento se repetir nos dois períodos."
         )
     if c.detectabilidade == "condicional":
@@ -596,7 +596,7 @@ def investigar(
         elif c_cons.detectabilidade == "condicional" and c_cons.faltam:
             frase_consumo = (
                 f"O consumo por tonelada de vapor variou {_sinal(variacao_pct)}% ({de_para}), mas "
-                f"falta {_lista(c_cons.faltam)}: só é uma mudança real se o erro desses "
+                f"falta cadastrar a {_lista(c_cons.faltam)}: só é uma mudança real se o erro desses "
                 "instrumentos for o mesmo nos dois períodos."
             )
         elif c_cons.detectabilidade == "condicional":
@@ -1090,7 +1090,11 @@ def investigar(
         i_ref.perda, i_comp.perda,
     ):  # fmt: skip
         if g is not None and g.orcamento is not None:
-            falta += [f.nome for f in g.orcamento.faltam if f.sistematica]
+            falta += [
+                f"{f.nome}: cadastrar em instrumentos.csv, com o tipo da incerteza"
+                for f in g.orcamento.faltam
+                if f.sistematica
+            ]
     for g in (b_comp.eficiencia, b_comp.consumo_t_por_t):
         if g is not None and g.orcamento is not None:
             falta += [n for n in g.orcamento.nao_incluidos if n.startswith("título")]
@@ -1103,7 +1107,7 @@ def investigar(
     for r in (ref, comp):
         if r.fracao_massa_sem_umidade:
             falta.append(
-                f"umidade de {r.lotes_sem_umidade} lote(s) do período {r.rotulo()} "
+                f"umidade de {plural(r.lotes_sem_umidade, 'lote', 'lotes')} do período {r.rotulo()} "
                 f"({pct(r.fracao_massa_sem_umidade)} da massa)"
             )
     if any(r.fracao_estoque is not None for r in (ref, comp)):
@@ -1134,7 +1138,7 @@ def investigar(
         abstem, motivo = (
             True,
             (
-                f"falta {_lista(c_cons.faltam)}; a variação do consumo só é real se o erro desses "
+                f"falta cadastrar a {_lista(c_cons.faltam)}; a variação do consumo só é real se o erro desses "
                 "instrumentos for o mesmo nos dois períodos"
                 if c_cons.faltam
                 else "a variação do consumo só é real se o erro do medidor de vapor for o mesmo "
@@ -1152,7 +1156,9 @@ def investigar(
             "o resto da mudança seria explicado por "
             + _lista(h["titulo"].lower() for h in pendentes)
             + ", mas essa mudança ainda não está confirmada"
-            + (f" (falta {_lista(faltas_pendentes)})" if faltas_pendentes else ""),
+            + (
+                f", porque falta cadastrar a {_lista(faltas_pendentes)}" if faltas_pendentes else ""
+            ),
         )
     elif sobra or residuo_aberto:
         abstem, motivo = True, "parte da mudança não é explicada pelos registros"
@@ -1356,10 +1362,7 @@ def investigar(
             + ([] if i.bloqueio is None else [i.bloqueio.motivo]),
         }
 
-    origens = set()
-    for imp in pacote.importacoes.values():
-        if "origem_dado" in imp.dados:
-            origens |= set(imp.dados["origem_dado"].dropna().astype(str))
+    origens = pacote.origens_de_dado()
     diario = pacote.dados("diario")
     caldeira = (
         None if diario is None or diario.empty else str(diario["caldeira_id"].dropna().iloc[0])
