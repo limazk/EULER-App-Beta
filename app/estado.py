@@ -30,6 +30,18 @@ def definir_arquivos(arquivos: dict[str, bytes], rotulo: str) -> None:
     st.session_state["rotulo_dados"] = rotulo
 
 
+ALTITUDE_DEMO_M = 1000.0
+
+
+def usar_caso_demo() -> None:
+    """Carrega o caso de demonstração sintético (demo/caso_demo) e a altitude dele."""
+    definir_arquivos(
+        ler_pasta(RAIZ / "demo" / "caso_demo"),
+        "caso de demonstração (caldeira sintética de 20 t/h, 8 semanas)",
+    )
+    st.session_state["altitude_m"] = ALTITUDE_DEMO_M
+
+
 def altitude_m() -> float | None:
     return st.session_state.get("altitude_m")
 

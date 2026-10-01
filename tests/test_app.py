@@ -76,3 +76,23 @@ def test_importar_exemplo_com_problemas_mostra_avisos():
     assert valores["Tabelas importadas"] == "5"
     assert int(valores["Avisos de atenção"]) >= 15
     assert any(c.value == RODAPE_SEGURANCA for c in at.caption)
+
+
+def abrir_com_demo(pagina: str) -> AppTest:
+    at = clicar(abrir("importar.py"), "Caso de demonstração")
+    at.switch_page(f"paginas/{pagina}").run()
+    return at
+
+
+def test_extrato_com_caso_de_demonstracao():
+    at = abrir_com_demo("extrato.py")
+    assert not at.exception, at.exception
+    assert any("mais barato por tonelada nem sempre" in m.value for m in at.markdown)
+    assert any(i.value.startswith("F3 tem o menor preço por tonelada") for i in at.info)
+    assert any(c.value == RODAPE_SEGURANCA for c in at.caption)
+
+
+def test_extrato_sem_dados_orienta_a_importar():
+    at = abrir("extrato.py")
+    assert not at.exception
+    assert any("Nenhum dado importado" in i.value for i in at.info)

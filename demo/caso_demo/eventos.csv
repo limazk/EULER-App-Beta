@@ -1,0 +1,5 @@
+instante,tipo,descricao,autorizado_por,origem_dado
+2026-08-17T10:00:00-03:00,calibracao,Calibração do analisador de O₂ (ANALIS-01),SUP-01,sintetico
+2026-09-14T08:00:00-03:00,troca_instrumento,Medidor de vapor retirado para manutenção,SUP-01,sintetico
+2026-09-21T08:00:00-03:00,troca_instrumento,Medidor de vapor reinstalado (totalizador zerado),SUP-01,sintetico
+2026-09-21T14:00:00-03:00,limpeza,Limpeza dos tubos de fumaça (parada de 4 h),SUP-01,sintetico

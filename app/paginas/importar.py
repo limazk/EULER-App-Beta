@@ -40,12 +40,16 @@ with st.container(border=True):
     enviados = st.file_uploader(
         "Arraste os arquivos aqui", type=["csv", "xlsx"], accept_multiple_files=True
     )
-    b1, b2, b3 = st.columns(3)
-    if b1.button("Importar os arquivos enviados", type="primary", disabled=not enviados):
+    if st.button("Importar os arquivos enviados", type="primary", disabled=not enviados):
         estado.definir_arquivos(
             {f.name: f.getvalue() for f in enviados}, f"{len(enviados)} arquivo(s) enviado(s)"
         )
-    if b2.button("Usar os modelos (1 linha de exemplo)"):
+    st.markdown("Ou use um exemplo **sintético**:")
+    b1, b2, b3 = st.columns(3)
+    if b1.button("Caso de demonstração (8 semanas)", icon=":material/play_circle:"):
+        estado.usar_caso_demo()
+        st.rerun()
+    if b2.button("Modelos (1 linha de exemplo)"):
         estado.definir_arquivos(
             estado.ler_pasta(estado.RAIZ / "templates"), "modelos de exemplo (sintéticos)"
         )

@@ -51,6 +51,19 @@ def _clicar(botao: str, esperar: str) -> Callable[[Page], None]:
     return acao
 
 
+def _com_demo(menu: str, esperar: str) -> Callable[[Page], None]:
+    """Carrega o caso de demonstração e abre a tela pelo menu lateral (mesma sessão)."""
+
+    def acao(pagina: Page) -> None:
+        pagina.get_by_role("button", name="Caso de demonstração (8 semanas)").click()
+        pagina.get_by_text("Resultado da importação").first.wait_for(timeout=30_000)
+        pagina.get_by_role("link", name=menu).click()
+        pagina.get_by_text(esperar).first.wait_for(timeout=30_000)
+        pagina.wait_for_timeout(1500)
+
+    return acao
+
+
 TELAS: list[Tela] = [
     Tela("01_inicio"),
     Tela("02_calculadora", "calculadora", _abrir_expansor("Detalhes do cálculo")),
@@ -58,6 +71,11 @@ TELAS: list[Tela] = [
         "03_importar_exemplo_com_problemas",
         "importar",
         _clicar("Exemplo com problemas (sintético)", "Resultado da importação"),
+    ),
+    Tela(
+        "04_extrato_fornecedor",
+        "importar",
+        _com_demo("Extrato por fornecedor", "Custo por energia"),
     ),
 ]
 

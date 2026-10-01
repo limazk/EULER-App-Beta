@@ -61,6 +61,23 @@ def duplicatas(dados: pd.DataFrame, tabela: str, chave: tuple[str, ...]) -> list
 # ---------------------------------------------------------------- diário
 
 
+def _sequencias(linhas: list[int]) -> list[list[int]]:
+    """Agrupa números de linha consecutivos: [2,3,4,9] → [[2,3,4],[9]]."""
+    grupos: list[list[int]] = []
+    for n in linhas:
+        if grupos and n == grupos[-1][-1] + 1:
+            grupos[-1].append(n)
+        else:
+            grupos.append([n])
+    return grupos
+
+
+def _trecho(sequencia: list[int]) -> str:
+    if len(sequencia) == 1:
+        return f"linha {sequencia[0]}"
+    return f"linhas {sequencia[0]} a {sequencia[-1]}"
+
+
 def lacunas(grupo: pd.DataFrame, intervalo_esperado_h: float | None = None) -> list[Aviso]:
     """Intervalos sem leitura maiores que LACUNA_FATOR × intervalo típico (mediana)."""
     g = grupo.dropna(subset=["instante_observado"]).drop_duplicates("instante_observado")
@@ -157,16 +174,17 @@ def verificar_diario(
         avisos += lacunas(grupo, intervalo_esperado_h)
         avisos += totalizador_reiniciado(grupo)
     avisos += registro_tardio(dados, atraso_maximo_min)
-    indisponivel = dados[dados["flag_instrumento_indisponivel"].fillna(False).astype(bool)]
-    for n in indisponivel["linha"]:
+    marcadas = dados.sort_values("linha")
+    marcadas = marcadas[marcadas["flag_instrumento_indisponivel"].fillna(False).astype(bool)]
+    for sequencia in _sequencias(list(marcadas["linha"])):
         avisos.append(
             Aviso(
                 "diario",
-                int(n),
+                int(sequencia[0]),
                 "flag_instrumento_indisponivel",
                 "instrumento_indisponivel",
-                "Linha marcada com instrumento indisponível: as leituras desta linha podem "
-                "não ser confiáveis.",
+                f"Instrumento marcado como indisponível ({_trecho(sequencia)}): as leituras "
+                "afetadas podem não ser confiáveis.",
                 "info",
             )
         )
@@ -246,15 +264,9 @@ def verificar_amostras(dados: pd.DataFrame) -> list[Aviso]:
                     "info",
                 )
             )
-        if pd.isna(a["umidade_bu_frac"]):
+        medidas = ("umidade_bu_frac", "pci_seco_mj_kg", *ELEMENTOS, "cinzas")
+        if all(pd.isna(a[c]) for c in medidas):
             avisos.append(
-                Aviso(
-                    "amostras",
-                    n,
-                    "umidade_bu_frac",
-                    "sem_umidade",
-                    "Amostra sem umidade medida.",
-                    "info",
-                )
+                Aviso("amostras", n, None, "amostra_sem_medicao", "Amostra sem nenhuma medição.")
             )
     return avisos

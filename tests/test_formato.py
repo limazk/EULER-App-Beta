@@ -12,3 +12,10 @@ def test_virgula_decimal_e_ponto_de_milhar():
 def test_ausente_nao_vira_zero():
     assert num(None) == "—"
     assert num(math.nan) == "—"
+
+
+def test_porcentagem():
+    from euler.formato import pct
+
+    assert pct(0.4216) == "42,2%"
+    assert pct(None) == "—"
