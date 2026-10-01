@@ -10,7 +10,7 @@
 | 5 · Investigação | concluída | 2026-10-01 | `periodos.py` (resumo entre medições de estoque), `direto.py` (T10: eficiência com intervalo, E13 testado), `deteccao.py` (mudança detectável), `investigacao.py` (T13: JSON com o que mudou, hipóteses, independência E12, o que falta, próxima verificação, abstenção, valor em jogo só com base, custo E14), `capacidades.py` (T11, 11 análises). Testes: casos A, B, C, contraexemplo da purga e semana sem vapor. Telas "Dados e limites" (com período a período) e "Investigação" (5 blocos, gráfico e JSON). | T12 (detecção de degrau) não feito (extra). Decisões D22–D32 aguardam aprovação; formato do JSON e tabela de capacidades a conferir com a spec v0.3. |
 | 6 · Relatório | concluída | 2026-10-01 | `euler/relatorio.py`: JSON → HTML com os 5 blocos fixos, rodapé de segurança, selo "dados sintéticos", pronto para A4; PDF pelo Chromium quando disponível. Teste com lista de verbos proibidos (e trava no app). Tela "Relatório" com botão "Gerar relatório", prévia e downloads. **3 exemplos em `docs/exemplos_relatorio/`** (HTML + PDF) com guia de revisão. | **Adryan: revisar o texto dos 3 exemplos.** Decisões D33–D34. |
 | 7 · Demonstração | concluída (falta só o ensaio e a narração, que dependem de pessoas) | 2026-10-01 | Caso sintético completo (`demo/caso_demo/`, D53: dados **mantidos**, abstenção preservada); fluxo inteiro no app em menos de 5 minutos; revisão de uso como usuário novo com 5 falhas reais corrigidas e testadas (resultado antigo nunca aparece com dados novos); 8 prints (`prints/`); vídeo **rascunho sem narração** de 2 min (`demo/video/rascunho_video_demo.mp4`) com o texto da narração em `demo/ROTEIRO_VIDEO.md`; guia de cliques da apresentação ao vivo (`demo/GUIA_DEMONSTRACAO_AO_VIVO.md`). | Adryan: gravar a narração; ensaiar no notebook da apresentação (ver seção abaixo). |
-| 8 · Entrega aos devs | concluída (falta o repositório privado e a autoria, que são decisões do Adryan) | 2026-10-01 | `HANDOFF.md` (instalação, organização, o que funciona, experimental, limitações, revisão crítica do código, decisões pendentes, casos, prioridades até 30/10); README reescrito; `requirements-lock.txt`; instalação do zero conferida; PDFs para os revisores em `docs/revisao/` (física E1–E15 e as três decisões prioritárias + Q1–Q17). | **Repositório ainda público** → Adryan torna privado. T19 (tag e autoria para o INPI) → Adryan. T17 fica fora deste repositório. |
+| 8 · Entrega aos devs | concluída (repositório já privado; falta a autoria/registro, decisão do Adryan) | 2026-10-01 | `HANDOFF.md` (instalação, organização, o que funciona, experimental, limitações, revisão crítica do código, decisões pendentes, casos, prioridades até 30/10); README reescrito; `requirements-lock.txt`; instalação do zero conferida; PDFs para os revisores em `docs/revisao/` (física E1–E15 e as três decisões prioritárias + Q1–Q17). | **Repositório ainda público** → Adryan torna privado. T19 (tag e autoria para o INPI) → Adryan. T17 fica fora deste repositório. |
 
 ## Fase R · Revisão e validação do motor físico (pedido do Adryan em 01/10/2026)
 
@@ -99,9 +99,9 @@ as telas e no relatório, quadro "Em que pé está a EULER" (verificado · em re
 
 - Versão examinada nesta etapa: `e49338d` (a mesma da capa dos PDFs de
   `docs/revisao/` e do `HANDOFF.md`).
-- **Repositório ainda público** (a API do GitHub responde sem login em 01/10/2026).
+- Repositório **privado** (conferido no GitHub em 01/10/2026, rodada de melhorias).
 
-**Próximo passo até 30/10:** (1) Adryan torna o repositório privado; (2) ensaio no notebook
+**Próximo passo até 30/10:** (1) Adryan define a autoria e o registro da versão (T19); (2) ensaio no notebook
 da apresentação seguindo `demo/GUIA_DEMONSTRACAO_AO_VIVO.md`, duas vezes seguidas sem ajuda;
 (3) narração gravada sobre o rascunho do vídeo; (4) enviar `docs/revisao/` aos revisores.
 Detalhes e responsáveis: `HANDOFF.md` §9.
@@ -147,6 +147,23 @@ cara de aplicativo, **sem mexer em cálculos, demo, incertezas nem resultados in
 | Prévia interativa | página que abre na conversa, com o visual e as telas do app e os resultados do motor para o demo (`scripts/gerar_previa.py`) | **feito** |
 
 - Cálculos, demo, incertezas e `tests/golden/` **sem alteração**.
+
+## Rodada de melhorias (pedido do Adryan em 01/10/2026: sete itens, um commit por item)
+
+| Item | O que mudou | Situação |
+|---|---|---|
+| 1 · Demonstração em dois atos | ato 1 (`demo/caso_demo_completo/`, todas as incertezas cadastradas: a EULER conclui) e ato 2 (o caso de antes: abstenção); botões nos dois na tela inicial; roteiro do vídeo | **feito** (`9c028e3`); D62 |
+| 2 · Frase principal clara | resultado em até três frases no topo da Investigação e do relatório | **feito** (`b45f5a5`); D63 |
+| 3 · Linguagem de fábrica | nenhum nome de arquivo, coluna ou código de equação fora de "Detalhes técnicos"; `tests/test_linguagem.py` percorre todas as telas e os relatórios | **feito** (`457711c`); D64 |
+| 4 · Saúde da caldeira | tela nova logo depois de carregar os dados: consumo por t de vapor semana a semana, eventos, selo mudou / estável / não dá para dizer e **Investigar esta mudança**; menu com 6 passos | **feito** (`1bbeccc`); D65 (regras do selo: proposta pendente) |
+| 5 · Dados e limites mais leve | tabela com período, eficiência, consumo por t de vapor e situação; o resto em "Ver detalhes de cada período" | **feito** (`fc081bc`); D66 |
+| 6 · Conferir contra a especificação detalhada | o arquivo `EULER_ESPECIFICACAO_DETALHADA.md` ainda não está no repositório; retrato atual em `docs/conferencia_especificacao.md`; **nada mudado** | **aguardando o arquivo** |
+| 7 · Decisões pendentes | `docs/resumo_decisoes_pendentes.md`: 10 decisões em 1 página (6 de física, 4 de produto), com recomendação | **feito** (`546da69`) |
+| Prévia e guias | prévia interativa com os dois atos e as telas novas; passeio, guia ao vivo, roteiro, "Entenda a EULER", README e HANDOFF atualizados | **feito** |
+
+- Cálculos físicos e `tests/golden/` **sem alteração**: o painel Saúde reaproveita o balanço
+  direto e a regra de detecção da Investigação. Nenhuma proposta foi marcada como aprovada
+  sem resposta humana.
 
 **Modo de trabalho:** automático (pedido do Adryan em 01/10/2026): seguir as etapas sem esperar "ok"; decisões não especificadas vão para `docs/decisoes.md` como propostas pendentes.
 

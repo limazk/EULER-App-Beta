@@ -10,6 +10,13 @@ import graficos
 import pandas as pd
 import streamlit as st
 from componentes import cabecalho, cartao, proximo_passo
+from formatacao import (
+    COR_SAUDE,
+    SELO_SAUDE,
+    SITUACAO_SAUDE,
+    texto_consumo,
+    variacao_referencia,
+)
 
 from euler.formato import num
 from euler.saude import avaliar_saude
@@ -21,19 +28,6 @@ cabecalho(
     "Passo 2 de 6",
 )
 
-SELO = {
-    "mudou": ("orange", "Mudou"),
-    "estavel": ("green", "Estável"),
-    "nao_da_para_dizer": ("gray", "Não dá para dizer"),
-}
-SITUACAO = {
-    "referencia": "Referência",
-    "mudou": "Mudou",
-    "estavel": "Estável",
-    "nao_da_para_dizer": "Não dá para dizer",
-}
-COR_SITUACAO = {"referencia": "blue", "mudou": "orange", "estavel": "green"}
-
 
 @st.cache_data(show_spinner="Calculando o consumo período a período…", max_entries=16)
 def _saude(assinatura: str, _pacote):
@@ -43,20 +37,6 @@ def _saude(assinatura: str, _pacote):
 
 def _sem_fuso(t: pd.Timestamp) -> pd.Timestamp:
     return t.tz_localize(None)
-
-
-def _texto_consumo(p) -> str:
-    if p.consumo is None:
-        return "✕"
-    u = p.consumo.incerteza
-    return num(p.consumo.valor, 3) + ("" if u is None else f" ± {num(u, 3)}")
-
-
-def _variacao(p) -> str:
-    c = p.comparacao
-    if c is None or not c.disponivel:
-        return "—"
-    return f"{100 * c.delta / c.referencia:+.1f}%".replace(".", ",")
 
 
 def _icone_selo(s) -> str:
@@ -116,8 +96,8 @@ def _grafico(s) -> None:
                 "baixo": None if u is None else valor - u,
                 "alto": None if u is None else valor + u,
                 "periodo": f"{p.inicio:%d/%m} a {p.fim:%d/%m}",
-                "texto": _texto_consumo(p),
-                "situacao": SITUACAO[p.estado],
+                "texto": texto_consumo(p),
+                "situacao": SITUACAO_SAUDE[p.estado],
             }
         )
     df = pd.DataFrame(linhas).astype({"valor": float, "baixo": float, "alto": float})
@@ -172,10 +152,10 @@ def _tabela(s) -> None:
     linhas = [
         {
             "Período": f"{p.inicio:%d/%m} a {p.fim:%d/%m}",
-            "Consumo (t/t)": _texto_consumo(p),
-            "Em relação à referência": _variacao(p),
+            "Consumo (t/t)": texto_consumo(p),
+            "Em relação à referência": variacao_referencia(p),
             "Situação": (
-                f":{COR_SITUACAO.get(p.estado, 'gray')}-badge[{SITUACAO[p.estado]}]"
+                f":{COR_SAUDE.get(p.estado, 'gray')}-badge[{SITUACAO_SAUDE[p.estado]}]"
                 + ("" if p.consumo is not None or not p.motivo else f" {p.motivo}")
             ),
         }
@@ -186,7 +166,7 @@ def _tabela(s) -> None:
 
 def mostrar(pacote) -> None:
     s = _saude(estado.assinatura(), pacote)
-    cor, rotulo = SELO[s.selo]
+    cor, rotulo = SELO_SAUDE[s.selo]
     with cartao("saude-selo"):
         st.markdown(f"#### :{cor}-badge[{_icone_selo(s)} {rotulo}]")
         st.markdown(f"**{s.frase}**")

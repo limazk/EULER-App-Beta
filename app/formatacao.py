@@ -183,3 +183,35 @@ def linhas_por_periodo(pacote) -> list[dict]:
             }
         )
     return linhas
+
+
+# Painel Saúde da caldeira (D65): selo geral e situação de cada período.
+SELO_SAUDE = {
+    "mudou": ("orange", "Mudou"),
+    "estavel": ("green", "Estável"),
+    "nao_da_para_dizer": ("gray", "Não dá para dizer"),
+}
+SITUACAO_SAUDE = {
+    "referencia": "Referência",
+    "mudou": "Mudou",
+    "estavel": "Estável",
+    "nao_da_para_dizer": "Não dá para dizer",
+}
+COR_SAUDE = {"referencia": "blue", "mudou": "orange", "estavel": "green"}
+
+
+def texto_consumo(p) -> str:
+    """Consumo de um período do painel Saúde: valor ± U (t/t), ou ✕ quando não há."""
+    if p.consumo is None:
+        return "✕"
+    u = p.consumo.incerteza
+    return num(p.consumo.valor, 3) + ("" if u is None else f" ± {num(u, 3)}")
+
+
+def variacao_referencia(p) -> str:
+    """Variação do consumo do período em relação à referência (%), ou — quando não há."""
+    c = p.comparacao
+    if c is None or not c.disponivel:
+        return "—"
+    v = 100 * c.delta / c.referencia
+    return f"{'+' if v >= 0 else '−'}{num(abs(v), 1)}%"

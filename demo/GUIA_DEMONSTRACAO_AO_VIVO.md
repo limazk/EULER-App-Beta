@@ -1,8 +1,9 @@
 # Guia da demonstração ao vivo (banca e investidores · 30/10/2026)
 
 Duração: **5 a 7 minutos** com perguntas curtas; versão curta de 2 minutos em
-`demo/ROTEIRO_VIDEO.md`. Tudo usa o **caso de demonstração sintético** (`demo/caso_demo/`),
-sem alterar dados.
+`demo/ROTEIRO_VIDEO.md`. Tudo usa o **caso de demonstração sintético** em dois atos, com os
+mesmos registros de operação (`demo/caso_demo_completo/` e `demo/caso_demo/`), sem alterar
+dados.
 
 ## Antes de começar (no dia, 30 minutos antes)
 
@@ -23,24 +24,28 @@ sem alterar dados.
 
 ## Sequência exata
 
+**Ato 1 · a EULER conclui**
+
 | # | Clique | O que deve aparecer (conferir) | O que dizer |
 |---|---|---|---|
-| 1 | Tela **Início** (já aberta) | Faixa azul-escura com **EULER**; aviso azul "Protótipo em construção… caldeira **sintética**"; cartões **Em que pé está a EULER** (implementado e verificado · em revisão científica · ainda não feito) | "Este é um caso **sintético**. Os cálculos estão implementados e testados; as hipóteses físicas estão em revisão; ainda não validamos com dados reais." |
-| 2 | Botão laranja **Começar com o caso de demonstração** | Abre **Dados e limites** (Passo 2 de 5). Selo **DADOS SINTÉTICOS**. Cartões **10 liberadas · 0 com limites · 1 bloqueada**. Quadro **Qualidade dos registros: 0 erros · 4 avisos de atenção · 13 informações**, com a lacuna de 12/09 a 13/09 e o totalizador zerado. | "A EULER usa os registros que a fábrica já tem e mostra os problemas sem corrigir nada." |
-| 3 | Rolar até **Precisa de dados para concluir** | **Faixa de incerteza da eficiência** com selo vermelho **Bloqueada**, **Por quê** e **Para liberar** | "Ela diz o que **não** dá para concluir e o que medir para liberar." |
-| 4 | Menu **4. Extrato por fornecedor** | Frase azul: **F3 tem o menor preço por tonelada (R$ 160,20/t), mas custa R$ 20,05 por GJ**; menor custo por energia: **F1, R$ 17,23/GJ**. Dois gráficos lado a lado; umidade do F3 subindo de ~45% para ~55%. | "O mais barato por tonelada é o mais caro por energia. A caldeira compra energia." |
-| 5 | Menu **3. Investigação** | Quadro **Períodos comparados** com a linha do tempo: **Referência · 03/08 a 31/08 · 28 dias** (cinza-azulado) e **Comparação · 31/08 a 14/09 · 14 dias** (laranja-claro). Em **Resultado**: amarelo **Não dá para concluir…** à esquerda; azul **Próxima verificação: Registrar no cadastro de instrumentos a incerteza do método de umidade (estufa)…** à direita. | "Em cima, o resultado e a próxima verificação. A saída nunca é uma ordem para a caldeira." |
-| 6 | Ler os três cartões de números | **Consumo por tonelada de vapor 0,353 t/t** (↑ +10,1% sobre 0,321 t/t; detectável: **Sim**); **Valor em jogo R$ 26.992** (incerteza ± R$ 9.624; estimado, não é promessa de economia); **Explicações compatíveis 1** (2 em aberto · 2 descartadas) | "O consumo subiu 10%. Uma explicação é compatível com os dados." |
-| 7 | Aba **1. O que mudou** (já aberta) | Frase **subiu 10,1% (… incerteza ±3,6%)**. Gráfico da temperatura dos gases com as faixas dos dois períodos (botões para ver O₂, CO, ar e água). Tabela: **Temperatura dos gases +31,9 °C (± 3,3) · Sim**; **Umidade +3,2 p.p. (incerteza incompleta) · Condicional**. | "A temperatura dos gases subiu 32 °C de forma detectável. A umidade subiu, mas só seria uma mudança real com uma condição." |
-| 8 | Aba **2. O que os dados sustentam (1)** | **Mais calor saindo pela chaminé** · selo azul "Compatível com os dados (não comprovada)", efeito +3,1%. Frases: "explicam +3,1% de +10,1%… sobra cerca de +6,6%" e "Contando também umidade… explicariam +11,2%: fechariam dentro da incerteza". | "Compatível não é comprovado. A umidade fecharia a conta — mas ainda não está confirmada." |
-| 9 | Aba **3. Explicações possíveis (2)** | **Combustível mais úmido** · selo laranja "Continua possível" | "É por isso que ela não conclui: falta um número que a fábrica precisa cadastrar." |
-| 9b | (opcional) Aba **4. O que falta saber (10)** | Dois grupos: **Completar o cadastro de instrumentos** (4 incertezas, entre elas a do método de umidade) e **Medir, registrar ou conferir** (6 itens) | "A lista de tarefas para a fábrica sair do 'não dá para concluir'." |
-| 10 | Voltar ao topo; no controle **Período de comparação**, arrastar o fim até **14/09 a 21/09** | Amarelo: **o consumo por tonelada de vapor não pode ser calculado**; cartões: consumo **—** e valor em jogo **não estimado** | "Quando falta o dado do vapor, ela nem tenta — e não inventa número." |
-| 11 | Arrastar o fim de volta até **07/09 a 14/09** | Volta o consumo **+10,1%**, na hora (a comparação já calculada fica guardada) | — |
-| 11b | (opcional, forte para a banca) **Antes × depois da limpeza:** comparação até **21/09 a 28/09** (as duas bolinhas); referência de **31/08 a 07/09** até **07/09 a 14/09** (se aparecer "se sobrepõem" no meio, continuar) | Verde: **Explicações compatíveis com os dados: menos calor saindo pela chaminé**; consumo **caiu 4,5%** (0,353 → 0,337; ±3,5%); gases 217,7 → 187,5 °C; explica −2,9% de −4,5%, fecha dentro da incerteza | "Depois da limpeza, ela confirma o efeito. Quando os dados bastam, ela conclui." |
-| 11c | Voltar a referência para **03/08 a 31/08** e a comparação para **31/08 a 14/09** | Volta o caso padrão (+10,1%) | — |
-| 12 | Botão **Próximo** no fim da tela, ou menu **5. Relatório** → **Gerar relatório** | Linha "Comparação em uso: 03/08… × 31/08… a 14/09…"; botões **Baixar HTML** e **Baixar PDF** lado a lado; prévia com **DADOS SINTÉTICOS**, "Situação do modelo…" e o botão **Imprimir ou salvar como PDF** | "Tudo vira um relatório de cinco blocos, com o aviso de segurança." |
-| 13 | Rolar a prévia até **5. Próxima verificação** e o rodapé | Rodapé de segurança: "Não emite comandos operacionais…" | Fechar com a frase do produto. |
+| 1 | Tela **Início** (já aberta) | **EULER** em destaque; o parágrafo "A demonstração tem dois atos"; aviso azul "Protótipo em construção… caldeira **sintética**"; **Como funciona, em 6 passos** | "Esta é a EULER. Os dados são sintéticos, criados para demonstração." |
+| 2 | Botão **Ato 1 · a EULER conclui** | Abre **Saúde da caldeira** (Passo 2 de 6). Selo laranja **Mudou** e a frase "O consumo por tonelada de vapor subiu 10,1% de 31/08 a 14/09 em relação à referência (03/08 a 31/08), além da incerteza das medições". Números: **0,321 t/t** e **0,353 t/t (+10,1%)**. Gráfico com faixas **Referência** e **Mudança** e eventos numerados 1, 2, 3 · 4 | "Primeiro, a saúde da caldeira: o consumo por tonelada de vapor mudou além da incerteza. A semana sem medidor de vapor fica vazia: a EULER não inventa número." |
+| 3 | Botão **Investigar esta mudança** | Abre **Investigação** (Passo 4 de 6) já com **Referência · 03/08 a 31/08 · 28 dias** e **Comparação · 31/08 a 14/09 · 14 dias**. Em **Resultado**, verde: "O consumo por tonelada de vapor subiu 10,1%. Explicações compatíveis com os dados: combustível mais úmido (+7,8%) e mais calor saindo pela chaminé (+3,1%); descartado: mais excesso de ar e vapor mais exigente. Próxima verificação: Conferir a amostragem de umidade dos lotes do fornecedor F3 e medir a umidade do pátio." | "Três frases: quanto mudou, o que explica, o que foi descartado e o que verificar. Compatível não é comprovado: a verificação comprova." |
+| 4 | Ler os três cartões | **Consumo 0,353 t/t** (↑ +10,1% sobre 0,321 t/t; detectável: **Sim**); **Valor em jogo R$ 26.992** (± R$ 9.624; estimado, não é promessa de economia); **Explicações compatíveis 2** (0 em aberto · 3 descartadas) | "O valor em jogo é estimado, com a incerteza ao lado." |
+| 5 | Aba **2. O que os dados sustentam (2)** | Combustível mais úmido e mais calor saindo pela chaminé, com selo azul; frase "As mudanças detectadas explicam +11,2% de +10,1% observados: fecham dentro da incerteza (±6,72%)" | "As duas explicações fecham a conta, dentro da incerteza." |
+| 6 | (opcional, forte para a banca) **Antes × depois da limpeza:** referência de **31/08 a 07/09** até **07/09 a 14/09**; comparação **21/09 a 28/09** (se aparecer "se sobrepõem" no meio, continuar) | Verde: "O consumo por tonelada de vapor caiu 4,5%. Explicações compatíveis com os dados: menos calor saindo pela chaminé (-2,9%)…" | "Depois da limpeza, os gases esfriaram e o consumo caiu: compatível com sujeira nos tubos." |
+
+**Ato 2 · a EULER explica por que não conclui**
+
+| # | Clique | O que deve aparecer (conferir) | O que dizer |
+|---|---|---|---|
+| 7 | Menu **Início** → **Ato 2 · a EULER explica por que não conclui** | A mesma **Saúde da caldeira** (os registros de operação são os mesmos) | "Agora a mesma caldeira, mas a fábrica não cadastrou a incerteza de quatro instrumentos." |
+| 8 | **Investigar esta mudança** | Amarelo: "O consumo por tonelada de vapor subiu 10,1%. Não dá para concluir: mais calor saindo pela chaminé (+3,1%) é compatível com os dados, mas combustível mais úmido (+7,8%) ainda não está confirmado; descartado: mais excesso de ar e vapor mais exigente. Próxima verificação: Registrar no cadastro de instrumentos a incerteza do método de umidade, informando o tipo da incerteza." | "'Não dá para concluir' é uma resposta: ela diz exatamente qual cadastro resolve a dúvida." |
+| 9 | (opcional) Aba **4. O que falta saber (10)** | Dois grupos: **Completar o cadastro de instrumentos** (4 incertezas) e **Medir, registrar ou conferir** (6 itens) | "A lista de tarefas para a fábrica sair do 'não dá para concluir'." |
+| 10 | Menu **3. Dados e limites** | Cartões **10 liberadas · 0 com limites · 1 bloqueada**; **Faixa de incerteza da eficiência** com selo vermelho **Bloqueada**; tabela **Período a período** com **Com limites** nas semanas e **Não dá para concluir** em 14/09 a 21/09 | "Ela diz o que não dá para concluir e o que medir para liberar." |
+| 11 | Menu **5. Extrato por fornecedor** | Frase azul: **F3 tem o menor preço por tonelada (R$ 160,20/t), mas custa R$ 20,05 por GJ**; menor custo por energia: **F1, R$ 17,23/GJ** | "O mais barato por tonelada é o mais caro por energia. A caldeira compra energia." |
+| 12 | Menu **6. Relatório** → **Gerar relatório** | No topo do relatório, as mesmas três frases; botões **Baixar HTML** e **Baixar PDF**; selo **DADOS SINTÉTICOS** | "Tudo vira um relatório de cinco blocos, com o aviso de segurança." |
+| 13 | Rolar a prévia até o rodapé | Rodapé de segurança: "Não emite comandos operacionais…" | Fechar com a frase do produto. |
 
 ## Se algo der errado
 
@@ -48,9 +53,8 @@ sem alterar dados.
 - **Tela esmaecida por alguns segundos:** é o cálculo de uma comparação nova (1 a 2 s) ou da
   tabela período a período na primeira visita (cerca de 4 s); esperar. Na segunda vez é
   instantâneo.
-- **Clicou em outra coisa e perdeu o caminho:** menu **Início** → **Começar com o caso de
-  demonstração** recomeça do passo 2. A escolha de períodos é lembrada ao voltar para a
-  Investigação.
+- **Clicou em outra coisa e perdeu o caminho:** menu **Início** → **Ato 1** ou **Ato 2**
+  recomeça da Saúde da caldeira; **Investigar esta mudança** volta à comparação padrão.
 - **"Baixar PDF" não aparece:** o Chromium não está instalado. Na prévia, clicar em
   **Imprimir ou salvar como PDF** e escolher "Salvar como PDF" (papel A4). Funciona no
   Windows sem instalar nada.

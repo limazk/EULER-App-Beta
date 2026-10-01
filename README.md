@@ -22,10 +22,10 @@ streamlit run app/main.py          # abre em http://localhost:8501
 
 No Windows, depois da instalação: dois cliques em `ABRIR-EULER.cmd`.
 
-No app: **Início → Começar com o caso de demonstração** (passeio guiado em
-`demo/PASSEIO_PELAS_TELAS.md`). O fluxo é
-carregar dados → conferir qualidade e limites → investigar → consultar fornecedores →
-gerar relatório.
+No app: **Início → Ato 1 · a EULER conclui** ou **Ato 2 · a EULER explica por que não conclui**
+(passeio guiado em `demo/PASSEIO_PELAS_TELAS.md`). O fluxo é carregar dados → ver a saúde da
+caldeira → conferir qualidade e limites → investigar → consultar fornecedores → gerar
+relatório.
 
 ## Verificar
 

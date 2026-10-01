@@ -59,17 +59,18 @@ com dados reais de uma caldeira (é a próxima fase).
 ## 4. Como usar, tela por tela
 
 Abra com `ABRIR-EULER.cmd` (Windows) ou `streamlit run app/main.py`. Menu à esquerda; cada
-tela diz "Passo X de 5" e tem o botão **Próximo** no fim. Passeio detalhado:
+tela diz "Passo X de 6" e tem o botão **Próximo** no fim. Passeio detalhado:
 `demo/PASSEIO_PELAS_TELAS.md`.
 
 | Tela | Para que serve | O que fazer |
 |---|---|---|
-| **Início** | apresenta a EULER e em que pé ela está | **Começar com o caso de demonstração** |
+| **Início** | apresenta a EULER e em que pé ela está | **Ato 1 · a EULER conclui** ou **Ato 2 · a EULER explica por que não conclui** |
 | **1. Importar dados** | recebe os arquivos da fábrica e lista os problemas deles | enviar os arquivos ou escolher um exemplo; informar a altitude |
-| **2. Dados e limites** | diz o que dá e o que não dá para concluir, e por quê | ler o que está bloqueado e o que cadastrar para liberar |
-| **3. Investigação** | compara dois períodos: o que mudou, o que explica, o que verificar | escolher os períodos; ler o resultado no topo; abrir as abas |
-| **4. Extrato por fornecedor** | custo da energia de cada fornecedor | comparar R$/t com R$/GJ; ver a umidade semana a semana |
-| **5. Relatório** | junta tudo num documento para compartilhar | **Gerar relatório** e baixar |
+| **2. Saúde da caldeira** | consumo por tonelada de vapor semana a semana, eventos e o selo mudou / estável / não dá para dizer | ler o selo e a frase; **Investigar esta mudança** |
+| **3. Dados e limites** | diz o que dá e o que não dá para concluir, e por quê | ler o que está bloqueado e o que cadastrar para liberar |
+| **4. Investigação** | compara dois períodos: o que mudou, o que explica, o que verificar | escolher os períodos; ler as três frases do resultado; abrir as abas |
+| **5. Extrato por fornecedor** | custo da energia de cada fornecedor | comparar R$/t com R$/GJ; ver a umidade semana a semana |
+| **6. Relatório** | junta tudo num documento para compartilhar | **Gerar relatório** e baixar |
 | **Calculadora de referência** | simula a perda de calor pela chaminé | mexer na temperatura, no O₂ e na umidade |
 
 Para ver sem instalar nada: a **prévia interativa** (link que o Claude publicou), com as mesmas

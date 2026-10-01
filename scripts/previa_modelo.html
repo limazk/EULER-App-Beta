@@ -76,6 +76,7 @@ p { margin: 0; }
 .g3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .g4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .g5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.g6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
 .metrica .rotulo { color: var(--suave); font-size: 14px; font-weight: 500; }
 .metrica .valor { font-size: 30px; font-weight: 600; font-variant-numeric: tabular-nums;
   line-height: 1.2; }
@@ -122,6 +123,9 @@ th { text-align: left; font-weight: 500; color: var(--suave); padding: 8px 8px;
 td { padding: 7px 8px; border-bottom: 1px solid #2E2E2E; vertical-align: top;
   font-variant-numeric: tabular-nums; }
 td.num, th.num { text-align: right; }
+/* colunas curtas sem quebra; a última (motivo, aviso, frase) quebra o texto */
+td { white-space: nowrap; }
+td:last-child { white-space: normal; }
 
 /* Início */
 .abertura { background: radial-gradient(120% 140% at 0% 0%, rgba(168, 199, 250, .07), rgba(168, 199, 250, 0) 55%), var(--lateral);
@@ -171,8 +175,9 @@ select { background: var(--campo); color: var(--texto); border: 1px solid #3F3F3
 .relatorio-quadro { width: 100%; height: 1400px; border: 0; border-radius: 6px; background: #FFFFFF; }
 .rodape { border-top: 1px solid var(--linha); padding-top: 16px; color: var(--fraco); font-size: 13.5px; }
 
+@media (max-width: 1180px) { .g6 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 960px) {
-  .g5 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .g5, .g6 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .g4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 820px) {
@@ -187,7 +192,7 @@ select { background: var(--campo); color: var(--texto); border: 1px solid #3F3F3
   .abertura .marca-grande { font-size: 36px; }
   h1 { font-size: 28px; }
 }
-@media (max-width: 520px) { .g4, .g5 { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 520px) { .g4, .g5, .g6 { grid-template-columns: minmax(0, 1fr); } }
 @media (prefers-reduced-motion: no-preference) { .tela-nova { animation: entra .18s ease-out; } }
 @keyframes entra { from { opacity: .4; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 </style>
@@ -215,21 +220,26 @@ select { background: var(--campo); color: var(--texto); border: 1px solid #3F3F3
 <script>
 "use strict";
 const D = JSON.parse(document.getElementById("dados").textContent);
-const N = D.periodos.length;
-const SERIES = Object.keys(D.series);
-const estado = { tela: "inicio", r0: D.padrao[0], r: D.padrao[1], a: D.padrao[2], b: D.padrao[3], aba: 0,
-  serie: SERIES[0], filtro: new Set(["Erro", "Atenção", "Informação"]), gerado: new Set() };
+const estado = { tela: "inicio", ato: "1", r0: D.padrao[0], r: D.padrao[1], a: D.padrao[2], b: D.padrao[3], aba: 0,
+  serie: null, filtro: new Set(["Erro", "Atenção", "Informação"]), gerado: new Set() };
+// os dois atos têm os mesmos registros de operação (D62): mesmos períodos e séries
+const A = () => D.atos[estado.ato];
+const N = D.atos["1"].periodos.length;
+const SERIES = Object.keys(D.atos["1"].series);
+estado.serie = SERIES[0];
+const NOME_ATO = { "1": "Ato 1 · caso completo", "2": "Ato 2 · dados insuficientes" };
 
 const e = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const nf = (v, casas) => v.toLocaleString("pt-BR", { minimumFractionDigits: casas, maximumFractionDigits: casas });
 const plural = (n, um, varios) => `${n} ${n === 1 ? um : varios}`;
 const chave = () => `${estado.r0}-${estado.r}|${estado.a}-${estado.b}`;
-const combo = () => D.combos[chave()];
+const combo = () => A().combos[chave()];
 const selo = (cor, texto) => `<span class="selo s-${cor}">${e(texto)}</span>`;
 
 const ICONES = {
   inicio: '<path d="M4 11 12 4l8 7v9h-5v-6H9v6H4z"/>',
   importar: '<path d="M12 16V4M7 9l5-5 5 5M4 20h16"/>',
+  saude: '<path d="M3 12h4l2-5 4 10 2-5h6"/>',
   limites: '<path d="M4 7h9M4 12h9M4 17h9"/><path d="m16 7 1.6 1.6L21 5.2M16 17l5-5M21 17l-5-5"/>',
   investigacao: '<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.4-4.4M8.5 11h5M11 8.5v5"/>',
   extrato: '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6M9 16h3"/>',
@@ -249,10 +259,11 @@ const TELAS = [
   { id: "inicio", titulo: "Início", icone: "inicio" },
   { grupo: "Investigar" },
   { id: "importar", titulo: "1. Importar dados", icone: "importar" },
-  { id: "limites", titulo: "2. Dados e limites", icone: "limites" },
-  { id: "investigacao", titulo: "3. Investigação", icone: "investigacao" },
-  { id: "extrato", titulo: "4. Extrato por fornecedor", icone: "extrato" },
-  { id: "relatorio", titulo: "5. Relatório", icone: "relatorio" },
+  { id: "saude", titulo: "2. Saúde da caldeira", icone: "saude" },
+  { id: "limites", titulo: "3. Dados e limites", icone: "limites" },
+  { id: "investigacao", titulo: "4. Investigação", icone: "investigacao" },
+  { id: "extrato", titulo: "5. Extrato por fornecedor", icone: "extrato" },
+  { id: "relatorio", titulo: "6. Relatório", icone: "relatorio" },
   { grupo: "Referência" },
   { id: "calculadora", titulo: "Calculadora de referência", icone: "calculadora" },
 ];
@@ -260,7 +271,7 @@ const TELAS = [
 function cabecalho(sobre, titulo, resumo, comDados = true) {
   return `<header class="cabecalho">${sobre ? `<div class="sobrelinha">${e(sobre)}</div>` : ""}
     <h1>${e(titulo)}</h1>${resumo ? `<p class="resumo">${resumo}</p>` : ""}</header>
-    ${comDados ? `<div class="dados-em-uso">Dados em uso: <b>${e(D.rotulo_dados)}</b> ${selo("orange", "DADOS SINTÉTICOS")}</div>` : ""}`;
+    ${comDados ? `<div class="dados-em-uso">Dados em uso: <b>${e(A().rotulo_dados)}</b> ${selo("orange", "DADOS SINTÉTICOS")}</div>` : ""}`;
 }
 const proximo = (tela, rotulo) => `<div class="proximo"><button class="botao" data-ir="${tela}">Próximo: ${e(rotulo)} ${icone("seta")}</button></div>`;
 const metrica = (rotulo, valor, extra = "") => `<div class="cartao metrica"><div class="rotulo">${e(rotulo)}</div><div class="valor">${e(valor)}</div>${extra}</div>`;
@@ -274,6 +285,7 @@ function tabela(cab, linhas, numericas = []) {
 function telaInicio() {
   const passos = [
     ["importar", "Importar", "Os registros que a fábrica já tem (CSV ou planilha). Nada é corrigido em silêncio."],
+    ["saude", "Saúde da caldeira", "O consumo por tonelada de vapor semana a semana: mudou ou ficou estável?"],
     ["limites", "Dados e limites", "O que dá e o que não dá para concluir com esses dados, e por quê."],
     ["investigacao", "Investigação", "Dois períodos lado a lado: o que mudou, o que explica e o que verificar."],
     ["extrato", "Extrato", "Quanto custa a energia de cada fornecedor (R$/GJ), não só a tonelada."],
@@ -285,12 +297,14 @@ function telaInicio() {
       <div class="marca-grande">EULER</div>
       <div class="frase">${e(D.textos.frase)}</div>
       <p>${e(D.textos.pergunta)} Às vezes a resposta certa é <b>“não dá para concluir”</b>, junto com a próxima medição que resolveria a dúvida. Isso é uma funcionalidade, não uma falha.</p>
-      <div class="linha-botoes"><button class="botao primario" data-ir="limites">${icone("seta")} Começar com o caso de demonstração</button>
+      <p><b>A demonstração tem dois atos, com a mesma caldeira sintética.</b> No ato 1 a fábrica cadastrou a incerteza de todos os instrumentos e a EULER conclui. No ato 2 falta esse cadastro e a EULER explica por que não conclui.</p>
+      <div class="linha-botoes"><button class="botao primario" data-ato="1" data-ir="saude">${icone("seta")} Ato 1 · a EULER conclui</button>
+      <button class="botao" data-ato="2" data-ir="saude">${icone("seta")} Ato 2 · a EULER explica por que não conclui</button>
       <button class="botao" data-ir="importar">${icone("importar")} Importar meus dados</button></div>
     </section>
-    <div class="alerta info">${icone("ciencia")}<div>${e(D.textos.aviso)} O caso de demonstração é uma caldeira <b>sintética</b> (dados inventados para teste) de 20 t/h a cavaco, com 8 semanas de registros e 3 fornecedores.</div></div>
-    <h2>Como funciona, em 5 passos</h2>
-    <div class="grade g5">${passos.map(([id, t, txt], i) => `<div class="cartao passo"><div class="sobrelinha">Passo ${i + 1}</div><div class="titulo">${icone(id, 'width="17" height="17"')} ${e(t)}</div><p class="legenda">${e(txt)}</p><button class="botao" data-ir="${id}">Abrir ${icone("seta")}</button></div>`).join("")}</div>
+    <div class="alerta info">${icone("ciencia")}<div>${e(D.textos.aviso)} O caso de demonstração é uma caldeira <b>sintética</b> (dados inventados para teste) de 20 t/h a cavaco, com 8 semanas de registros e 3 fornecedores. Os dois atos têm os mesmos registros de operação; muda só o cadastro de instrumentos.</div></div>
+    <h2>Como funciona, em 6 passos</h2>
+    <div class="grade g6">${passos.map(([id, t, txt], i) => `<div class="cartao passo"><div class="sobrelinha">Passo ${i + 1}</div><div class="titulo">${icone(id, 'width="17" height="17"')} ${e(t)}</div><p class="legenda">${e(txt)}</p><button class="botao" data-ir="${id}">Abrir ${icone("seta")}</button></div>`).join("")}</div>
     <h2>Em que pé está a EULER</h2>
     <div class="grade g3">${D.textos.estagios.map(([t, txt], i) => `<div class="cartao"><div class="passo titulo" style="font-weight:600;display:flex;gap:8px;align-items:center">${icone(icEst[i], 'width="17" height="17"')} ${e(t)}</div><p class="legenda">${e(txt)}</p></div>`).join("")}</div>
     <h2>O que a EULER não faz</h2>
@@ -298,41 +312,45 @@ function telaInicio() {
 }
 
 function telaImportar() {
-  const imp = D.importacao;
+  const imp = A().importacao;
   const cor = { "Erro": "red", "Atenção": "orange", "Informação": "gray" };
   const visiveis = imp.avisos.filter((a) => estado.filtro.has(a[0]));
-  return `${cabecalho("Passo 1 de 5", "Importar dados", "Envie os registros da caldeira: os arquivos CSV (diario.csv, combustivel.csv, amostras.csv, eventos.csv, instrumentos.csv) ou a <b>planilha modelo</b> preenchida. A EULER guarda o original e lista o que encontrou. <b>Nada é corrigido sem avisar.</b>", false)}
+  const cartaoAto = (ato, txt) => `<div class="cartao"><b>${e(NOME_ATO[ato])}</b><p class="legenda">${e(txt)}</p><span>${estado.ato === ato ? selo("green", "Carregado") : `<button class="botao" data-ato="${ato}">Carregar</button>`}</span></div>`;
+  return `${cabecalho("Passo 1 de 6", "Importar dados", "Envie os registros da caldeira (diário do operador, recebimentos de combustível, amostras, eventos e cadastro de instrumentos), um arquivo CSV por registro, ou a <b>planilha modelo</b> preenchida. A EULER guarda o original e lista o que encontrou. <b>Nada é corrigido sem avisar.</b>", false)}
     <div class="grade" style="grid-template-columns:minmax(0,1fr) minmax(0,2fr)">
       <div class="cartao"><b>1. Local da caldeira</b><div class="controle">Altitude do local (m)<div class="linha"><select disabled><option>1.000</option></select></div></div><p class="legenda">Pressão atmosférica estimada pela altitude (atmosfera padrão).</p></div>
-      <div class="cartao"><b>2. Arquivos da fábrica</b><div class="linha-botoes"><button class="botao" disabled>${icone("importar")} Escolher arquivos</button><span class="legenda">ou arraste para cá · CSV ou planilha .xlsx</span></div><p class="legenda">Na prévia, o envio de arquivos fica desligado: use o caso de demonstração. No app, os arquivos da fábrica entram aqui.</p></div>
+      <div class="cartao"><b>2. Arquivos da fábrica</b><div class="linha-botoes"><button class="botao" disabled>${icone("importar")} Escolher arquivos</button><span class="legenda">ou arraste para cá · CSV ou planilha .xlsx</span></div><p class="legenda">Na prévia, o envio de arquivos fica desligado: use o caso de demonstração. No app, os arquivos da fábrica entram aqui.</p>
+        <details><summary>Detalhes técnicos: nomes dos arquivos e das colunas</summary><p class="legenda">Cada registro vai num arquivo com o nome abaixo (ou numa aba da planilha com o mesmo nome, sem o .csv).</p>${tabela(["Registro", "Arquivo", "Colunas obrigatórias"], imp.arquivos.map((l) => l.map(e)))}</details></div>
     </div>
     <h3>Ou comece com um exemplo sintético</h3>
-    <div class="grade g3">
-      <div class="cartao"><b>Caso de demonstração</b><p class="legenda">Caldeira de 20 t/h a cavaco, 8 semanas, 3 fornecedores. O consumo muda no meio.</p><span>${selo("green", "Carregado")}</span></div>
+    <div class="grade g4">
+      ${cartaoAto("1", "Caldeira de 20 t/h a cavaco, 8 semanas, 3 fornecedores, instrumentos com incerteza cadastrada: a EULER conclui.")}
+      ${cartaoAto("2", "A mesma caldeira, sem a incerteza de quatro instrumentos: a EULER explica por que não conclui.")}
       <div class="cartao"><b>Modelos</b><p class="legenda">Uma linha de exemplo por arquivo: mostra o formato e o que fica bloqueado.</p><span class="legenda">Disponível no app</span></div>
       <div class="cartao"><b>Exemplo com problemas</b><p class="legenda">Erros de propósito (unidades trocadas, lacunas, duplicatas) para ver os avisos.</p><span class="legenda">Disponível no app</span></div>
     </div>
-    <h2>Resultado da importação · caso de demonstração</h2>
+    <h2>Resultado da importação · ${e(A().rotulo_dados)}</h2>
     <div class="grade g4">${metrica("Tabelas importadas", String(imp.n_tabelas))}${metrica("Erros", String(imp.contagem["Erro"]))}${metrica("Avisos de atenção", String(imp.contagem["Atenção"]))}${metrica("Informações", String(imp.contagem["Informação"]))}</div>
-    ${tabela(["Tabela", "Arquivo", "Linhas", "Situação"], imp.tabelas.map((l) => l.map(e)), [2])}
+    ${tabela(["Registro", "Linhas", "Situação"], imp.tabelas.map((l) => l.map(e)), [1])}
     <h3>Avisos de qualidade</h3>
     <div class="atalhos">Mostrar: ${["Erro", "Atenção", "Informação"].map((g) => `<button class="chip" data-filtro="${g}" aria-pressed="${estado.filtro.has(g)}">${g}</button>`).join("")}</div>
     ${visiveis.length ? tabela(["Gravidade", "Tabela", "Linha", "Aviso"], visiveis.map(([g, t, l, a]) => [selo(cor[g], g), e(t), e(l), e(a)]), [2]) : '<p class="legenda">Nenhum aviso com esse filtro.</p>'}
     <p class="legenda"><b>Erro:</b> a tabela não pôde ser usada. <b>Atenção:</b> pode afetar as análises. <b>Informação:</b> registro do que foi interpretado. Os números de linha são os do arquivo (cabeçalho = linha 1).</p>
-    ${proximo("limites", "2. Dados e limites")}`;
+    ${proximo("saude", "2. Saúde da caldeira")}`;
 }
 
 function telaLimites() {
-  const caps = D.capacidades;
-  const n = (s) => caps.filter((c) => c.situacao === s).length;
+  const caps = A().capacidades;
+  const n = (st) => caps.filter((c) => c.situacao === st).length;
   const atencao = caps.filter((c) => c.situacao !== "habilitada");
   const liberadas = caps.filter((c) => c.situacao === "habilitada");
-  const imp = D.importacao.contagem;
-  const colunas = Object.keys(D.por_periodo[0] || {});
-  return `${cabecalho("Passo 2 de 5", "Dados e limites", "O que dá e o que não dá para concluir com os dados enviados, <b>e por quê</b>. Quando falta um dado, a análise fica bloqueada: a EULER não completa nada com porcentagens inventadas.")}
+  const imp = A().importacao.contagem;
+  const pp = A().por_periodo;
+  const resumo = pp.resumo.map((l) => l.map((v, i) => (i === 3 ? selo(pp.cores[v] || "gray", v) : e(v))));
+  return `${cabecalho("Passo 3 de 6", "Dados e limites", "O que dá e o que não dá para concluir com os dados enviados, <b>e por quê</b>. Quando falta um dado, a análise fica bloqueada: a EULER não completa nada com porcentagens inventadas.")}
     <div class="grade g3">${metrica("Análises liberadas", String(n("habilitada")))}${metrica("Com limites", String(n("parcial")))}${metrica("Bloqueadas", String(n("bloqueada")))}</div>
     <div class="cartao"><p><b>Qualidade dos registros:</b> ${plural(imp["Erro"], "erro", "erros")} · ${plural(imp["Atenção"], "aviso de atenção", "avisos de atenção")} · ${plural(imp["Informação"], "informação", "informações")}. Nada foi corrigido nem preenchido em silêncio.</p>
-      <ul>${D.qualidade.map((q) => `<li>${e(q)}</li>`).join("")}</ul>
+      <ul>${A().qualidade.map((q) => `<li>${e(q)}</li>`).join("")}</ul>
       <div><button class="botao" data-ir="importar">Ver todos os avisos em Importar dados ${icone("seta")}</button></div></div>
     ${atencao.length ? `<h2>Precisa de dados para concluir</h2>` + atencao.map((c) => `<div class="cartao">
       <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap"><div><b>${e(c.nome)}</b><br>${e(c.pergunta)}</div>
@@ -341,16 +359,36 @@ function telaLimites() {
       ${c.o_que_fazer.length ? `<div><b>Para liberar:</b><ul>${c.o_que_fazer.map((m) => `<li>${e(m)}</li>`).join("")}</ul></div>` : ""}</div>`).join("") : ""}
     <h2>Liberadas com estes dados</h2>
     <div class="cartao"><div class="grade g2">${liberadas.map((c) => `<div><span style="color:var(--t-green)">✓</span> <b>${e(c.nome)}</b><br><span class="legenda">${e(c.pergunta)}</span></div>`).join("")}</div></div>
-    <p class="legenda">${plural(N, "período", "períodos")} entre medições de estoque, de ${e(D.periodos[0].ini)} a ${e(D.periodos[N - 1].fim)}.</p>
+    <details><summary>Detalhes técnicos: equações e decisões de cada análise</summary><p class="legenda">Itens E (equações) de docs/fisica_para_revisao.md e propostas D de docs/decisoes.md, todos em revisão.</p><ul>${caps.filter((c) => c.referencia).map((c) => `<li>${e(c.nome)}: ${e(c.referencia)}</li>`).join("")}</ul></details>
+    <p class="legenda">${plural(N, "período", "períodos")} entre medições de estoque, de ${e(A().periodos[0].ini)} a ${e(A().periodos[N - 1].fim)}.</p>
     <h2>Período a período</h2>
-    <p class="legenda">Cada linha vai de uma medição de estoque à seguinte. ✕ = não dá para concluir naquele período; o motivo está na última coluna. "Incerteza incompleta": falta cadastrar a incerteza de algum instrumento usado no cálculo (ver acima).</p>
-    <details><summary>Como ler as colunas de eficiência</summary><p class="legenda">A <b>eficiência direta</b> supõe que o combustível queimado tem a qualidade do recebido no período. A coluna <b>Eficiência conforme o pátio</b> mostra os limites possíveis conforme o uso do pátio (quanto maior o estoque perto do consumido, mais larga a faixa). São cenários de contabilidade do pátio, não intervalo de confiança nem desempenho validado. Os limites não são cortados.</p></details>
-    ${tabela(colunas, D.por_periodo.map((l) => colunas.map((c) => e(l[c]))))}
-    ${proximo("investigacao", "3. Investigação")}`;
+    <p class="legenda">Cada linha vai de uma medição de estoque à seguinte. <b>Com limites</b>: falta a incerteza de algum instrumento ou a perda nos gases; <b>Não dá para concluir</b>: falta a eficiência ou o consumo. O motivo de cada um está em “Ver detalhes de cada período”.</p>
+    ${tabela(pp.colunas_resumo, resumo)}
+    <details><summary>Ver detalhes de cada período</summary>${tabela(pp.colunas_detalhe, pp.detalhe.map((l) => l.map(e)))}
+      <p class="legenda"><b>Como ler as colunas de eficiência.</b> A <b>eficiência direta</b> supõe que o combustível queimado tem a qualidade do recebido no período. A coluna <b>Eficiência conforme o pátio</b> mostra os limites possíveis conforme o uso do pátio (quanto maior o estoque perto do consumido, mais larga a faixa). São cenários de contabilidade do pátio, não intervalo de confiança nem desempenho validado. Os limites não são cortados.</p></details>
+    ${proximo("investigacao", "4. Investigação")}`;
+}
+
+function telaSaude() {
+  const s = A().saude, p = A().periodos;
+  const icSelo = s.selo[1] === "Mudou" ? icone("cima", `width="13" height="13" ${s.sobe ? "" : 'style="transform:rotate(180deg)"'}`) : "";
+  const kpis = s.kpi_ref ? `<div class="grade g2">${metrica(`Referência · ${p[s.ref[0]].ini} a ${p[s.ref[1]].fim}`, s.kpi_ref)}${s.kpi_mud ? metrica(`Mudança · ${p[s.mudanca[0]].ini} a ${p[s.mudanca[1]].fim}`, s.kpi_mud.valor, `<span class="delta ${s.kpi_mud.sobe ? "s-red" : "s-green"}">${icone("cima", `width="13" height="13" ${s.kpi_mud.sobe ? "" : 'style="transform:rotate(180deg)"'}`)} ${e(s.kpi_mud.delta)}</span>`) : ""}</div>` : "";
+  const botao = s.mudanca ? `<div><button class="botao primario" data-investigar="1">${icone("investigacao")} Investigar esta mudança</button></div>` : `<div><button class="botao" data-ir="investigacao">${icone("investigacao")} Escolher os períodos na Investigação</button></div>`;
+  const linhas = s.periodos.map((x, i) => [e(`${p[i].ini} a ${p[i].fim}`), e(x.texto), e(x.variacao), selo(x.situacao[0], x.situacao[1]) + (x.motivo ? ` <span class="legenda">${e(x.motivo)}</span>` : "")]);
+  return `${cabecalho("Passo 2 de 6", "Saúde da caldeira", "Quanto combustível a caldeira gastou para cada tonelada de vapor, período a período, com os eventos registrados. Se o consumo mudou, um clique leva direto à investigação.")}
+    <div class="cartao"><div>${selo(s.selo[0], s.selo[1])}</div><p><b>${e(s.frase)}</b></p>${kpis}${botao}</div>
+    <div class="cartao"><b style="font-size:15px">Combustível por tonelada de vapor (t/t), período a período</b><div class="grafico">${graficoSaude(s)}</div>
+      <p class="legenda">Traço azul: consumo médio de cada período (combustível queimado ÷ vapor produzido), origem <b>estimado</b> a partir das medições; traço vertical: incerteza (k = 2). Linha pontilhada: a referência. Linhas tracejadas numeradas: eventos registrados. Período sem traço: não dá para calcular (motivo na tabela).</p></div>
+    <h3>Eventos registrados</h3>
+    ${s.eventos.length ? `<ol style="margin:0;padding-left:22px;display:grid;gap:4px">${s.eventos.map((ev) => `<li><b>${e(ev.quando)}</b> · ${e(ev.tipo)}: ${e(ev.descricao)}</li>`).join("")}</ol>` : '<p class="legenda">Nenhum evento registrado.</p>'}
+    <h3>Período a período</h3>
+    ${tabela(["Período", "Consumo (t/t)", "Em relação à referência", "Situação"], linhas)}
+    <p class="legenda">Mudou = a diferença para a referência é maior que a incerteza das medições; estável = fica dentro dela; não dá para dizer = falta o consumo do período ou a incerteza. Referência: a primeira metade dos períodos (a mesma escolha inicial da Investigação). O selo diz se o consumo mudou, não por quê: a causa é o que a investigação examina.</p>
+    ${proximo("limites", "3. Dados e limites")}`;
 }
 
 function periodosHtml() {
-  const p = D.periodos;
+  const p = A().periodos;
   const opt = (de, ate, sel, rot) => Array.from({ length: ate - de + 1 }, (_, k) => de + k).map((i) => `<option value="${i}" ${i === sel ? "selected" : ""}>${rot(i)}</option>`).join("");
   const celulas = p.map((x, i) => {
     const classe = i >= estado.r0 && i <= estado.r ? "ref" : i >= estado.a && i <= estado.b ? "comp" : "";
@@ -381,19 +419,19 @@ function foraDaPrevia() {
 
 function telaInvestigacao() {
   const c = combo();
-  if (!c) return `${cabecalho("Passo 3 de 5", "Investigação", e(D.textos.pergunta))}${periodosHtml()}${foraDaPrevia()}`;
+  if (!c) return `${cabecalho("Passo 4 de 6", "Investigação", e(D.textos.pergunta))}${periodosHtml()}${foraDaPrevia()}`;
   const kc = c.kpi_consumo, kv = c.kpi_valor;
   const abas = ["1. O que mudou", `2. O que os dados sustentam (${c.sustentadas.length + c.opostas.length})`, `3. Explicações possíveis (${c.abertas.length})`, `4. O que falta saber (${c.falta_cadastrar.length + c.falta_outros.length})`];
   let detalhe = "";
   if (estado.aba === 0) {
-    const s = D.series[estado.serie];
+    const s = A().series[estado.serie];
     detalhe = `<p><b>${e(c.frase)}</b></p>${c.custo ? `<p>${e(c.custo)}</p>` : ""}
-      <div class="atalhos"><span class="legenda">Ver no gráfico:</span>${SERIES.map((k) => `<button class="chip" data-serie="${k}" aria-pressed="${k === estado.serie}">${e(D.series[k].botao)}</button>`).join("")}</div>
+      <div class="atalhos"><span class="legenda">Ver no gráfico:</span>${SERIES.map((k) => `<button class="chip" data-serie="${k}" aria-pressed="${k === estado.serie}">${e(A().series[k].botao)}</button>`).join("")}</div>
       <div><b style="font-size:15px">${e(s.titulo)}</b><div class="grafico" id="grafico-serie">${graficoSerie(s)}</div></div>
       ${tabela(["Indicador", "Referência", "Comparação", "Diferença", "Mudou de forma detectável?"], c.indicadores.map((i) => [e(i.nome), e(i.ref), e(i.comp), e(i.dif), seloDeteccao(i.selo)]))}
       <p class="legenda">Diferença = comparação − referência; entre parênteses, a incerteza da diferença. p.p. = pontos percentuais.</p>`;
   } else if (estado.aba === 1) {
-    detalhe = hipoteses(c.sustentadas, "Nenhuma explicação é sustentada pelos dados.") + (c.opostas.length ? hipoteses(c.opostas, "") : "")
+    detalhe = `<p><b>Conclusão:</b> ${e(c.conclusao.texto)}</p>` + hipoteses(c.sustentadas, "Nenhuma explicação é sustentada pelos dados.") + (c.opostas.length ? hipoteses(c.opostas, "") : "")
       + c.fechamento.map((f) => `<p class="legenda">${e(f)}</p>`).join("")
       + `<p class="legenda">"Compatível com os dados" não é causa comprovada: cada explicação precisa da verificação indicada.</p>`
       + (c.descartadas.length ? `<details><summary>O que foi descartado e por quê (${c.descartadas.length})</summary><div class="grade">${hipoteses(c.descartadas, "")}</div></details>` : "");
@@ -406,33 +444,32 @@ function telaInvestigacao() {
       + (!c.falta_cadastrar.length && !c.falta_outros.length ? '<p class="legenda">Nada essencial faltando para esta comparação.</p>' : "")
       + `<p class="legenda">${e(c.independencia)}</p>`;
   }
-  return `${cabecalho("Passo 3 de 5", "Investigação", e(D.textos.pergunta))}
+  return `${cabecalho("Passo 4 de 6", "Investigação", e(D.textos.pergunta))}
     ${periodosHtml()}
     <div class="secao">Resultado</div>
-    <div class="grade g2">
-      <div class="alerta ${c.conclusao.abstencao ? "aviso" : "ok"}">${icone(c.conclusao.abstencao ? "mao" : "ok")}<div>${e(c.conclusao.texto)}</div></div>
-      <div class="alerta info">${icone("busca")}<div><b>Próxima verificação:</b> ${e(c.proxima.acao)}<br>${e(c.proxima.porque)}</div></div>
-    </div>
+    <div class="alerta ${c.conclusao.abstencao ? "aviso" : "ok"}">${icone(c.conclusao.abstencao ? "mao" : "ok")}<div>${c.resumo.map(e).join("<br>")}</div></div>
+    ${c.conclusao.abstencao ? "" : '<p class="legenda">"Compatível com os dados" não é causa comprovada: cada explicação precisa da verificação indicada.</p>'}
     <div class="grade g3">
       <div class="cartao metrica"><div class="rotulo">Consumo por tonelada de vapor</div>${kc ? `<div class="valor">${e(kc.valor)}</div><span class="delta">${icone("cima", `width="13" height="13" ${kc.sobe ? "" : 'style="transform:rotate(180deg)"'}`)} ${e(kc.delta)}</span><div>Mudou de forma detectável? ${seloDeteccao(kc.selo)}</div>` : `<div class="valor">—</div><p class="legenda">Não pode ser calculado neste período (ver o motivo na conclusão).</p>`}</div>
       <div class="cartao metrica"><div class="rotulo">${kv.valor ? "Valor em jogo (estimado)" : "Valor em jogo"}</div><div class="valor">${kv.valor ? e(kv.valor) : "não estimado"}</div><p class="legenda">${e(kv.legenda)}</p></div>
       <div class="cartao metrica"><div class="rotulo">Explicações compatíveis com os dados</div><div class="valor">${c.kpi_expl.n}</div><p class="legenda">${e(c.kpi_expl.legenda)}</p></div>
     </div>
+    <div class="alerta info">${icone("busca")}<div><b>Próxima verificação, em detalhe:</b> ${e(c.proxima.acao)}<br>${e(c.proxima.porque)}</div></div>
     <div class="secao">Detalhes</div>
     <div class="abas" role="tablist">${abas.map((t, i) => `<button class="aba" role="tab" data-aba="${i}" aria-selected="${i === estado.aba}">${e(t)}</button>`).join("")}</div>
     <div class="grade">${detalhe}</div>
     <div class="linha-botoes"><button class="botao" data-ir="relatorio">${icone("relatorio")} Gerar o relatório desta comparação</button></div>
-    ${proximo("extrato", "4. Extrato por fornecedor")}`;
+    ${proximo("extrato", "5. Extrato por fornecedor")}`;
 }
 
 function telaExtrato() {
-  const x = D.extrato;
+  const x = A().extrato;
   const barras = (campo, rot, titulo) => {
     const lista = [...x.barras].sort((p, q) => p[campo] - q[campo]);
     const max = Math.max(...lista.map((b) => b[campo])) * 1.25;
     return `<div class="cartao"><b style="font-size:15px">${e(titulo)}</b><div class="barras">${lista.map((b) => `<div class="barra"><span>${e(b.f)}</span><div class="trilho"><div class="cheia" style="width:${(100 * b[campo]) / max}%;background:${x.cores[b.f]}" data-dica="${e(b.f)} · ${e(b[rot])}"></div><span>${e(b[rot])}</span></div></div>`).join("")}</div></div>`;
   };
-  return `${cabecalho("Passo 4 de 5", "Extrato de energia por fornecedor", "<b>O fornecedor mais barato por tonelada nem sempre é o mais barato por energia.</b> A caldeira compra energia, não toneladas: quanto mais úmido o cavaco, menos energia cada tonelada entrega. Aqui cada lote vira energia (GJ) e custo por energia (R$/GJ).")}
+  return `${cabecalho("Passo 5 de 6", "Extrato de energia por fornecedor", "<b>O fornecedor mais barato por tonelada nem sempre é o mais barato por energia.</b> A caldeira compra energia, não toneladas: quanto mais úmido o cavaco, menos energia cada tonelada entrega. Aqui cada lote vira energia (GJ) e custo por energia (R$/GJ).")}
     <p class="legenda">Período (data de recebimento): ${e(x.periodo)}</p>
     ${x.frase ? `<div class="alerta info">${icone("busca")}<div>${e(x.frase)}</div></div>` : ""}
     <div class="grade g3">${x.metricas.map(([r, v]) => metrica(r, v)).join("")}</div>
@@ -442,19 +479,19 @@ function telaExtrato() {
     <h3>Umidade do cavaco por semana</h3>
     <div class="cartao"><b style="font-size:15px">Umidade média (base úmida)</b><div class="grafico" id="grafico-semanal">${graficoSemanal()}</div></div>
     <h3>Umidade fora da faixa histórica · ${plural(x.n_alertas, "lote", "lotes")}</h3>
-    <p class="legenda">Faixa histórica: média ± 3 desvios-padrão dos primeiros 10 lotes medidos de cada fornecedor (proposta D20). É um sinal para conferir a amostragem e o lote, não uma conclusão sobre o fornecedor.</p>
+    <p class="legenda">Faixa histórica: média ± 3 desvios-padrão dos primeiros 10 lotes medidos de cada fornecedor (proposta em revisão). É um sinal para conferir a amostragem e o lote, não uma conclusão sobre o fornecedor.</p>
     <ul>${x.alertas.map(([f, t]) => `<li><b>${e(f)}</b>: ${e(t)}</li>`).join("")}</ul>
     <h3>Energia não determinada · ${plural(x.nao_determinados.length, "lote", "lotes")}</h3>
     <p class="legenda">A EULER não assume umidade: sem medição, a energia do lote fica em aberto.</p>
     ${tabela(["Data", "Fornecedor", "Lote", "Massa (t)", "Motivo"], x.nao_determinados.map((l) => l.map(e)), [3])}
-    ${proximo("relatorio", "5. Relatório")}`;
+    ${proximo("relatorio", "6. Relatório")}`;
 }
 
 function telaRelatorio() {
   const c = combo();
-  if (!c) return `${cabecalho("Passo 5 de 5", "Relatório", "")}${foraDaPrevia()}`;
-  const gerado = estado.gerado.has(chave());
-  return `${cabecalho("Passo 5 de 5", "Relatório", "Relatório em linguagem simples, com os 5 blocos fixos: <b>O que mudou · O que os dados sustentam · Explicações possíveis · O que falta saber · Próxima verificação</b>.")}
+  if (!c) return `${cabecalho("Passo 6 de 6", "Relatório", "")}${foraDaPrevia()}`;
+  const gerado = estado.gerado.has(estado.ato + ":" + chave());
+  return `${cabecalho("Passo 6 de 6", "Relatório", "Relatório em linguagem simples, com os 5 blocos fixos: <b>O que mudou · O que os dados sustentam · Explicações possíveis · O que falta saber · Próxima verificação</b>.")}
     <p class="legenda">Comparação em uso: <b>${e(c.rotulo_ref)}</b> (referência) × <b>${e(c.rotulo_comp)}</b> (comparação). Para trocar, volte à Investigação.</p>
     <div class="linha-botoes"><button class="botao primario" id="gerar">${icone("relatorio")} Gerar relatório</button>${gerado ? '<span class="legenda">No app, aqui aparecem Baixar HTML, Baixar PDF e Imprimir ou salvar como PDF.</span>' : ""}</div>
     ${gerado ? `<h3>Prévia</h3><div class="cartao" style="padding:10px"><iframe class="relatorio-quadro" title="Relatório de investigação" sandbox="" srcdoc="${e(c.relatorio)}"></iframe></div>` : '<p class="legenda">Clique em <b>Gerar relatório</b> para montar o relatório desta comparação.</p>'}`;
@@ -483,7 +520,7 @@ function graficoSerie(s) {
   const lo = Math.min(...vals) - amp * 0.08, hi = Math.max(...vals) + amp * 0.3;
   const X = (t) => m.l + ((t - x0) / (x1 - x0)) * (W - m.l - m.r);
   const Y = (v) => m.t + ((hi - v) / (hi - lo)) * (H - m.t - m.b);
-  const p = D.periodos;
+  const p = A().periodos;
   const faixa = (de, ate, cor, rot) => {
     const a = Math.max(X(+new Date(p[de].ini_iso)), m.l), b = Math.min(X(+new Date(p[ate].fim_iso)), W - m.r);
     return `<rect x="${a}" y="${m.t}" width="${Math.max(b - a, 0)}" height="${H - m.t - m.b}" fill="${cor}"/><text x="${a + 5}" y="${m.t + 14}" fill="#BDBDBD" font-size="12">${rot}</text>`;
@@ -504,8 +541,47 @@ function graficoSerie(s) {
     <rect x="${m.l}" y="${m.t}" width="${W - m.l - m.r}" height="${H - m.t - m.b}" fill="transparent" data-area="${m.l},${W - m.r}"/></svg>`;
 }
 
+function graficoSaude(sd) {
+  const W = 760, H = 280, m = { l: 50, r: 14, t: 12, b: 26 };
+  const p = A().periodos;
+  const x0 = +new Date(p[0].ini_iso), x1 = +new Date(p[N - 1].fim_iso);
+  const X = (t) => m.l + ((t - x0) / (x1 - x0)) * (W - m.l - m.r);
+  const com = sd.periodos.map((x, i) => ({ ...x, i })).filter((x) => x.valor !== null);
+  const extremos = com.flatMap((x) => (x.u === null ? [x.valor] : [x.valor - x.u, x.valor + x.u]));
+  const mn = Math.min(...extremos), mx = Math.max(...extremos), amp = Math.max(mx - mn, 0.01);
+  const lo = mn - 0.25 * amp, hi = mx + 0.35 * amp;
+  const Y = (v) => m.t + ((hi - v) / (hi - lo)) * (H - m.t - m.b);
+  const faixa = (de, ate, cor, rot) => {
+    const a = X(+new Date(p[de].ini_iso)), b = X(+new Date(p[ate].fim_iso));
+    return `<rect x="${a}" y="${m.t}" width="${b - a}" height="${H - m.t - m.b}" fill="${cor}"/><text x="${a + 5}" y="${m.t + 14}" fill="#BDBDBD" font-size="12">${rot}</text>`;
+  };
+  const passo = passoBonito(hi - lo), ordem = Math.floor(Math.log10(passo));
+  const casas = Math.max(0, -ordem + ((passo / Math.pow(10, ordem)) % 1 ? 1 : 0));
+  let grade = "";
+  for (let v = Math.ceil(lo / passo) * passo; v <= hi; v += passo) grade += `<line x1="${m.l}" x2="${W - m.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="#333333"/><text x="${m.l - 7}" y="${Y(v) + 4}" text-anchor="end" fill="#A3A3A3" font-size="12">${nf(v, casas)}</text>`;
+  let marcas = "";
+  const primeiro = new Date(x0); primeiro.setHours(0, 0, 0, 0); primeiro.setDate(primeiro.getDate() + ((7 - primeiro.getDay()) % 7 || 7));
+  for (let d = new Date(primeiro); +d <= x1; d.setDate(d.getDate() + 7)) marcas += `<text x="${X(+d)}" y="${H - 6}" text-anchor="middle" fill="#A3A3A3" font-size="12">${dataBR(d)}</text>`;
+  const ref = sd.valor_ref === null ? "" : `<line x1="${m.l}" x2="${W - m.r}" y1="${Y(sd.valor_ref)}" y2="${Y(sd.valor_ref)}" stroke="#A3A3A3" stroke-dasharray="2 2"/>`;
+  // eventos do mesmo dia ficam no mesmo lugar do eixo: um rótulo só ("3 · 4")
+  const dias = [];
+  sd.eventos.forEach((ev, k) => {
+    const g = dias.find((d) => d.dia === ev.dia);
+    if (g) { g.n.push(k + 1); g.txt.push(`${ev.quando} · ${ev.tipo}: ${ev.descricao}`); }
+    else dias.push({ dia: ev.dia, t: +new Date(ev.iso), n: [k + 1], txt: [`${ev.quando} · ${ev.tipo}: ${ev.descricao}`] });
+  });
+  const eventos = dias.map((g) => `<line x1="${X(g.t)}" x2="${X(g.t)}" y1="${m.t}" y2="${H - m.b}" stroke="#A3A3A3" stroke-width="1.5" stroke-dasharray="5 3"/><text x="${X(g.t) + 4}" y="${m.t + 34}" fill="#ECECEC" font-size="12" font-weight="700">${g.n.join(" · ")}</text><rect x="${X(g.t) - 6}" y="${m.t}" width="12" height="${H - m.t - m.b}" fill="transparent" data-dica="${e(g.txt.join(" | "))}"/>`).join("");
+  const marcasPeriodo = com.map((x) => {
+    const a = X(+new Date(p[x.i].ini_iso)), b = X(+new Date(p[x.i].fim_iso)), meio = (a + b) / 2;
+    const barra = x.u === null ? "" : `<line x1="${meio}" x2="${meio}" y1="${Y(x.valor - x.u)}" y2="${Y(x.valor + x.u)}" stroke="var(--serie)" stroke-width="1.5" opacity=".8"/>`;
+    return `<line x1="${a}" x2="${b}" y1="${Y(x.valor)}" y2="${Y(x.valor)}" stroke="var(--serie)" stroke-width="2"/>${barra}<circle cx="${meio}" cy="${Y(x.valor)}" r="4.5" fill="var(--serie)" stroke="#262626" stroke-width="2" data-dica="${e(`${p[x.i].ini} a ${p[x.i].fim} · ${x.texto} t/t · ${x.situacao[1]}`)}"/>`;
+  }).join("");
+  const faixas = (sd.ref ? faixa(sd.ref[0], sd.ref[1], "#2A3646", "Referência") : "") + (sd.mudanca ? faixa(sd.mudanca[0], sd.mudanca[1], "#45321F", "Mudança") : "");
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Combustível por tonelada de vapor, período a período">${faixas}${grade}${marcas}${ref}${eventos}${marcasPeriodo}</svg>`;
+}
+
 function graficoSemanal() {
-  const x = D.extrato, W = 760, H = 290, m = { l: 44, r: 34, t: 34, b: 28 };
+  const x = A().extrato, W = 760, H = 290, m = { l: 44, r: 34, t: 34, b: 28 };
   const linhas = x.semanal.map(([f, s, u, n]) => ({ f, d: new Date(s + "T00:00"), u, n }));
   const datas = linhas.map((l) => +l.d), us = linhas.map((l) => l.u);
   const x0 = Math.min(...datas), x1 = Math.max(...datas);
@@ -533,10 +609,16 @@ function graficoSemanal() {
 function montarNav() {
   document.getElementById("nav").innerHTML = TELAS.map((t) => t.grupo ? `<h6>${e(t.grupo)}</h6>` : `<button data-ir="${t.id}" ${t.id === estado.tela ? 'aria-current="page"' : ""}>${icone(t.icone)}${e(t.titulo)}</button>`).join("");
 }
-const RENDER = { inicio: telaInicio, importar: telaImportar, limites: telaLimites, investigacao: telaInvestigacao, extrato: telaExtrato, relatorio: telaRelatorio, calculadora: telaCalculadora };
+const RENDER = { inicio: telaInicio, importar: telaImportar, saude: telaSaude, limites: telaLimites, investigacao: telaInvestigacao, extrato: telaExtrato, relatorio: telaRelatorio, calculadora: telaCalculadora };
+
+function faixaPrevia() {
+  document.getElementById("faixa-previa").innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center"><span><b>Prévia interativa</b> do app EULER com o caso de demonstração <b>sintético</b>. Os números são os calculados pelo motor da EULER (versão ${e(D.versao)}); nada é recalculado nesta página.</span>
+    <span class="atalhos"><span>Dados:</span>${["1", "2"].map((a) => `<button class="chip" data-ato="${a}" aria-pressed="${estado.ato === a}">${e(NOME_ATO[a])}</button>`).join("")}</span></div>`;
+}
 
 function mostrar(rolarParaTopo = false) {
   montarNav();
+  faixaPrevia();
   const tela = document.getElementById("tela");
   tela.innerHTML = `<div class="conteudo tela-nova">${RENDER[estado.tela]()}</div>`;
   if (rolarParaTopo) window.scrollTo({ top: 0 });
@@ -556,15 +638,23 @@ function ajustarComparacao() {
 }
 
 document.addEventListener("click", (ev) => {
-  const alvo = ev.target.closest("[data-ir],[data-aba],[data-serie],[data-atalho],[data-celula],[data-filtro],#gerar");
+  const alvo = ev.target.closest("[data-ato],[data-investigar],[data-ir],[data-aba],[data-serie],[data-atalho],[data-celula],[data-filtro],#gerar");
   if (!alvo) return;
+  if (alvo.dataset.ato) { estado.ato = alvo.dataset.ato; return alvo.dataset.ir ? ir(alvo.dataset.ir) : mostrar(); }
+  if (alvo.dataset.investigar) {
+    // "Investigar esta mudança": a referência e os períodos da mudança, já escolhidos (D65)
+    const sd = A().saude;
+    [estado.r0, estado.r, estado.a, estado.b] = [sd.ref[0], sd.ref[1], sd.mudanca[0], sd.mudanca[1]];
+    estado.aba = 0;
+    return ir("investigacao");
+  }
   if (alvo.dataset.ir) return ir(alvo.dataset.ir);
   if (alvo.dataset.aba) { estado.aba = +alvo.dataset.aba; return mostrar(); }
   if (alvo.dataset.serie) { estado.serie = alvo.dataset.serie; return mostrar(); }
   if (alvo.dataset.atalho) { [estado.r0, estado.r, estado.a, estado.b] = alvo.dataset.atalho.split(",").map(Number); return mostrar(); }
   if (alvo.dataset.celula) { const i = +alvo.dataset.celula; if (i > estado.r) { estado.a = estado.b = i; mostrar(); } return; }
   if (alvo.dataset.filtro) { const g = alvo.dataset.filtro; estado.filtro.has(g) ? estado.filtro.delete(g) : estado.filtro.add(g); return mostrar(); }
-  if (alvo.id === "gerar") { estado.gerado.add(chave()); return mostrar(); }
+  if (alvo.id === "gerar") { estado.gerado.add(estado.ato + ":" + chave()); return mostrar(); }
 });
 document.addEventListener("change", (ev) => {
   const id = ev.target.id;
@@ -594,7 +684,7 @@ function ligarGraficoSerie() {
   const svg = document.querySelector("[data-serie-grafico]");
   if (!svg) return;
   const area = svg.querySelector("[data-area]");
-  const s = D.series[estado.serie];
+  const s = A().series[estado.serie];
   const pts = s.pontos.map(([d, v]) => [new Date(d + "T00:00"), v]);
   const [xa, xb] = area.dataset.area.split(",").map(Number);
   const cursor = svg.querySelector("#cursor"), ponto = svg.querySelector("#cursor-ponto");
@@ -613,7 +703,6 @@ function ligarGraficoSerie() {
   area.addEventListener("mouseleave", () => { cursor.setAttribute("visibility", "hidden"); ponto.setAttribute("visibility", "hidden"); dica.hidden = true; });
 }
 
-document.getElementById("faixa-previa").innerHTML = `<b>Prévia interativa</b> do app EULER com o caso de demonstração <b>sintético</b>. Os números são os calculados pelo motor da EULER (versão ${e(D.versao)}); nada é recalculado nesta página. O app completo roda no computador com <b>ABRIR-EULER.cmd</b>.`;
 document.getElementById("rodape").textContent = D.textos.rodape;
 document.getElementById("rodape-lateral").textContent = "EULER · prévia interativa · dados sintéticos em uso";
 const inicial = (location.hash || "").slice(1);

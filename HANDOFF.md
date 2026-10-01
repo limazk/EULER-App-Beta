@@ -7,9 +7,8 @@
 é sincero sobre o que está pronto, o que é provisório e o que falta. **Nada da física tem
 aprovação científica**, e **nada foi validado com dados reais de caldeira**.
 
-> ⚠ **Repositório público.** A API do GitHub responde sem login para
-> `rodriguesadryan06-a11y/softwer-euler`. O plano (Etapa 8) pede repositório **privado**,
-> e o T19 prevê registro no INPI. Responsável: Adryan, nas configurações do GitHub.
+> Repositório **privado** (conferido no GitHub em 01/10/2026). Falta a decisão de autoria
+> e o registro da versão no INPI (T19). Responsável: Adryan.
 
 ---
 
@@ -161,7 +160,7 @@ As demais (Q1–Q17, D05–D57) estão em `docs/perguntas_revisores.md` e `docs/
 
 | Caso | Como |
 |---|---|
-| Demonstração completa | app → **Começar com o caso de demonstração**; roteiro em `demo/GUIA_DEMONSTRACAO_AO_VIVO.md`; passeio por todas as telas em `demo/PASSEIO_PELAS_TELAS.md` |
+| Demonstração completa | app → **Ato 1 · a EULER conclui** e **Ato 2 · a EULER explica por que não conclui**; roteiro em `demo/GUIA_DEMONSTRACAO_AO_VIVO.md`; passeio por todas as telas em `demo/PASSEIO_PELAS_TELAS.md` |
 | Demo no código | `euler.io.importar_pasta("demo/caso_demo", p_atm_bar=p_atm_por_altitude_bar(1000))`; períodos por `periodos_entre_estoques`; `investigar(pacote, ref, comp)` |
 | Regenerar o demo | `python demo/gerar_caso_demo.py` (determinístico; o teste confere que os arquivos batem) |
 | Exemplos de relatório | `python scripts/gerar_exemplos_relatorio.py` → `docs/exemplos_relatorio/` |
@@ -187,7 +186,7 @@ As demais (Q1–Q17, D05–D57) estão em `docs/perguntas_revisores.md` e `docs/
    vezes seguidas sem ajuda.
 2. **Narração do vídeo** sobre `demo/video/rascunho_video_demo.mp4` com o texto de
    `demo/ROTEIRO_VIDEO.md`. Responsável: Adryan.
-3. **Repositório privado** e decisão de autoria (T19). Responsável: Adryan.
+3. **Autoria e registro da versão** (T19); o repositório já está privado. Responsável: Adryan.
 4. **Enviar `docs/revisao/` aos revisores** e marcar a reunião começando pelas três
    decisões. Responsável: Adryan. (A resposta não precisa chegar antes de 30/10: a
    apresentação diz que a física está em revisão.)

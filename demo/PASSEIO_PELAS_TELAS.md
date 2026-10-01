@@ -7,99 +7,112 @@ inventados para teste). Para a apresentação com cliques e números exatos, use
 ## Como abrir
 
 - No seu computador: dois cliques em `ABRIR-EULER.cmd`. O navegador abre sozinho em
-  http://localhost:8501 (ou 127.0.0.1:8501). A versão nova traz esse lançador dentro da
-  própria pasta do projeto; para fechar a EULER, feche a janela preta.
-- À esquerda fica o **menu** (faixa azul-escura com o logo EULER). As telas do fluxo são
-  numeradas de 1 a 5. Em cada tela, no alto, aparece "Passo X de 5". No fim da tela, o botão
+  http://localhost:8501 (ou 127.0.0.1:8501). Para fechar a EULER, feche a janela preta.
+- À esquerda fica o **menu** (faixa escura com o logo EULER). As telas do fluxo são
+  numeradas de 1 a 6. Em cada tela, no alto, aparece "Passo X de 6". No fim da tela, o botão
   **Próximo** leva à tela seguinte.
-- A linha cinza "Dados em uso" com o selo laranja **DADOS SINTÉTICOS** mostra quais dados
-  estão carregados. Recarregar a página (F5) apaga os dados e volta ao começo.
-- Se abrir uma tela sem dados, ela oferece o botão **Carregar o caso de demonstração**.
+- A linha "Dados em uso" com o selo laranja **DADOS SINTÉTICOS** mostra quais dados estão
+  carregados. Recarregar a página (F5) apaga os dados e volta ao começo.
+- Se abrir uma tela sem dados, ela oferece os botões **Ato 1 · caso completo** e
+  **Ato 2 · dados insuficientes**.
+
+## A demonstração em dois atos
+
+Os dois atos usam **os mesmos registros de operação** da mesma caldeira sintética. Muda só o
+cadastro de instrumentos:
+
+- **Ato 1 · a EULER conclui:** a fábrica cadastrou a incerteza de todos os instrumentos. A
+  EULER diz o que explica a subida do consumo (cavaco mais úmido e gases mais quentes) e
+  descarta o excesso de ar.
+- **Ato 2 · a EULER explica por que não conclui:** falta a incerteza de quatro instrumentos.
+  A EULER mostra o que já dá para afirmar e qual cadastro resolveria a dúvida.
 
 ## 1. Início
 
 - O que é: a apresentação da EULER, o aviso de que é um protótipo e o quadro **Em que pé
   está a EULER** (o que está verificado, o que está em revisão e o que ainda não foi feito).
-- Onde clicar: botão laranja **Começar com o caso de demonstração**. Ele carrega os dados e
-  já leva para a tela 2. (O botão **Importar meus dados** vai para a tela 1.)
+- Onde clicar: **Ato 1 · a EULER conclui** ou **Ato 2 · a EULER explica por que não
+  conclui**. Os dois carregam os dados e levam à tela **2. Saúde da caldeira**.
 
 ## 2. Importar dados (menu "1. Importar dados")
 
 - O que é: onde a fábrica envia os registros (CSV ou planilha).
-- O que dá para fazer:
-  - informar a altitude do local;
-  - clicar em **Escolher arquivos** (ou arrastar) e depois em **Importar os arquivos
-    enviados**;
-  - baixar a planilha modelo;
-  - escolher um dos três exemplos sintéticos nos cartões de baixo.
-- Experimente: **Exemplo com problemas (sintético)**. Aparecem os números de erros e avisos e,
-  embaixo, a tabela **Avisos de qualidade** com selos (vermelho = erro, laranja = atenção,
-  cinza = informação). Nada é corrigido em silêncio.
-- Depois volte ao **Caso de demonstração** (cartão da esquerda) para seguir o passeio.
+- O que dá para fazer: informar a altitude; **Escolher arquivos** (ou arrastar) e depois
+  **Importar os arquivos enviados**; baixar a planilha modelo; escolher um dos quatro
+  exemplos sintéticos nos cartões de baixo (Ato 1, Ato 2, Modelos, Exemplo com problemas).
+- Experimente: **Exemplo com problemas (sintético)**. A tabela **Avisos de qualidade** usa
+  selos (vermelho = erro, laranja = atenção, cinza = informação) e fala a língua da fábrica:
+  "Umidade = 38. Acima de 1: parece estar em %…". Nada é corrigido em silêncio.
+- Os nomes técnicos dos arquivos e das colunas ficam no quadro **Detalhes técnicos: nomes
+  dos arquivos e das colunas**.
 
-## 3. Dados e limites (menu "2. Dados e limites")
+## 3. Saúde da caldeira (menu "2. Saúde da caldeira")
+
+- O que é: o primeiro olhar depois de carregar os dados. Quanto combustível a caldeira gastou
+  para cada tonelada de vapor, semana a semana.
+- O que olhar:
+  - o selo **Mudou** (laranja), **Estável** (verde) ou **Não dá para dizer** (cinza) e a
+    frase: "O consumo por tonelada de vapor subiu 10,1% de 31/08 a 14/09 em relação à
+    referência (03/08 a 31/08), além da incerteza das medições";
+  - os dois números: referência **0,321 t/t** e mudança **0,353 t/t (+10,1%)**;
+  - o gráfico: um traço por semana, com a incerteza na vertical; faixas **Referência** e
+    **Mudança**; linhas tracejadas numeradas nos eventos (1 calibração, 2 medidor de vapor
+    retirado, 3 · 4 medidor reinstalado e limpeza). A semana de 14/09 fica vazia: sem
+    medidor de vapor, a EULER não inventa número;
+  - a lista de eventos e a tabela período a período.
+- Onde clicar: **Investigar esta mudança**. A Investigação abre com os períodos já
+  escolhidos (agosto × 31/08 a 14/09).
+
+## 4. Dados e limites (menu "3. Dados e limites")
 
 - O que é: o que dá e o que não dá para concluir com esses dados, e por quê.
 - O que olhar, de cima para baixo:
-  - os três cartões: **10 liberadas · 0 com limites · 1 bloqueada**;
+  - os três cartões (no ato 2: **10 liberadas · 0 com limites · 1 bloqueada**; no ato 1:
+    **11 · 0 · 0**);
   - o quadro **Qualidade dos registros**, com a lacuna no diário e o medidor zerado;
-  - **Precisa de dados para concluir**: a análise bloqueada (selo vermelho), o **Por quê** e
-    o que fazer para liberar;
+  - **Precisa de dados para concluir** (só no ato 2): a análise bloqueada, o **Por quê** e o
+    que fazer para liberar;
   - **Liberadas com estes dados**;
-  - a tabela **Período a período** (uma linha por semana). A semana de 14/09 tem ✕: sem o
-    medidor de vapor, não dá para concluir.
+  - a tabela **Período a período**, com 4 colunas: período, eficiência, consumo por t de
+    vapor e situação (**Dá para concluir**, **Com limites** ou **Não dá para concluir**). O
+    resto fica em **Ver detalhes de cada período**.
 
-## 4. Investigação (menu "3. Investigação"), a tela principal
+## 5. Investigação (menu "4. Investigação"), a tela principal
 
 - **Períodos comparados:** dois controles deslizantes. A faixa colorida embaixo mostra as
-  semanas: cinza-azulado = referência (como era), laranja-claro = comparação (como ficou).
-  Arraste as bolinhas para escolher outras semanas.
-- **Resultado** (logo abaixo):
-  - à esquerda, em amarelo, a conclusão: aqui "Não dá para concluir" e o porquê;
-  - à direita, em azul, a **Próxima verificação**;
-  - três cartões: o consumo por tonelada de vapor, o valor em jogo (estimado, com
-    incerteza) e quantas explicações são compatíveis com os dados.
-- **Detalhes**, em abas (clique no nome da aba):
-  1. **O que mudou**: a frase do consumo, o gráfico (os botões trocam a grandeza: gases,
-     O₂, CO, ar, água) e a tabela. Na tabela, a coluna **Diferença** traz a incerteza entre
-     parênteses. A coluna **Mudou de forma detectável?** tem quatro selos: **Sim** (azul),
-     **Condicional** (laranja: só vale com uma condição), **Não** (cinza) e **Sem incerteza
-     para dizer** (cinza).
-  2. **O que os dados sustentam**: a explicação compatível (não comprovada) e quanto ela
-     explica da mudança.
-  3. **Explicações possíveis**: o que ainda não dá para confirmar nem descartar.
-  4. **O que falta saber**: em dois grupos. **Completar o cadastro de instrumentos** (as
-     incertezas que a fábrica precisa informar) e **Medir, registrar ou conferir**.
-- Experimente: no controle **Período de comparação**, arraste a bolinha da direita até
-  **14/09 a 21/09**. O amarelo passa a dizer que o consumo não pode ser calculado, e os
-  cartões mostram "—" e "não estimado": a EULER não inventa número. Arraste de volta até
-  **07/09 a 14/09**. Voltar a uma comparação já vista é instantâneo: a EULER guarda o
-  cálculo.
+  semanas: cinza-azulado = referência (como era), laranja = comparação (como ficou).
+- **Resultado** (logo abaixo), em até três frases:
+  - ato 1 (verde): "O consumo por tonelada de vapor subiu 10,1%. Explicações compatíveis com
+    os dados: combustível mais úmido (+7,8%) e mais calor saindo pela chaminé (+3,1%);
+    descartado: mais excesso de ar e vapor mais exigente. Próxima verificação: …";
+  - ato 2 (amarelo): "Não dá para concluir: …" e a próxima verificação, que é cadastrar a
+    incerteza do método de umidade;
+  - três cartões: consumo por tonelada de vapor, valor em jogo (estimado, com incerteza) e
+    quantas explicações são compatíveis; embaixo, em azul, a **Próxima verificação, em
+    detalhe**.
+- **Detalhes**, em abas: **1. O que mudou** (gráfico e tabela com a incerteza de cada
+  diferença), **2. O que os dados sustentam**, **3. Explicações possíveis** e **4. O que
+  falta saber** (dois grupos: **Completar o cadastro de instrumentos** e **Medir, registrar
+  ou conferir**).
+- Os números técnicos ficam em **Detalhes técnicos da investigação (JSON)**, no fim.
 
-## 5. Extrato por fornecedor (menu "4. Extrato por fornecedor")
+## 6. Extrato por fornecedor (menu "5. Extrato por fornecedor")
 
 - O que é: quanto custa a **energia** de cada fornecedor, não só a tonelada.
-- O que olhar:
-  - a frase azul: o F3 é o mais barato por tonelada e o mais caro por energia;
-  - os dois gráficos lado a lado (o mais barato fica no topo);
-  - a tabela;
-  - o gráfico da umidade por semana (o F3 vai ficando mais úmido).
-- O campo **Período** no alto muda as datas do extrato.
+- O que olhar: a frase azul (o F3 é o mais barato por tonelada e o mais caro por energia), os
+  dois gráficos lado a lado, a tabela e a umidade por semana (o F3 vai ficando mais úmido).
 
-## 6. Relatório (menu "5. Relatório")
+## 7. Relatório (menu "6. Relatório")
 
-- Onde clicar: **Gerar relatório**. Aparecem **Baixar HTML** e, se houver o Chromium,
-  **Baixar PDF**.
-- Na prévia, o botão **Imprimir ou salvar como PDF** abre a impressão do navegador: escolha
-  "Salvar como PDF" e papel A4. Funciona no Windows sem instalar nada.
-- O relatório usa os períodos escolhidos na Investigação. Se você trocar os dados ou os
-  períodos, ele pede para gerar de novo; nunca mostra um relatório antigo.
+- Onde clicar: **Gerar relatório**. O topo do relatório traz as mesmas três frases do
+  resultado. Aparecem **Baixar HTML** e, se houver o Chromium, **Baixar PDF**; o botão
+  **Imprimir ou salvar como PDF** funciona no Windows sem instalar nada.
+- O relatório usa os períodos escolhidos na Investigação e nunca mostra um relatório antigo.
 
-## 7. Calculadora de referência (menu "Referência")
+## 8. Calculadora de referência (menu "Referência")
 
-- O que é: simulação da perda de calor pela chaminé (em revisão científica; não use para
-  decisões).
-- Mexa nos três controles (temperatura dos gases, O₂ e umidade) e veja os números mudarem.
+- Simulação da perda de calor pela chaminé (em revisão científica; não use para decisões).
+  Mexa nos três controles e veja os números mudarem.
 
 ---
 
