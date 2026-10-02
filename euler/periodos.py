@@ -199,6 +199,8 @@ class ResumoPeriodo:
     cobertura_diario: float | None = None
     ponto_gases_id: str | None = None
     instrumento_o2_id: str | None = None
+    regimes_presentes: tuple[str, ...] = ()
+    apto_baseline_carga: bool = False
     estado_vapor: str = "saturado_seco"
     estado_vapor_origem: str = "assumido"
     vapor_t: Grandeza | None = None
@@ -842,6 +844,12 @@ def resumir_periodo(pacote: Pacote, inicio: pd.Timestamp, fim: pd.Timestamp) -> 
         no_periodo = diario[
             (diario["instante_observado"] >= inicio) & (diario["instante_observado"] < fim)
         ]
+        regimes = [str(x) for x in no_periodo["regime"].dropna()]
+        if no_periodo["regime"].isna().any():
+            regimes.append("nao_informado")
+        r.regimes_presentes = tuple(dict.fromkeys(regimes))
+        r.apto_baseline_carga = bool(r.regimes_presentes) and set(r.regimes_presentes) == {"estavel"}
+
         operando = no_periodo[no_periodo["regime"].fillna("estavel") != "parada"]
         operando = operando.drop_duplicates(subset=[c for c in operando.columns if c != "linha"])
         r.n_leituras_diario = len(operando)
