@@ -75,7 +75,15 @@ def ajustar_baseline_carga(observacoes: list[ObservacaoCarga]) -> BaselineCarga:
     b = float(((x - xbar) * (y - y.mean())).sum() / sxx)
     a = float(y.mean() - b * xbar)
     residuos = y - (a + b * x)
-    rmse = float(sqrt(float((residuos**2).sum()) / (len(x) - 2)))
+    norma_residuo = float(np.linalg.norm(residuos))
+    tolerancia_numerica = (
+        np.finfo(float).eps * max(1.0, float(np.linalg.norm(y))) * len(x)
+    )
+    rmse = (
+        0.0
+        if norma_residuo <= tolerancia_numerica
+        else float(sqrt(float((residuos**2).sum()) / (len(x) - 2)))
+    )
     return BaselineCarga(a, b, float(x.min()), float(x.max()), xbar, sxx, rmse, len(x))
 
 
