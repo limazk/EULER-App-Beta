@@ -379,13 +379,69 @@ def _vapor(pacote: Pacote, diario: pd.DataFrame, r: ResumoPeriodo) -> None:
     )
 
 
+def _validar_estado_medido(linhas: pd.DataFrame, r: ResumoPeriodo) -> None:
+    """Valida cada condição medida antes de qualquer média (E8, D69/D70).
+
+    Pressão absoluta em bar, temperaturas em °C e título em fração. Não extrapola
+    temperatura/título ausentes nem deixa a média esconder um estado incompatível.
+    O bloqueio afeta energia e eficiência; a massa do totalizador continua disponível.
+    """
+    if "estado_vapor" in r.bloqueios or r.estado_vapor not in ("superaquecido", "umido"):
+        return
+    coluna = "t_vapor_c" if r.estado_vapor == "superaquecido" else "titulo_vapor_frac"
+    obrigatorias = ("p_vapor_bar_abs", "t_agua_alim_c", coluna)
+    for linha in linhas.itertuples():
+        local = f"linha {linha.linha} do diário"
+        estado = getattr(linha, "estado_vapor", None)
+        if pd.isna(estado) or estado != r.estado_vapor:
+            r.bloqueios["estado_vapor"] = AnaliseBloqueada(
+                f"Estado do vapor ausente ou diferente na {local}, usada no balanço.",
+                ["estado do vapor consistente em todas as leituras usadas no balanço"],
+            )
+            return
+        for nome in obrigatorias:
+            valor = getattr(linha, nome)
+            if pd.isna(valor) or not np.isfinite(float(valor)):
+                rotulo = ROTULO_LEITURA[nome]
+                r.bloqueios["estado_vapor"] = AnaliseBloqueada(
+                    f"Medição de {rotulo} ausente ou inválida na {local}. "
+                    "A EULER não completa a condição do vapor pela média do período.",
+                    [f"{rotulo} em todas as leituras usadas no balanço"],
+                )
+                return
+        try:
+            delta_h_mj_kg(
+                float(linha.p_vapor_bar_abs),
+                r.estado_vapor,
+                float(linha.t_agua_alim_c),
+                t_vapor_c=float(linha.t_vapor_c) if coluna == "t_vapor_c" else None,
+                titulo=float(linha.titulo_vapor_frac) if coluna == "titulo_vapor_frac" else None,
+            )
+        except (AnaliseBloqueada, NotImplementedError) as erro:
+            motivo = (
+                erro.motivo
+                if isinstance(erro, AnaliseBloqueada)
+                else "Condição fora do domínio do cálculo de propriedades da água e do vapor."
+            )
+            r.bloqueios["estado_vapor"] = AnaliseBloqueada(
+                f"Condição do vapor incompatível na {local}: {motivo}",
+                ["revisar pressão, temperatura e título nas leituras indicadas"],
+            )
+            return
+
+
 def _energia_util_intervalos(tot: pd.DataFrame, r: ResumoPeriodo, escala: float) -> None:
     """Q_s = Σ ΔM_k · Δh_k (E8), intervalo a intervalo.
 
     O estado do vapor é o estado único do período. Para vapor superaquecido ou úmido,
-    a temperatura ou o título precisam acompanhar os intervalos; caso contrário o
-    cálculo integrado fica indisponível e o balanço cai para as condições médias.
+    a temperatura ou o título precisam acompanhar os intervalos. Ausências e estados
+    incompatíveis bloqueiam o balanço, inclusive nas leituras de borda do totalizador.
     """
+    if "estado_vapor" in r.bloqueios:
+        return
+    massas = tot["totalizador_vapor_t"].diff()
+    usadas = massas.gt(0) | massas.shift(-1).gt(0)
+    _validar_estado_medido(tot.loc[usadas], r)
     if "estado_vapor" in r.bloqueios:
         return
     soma, cobertos = 0.0, 0
@@ -866,6 +922,8 @@ def resumir_periodo(pacote: Pacote, inicio: pd.Timestamp, fim: pd.Timestamp) -> 
                 "num único balanço.",
                 ["separar o período por estado do vapor ou revisar o registro do estado"],
             )
+
+        _validar_estado_medido(operando, r)
 
         # Temperatura e O₂ só podem alimentar o caminho indireto quando pertencem a uma
         # mesma fronteira física. Misturar, por exemplo, saída da caldeira e pós-economizador

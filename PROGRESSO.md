@@ -196,3 +196,10 @@ incerteza ou números usados na demonstração.
 humana:** usar vapor superaquecido/título medido no caminho principal; normalização por carga
 e baseline multivariável; tratamento explícito de regimes transitórios; quantificação de purga;
 modelos de transferência/UA para fouling; primeiro ensaio com dados reais autorizados.
+
+### Correção das contraprovas do motor — 02/10/2026
+
+- D70: validar pressão, água de alimentação e temperatura/título do vapor úmido/superaquecido por leitura, antes das médias. Cobertura parcial, valores não finitos e estados incompatíveis bloqueiam energia e eficiência; incluir leituras de borda com massa positiva. Consumo específico preservado quando seus dados são suficientes.
+- D71: pontos de gases diferentes entre períodos (ou identificado em apenas um) não geram comparação de desempenho, efeitos de gases ou resíduo dependente. Balanços individuais preservados; investigação explica o bloqueio.
+- 14 testes novos em tests/test_regressao_fronteiras.py. Contraprovas inicialmente falharam; após correção, suíte completa: 360 passaram, nenhum pulado (344,39 s). Três avisos pandas provocados pelos valores infinitos dos testes de defesa, sem falha ou liberação indevida do cálculo. Ruff check e format aprovados (93 arquivos).
+- Golden, tolerâncias, biblioteca de propriedades e fórmulas termodinâmicas não alterados. Não houve validação com planta. Revisão física humana pendente; ver docs/decisoes.md.

@@ -141,3 +141,11 @@ Revisor: ☐ ☐ ☐ ☐ · Observações:
 | | | | | |
 
 Toda correção aprovada vira: (1) ticket no backlog, (2) atualização de `tests/golden/`, feita **por uma pessoa**, com o nome do revisor no commit.
+
+### Correções da revisão de 02/10/2026 — cobertura e fronteiras
+
+D70: no caminho de vapor úmido/superaquecido, validar as condições de cada leitura antes de calcular médias. Temperatura/título parcial, valor não finito ou condição incompatível bloqueiam energia e eficiência, incluindo pontas dos intervalos com produção de vapor. Não foi definido um percentual arbitrário de cobertura aceitável nem criado preenchimento de lacunas.
+
+D71: não comparar desempenho dos gases quando os períodos têm pontos identificados diferentes ou quando só um identifica o ponto. O bloqueio restringe as conclusões comparativas; não apaga balanços individuais válidos. A compatibilidade de dois períodos sem identificação não foi comprovada: comportamento legado mantido, política de obrigatoriedade universal pendente de revisão.
+
+Revisão humana: avaliar eventual método explícito de estimativa para dados parciais e critérios documentais de equivalência entre pontos. Nenhuma dessas alternativas foi presumida aprovada nesta correção.
