@@ -138,3 +138,14 @@ def test_nome_do_arquivo_pode_ser_livre_quando_cabecalho_e_inequivoco():
     fontes, avisos = fontes_de_arquivos({"historian_export_october.csv": conteudo})
     assert set(fontes) == {"diario"}
     assert any(a.tipo == "arquivo_inferido" for a in avisos)
+
+
+def test_tag_desconhecida_e_preservada_para_mapeamento_futuro():
+    bruto = _diario(
+        t_gases_c=[180.0, 181.0, 182.0],
+        steam_drum_level_pct=[50.0, 51.0, 49.5],
+    )
+    pacote = importar_pacote({"diario": bruto}, p_atm_bar=1.01325)
+    perfil = mapear_planta(pacote)
+    assert "steam_drum_level_pct" in perfil.nao_mapeados
+    assert "steam_drum_level_pct" in pacote.importacoes["diario"].original.columns
