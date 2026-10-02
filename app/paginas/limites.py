@@ -76,14 +76,15 @@ def mapa_adaptativo(pacote) -> None:
         "mínimos existem; cada cálculo ainda confere cobertura, simultaneidade e coerência física."
     )
 
-    m1, m2, m3 = st.columns(3)
+    m1, m2, m3, m4 = st.columns(4)
     m1.metric("Sinais reconhecidos", len(perfil.sinais), border=True)
-    m2.metric("Rotas físicas disponíveis", len(perfil.disponiveis), border=True)
+    m2.metric("Rotas disponíveis", len(perfil.disponiveis), border=True)
     m3.metric(
         "Rotas parciais",
         sum(r.situacao == "parcial" for r in perfil.rotas),
         border=True,
     )
+    m4.metric("Tags ainda sem mapa", len(perfil.nao_mapeados), border=True)
 
     disponiveis = [r for r in perfil.rotas if r.situacao == "disponivel"]
     if disponiveis:
@@ -130,6 +131,14 @@ def mapa_adaptativo(pacote) -> None:
                 st.caption("Hipóteses: " + "; ".join(b.hipoteses) + ".")
         except AnaliseBloqueada as erro:
             st.info(f"A rota por vazões existe, mas este recorte ainda não fecha: {erro.motivo}")
+
+    if perfil.nao_mapeados:
+        with st.expander("Tags encontradas que a EULER ainda não sabe interpretar"):
+            st.write(", ".join(perfil.nao_mapeados))
+            st.caption(
+                "Essas colunas continuam preservadas no arquivo original. A EULER não atribui "
+                "unidade ou significado físico sem um mapa explícito."
+            )
 
     parciais = [r for r in perfil.rotas if r.situacao == "parcial"]
     if parciais:
