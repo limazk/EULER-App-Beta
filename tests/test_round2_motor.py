@@ -16,9 +16,7 @@ def test_transitorio_nao_serve_de_referencia_estacionaria():
     pacote, limites = montar([Periodo(G01, dias=3)])
     diario = pacote.importacoes["diario"].dados
     ini, fim = limites[0]
-    idx = diario.index[
-        (diario["instante_observado"] >= ini) & (diario["instante_observado"] < fim)
-    ]
+    idx = diario.index[(diario["instante_observado"] >= ini) & (diario["instante_observado"] < fim)]
     diario.loc[idx[0], "regime"] = "transitorio"
     r = resumir_periodo(pacote, ini, fim)
     assert "transitorio" in r.regimes_presentes
@@ -47,12 +45,12 @@ def test_baseline_recupera_reta_e_recusa_extrapolacao():
 
 def test_residual_normalizado_so_sai_com_ruido_estimavel():
     perfeito = [
-        ObservacaoCarga(carga_t_h=x, combustivel_t_h=0.8 + 0.22 * x)
-        for x in (5.0, 7.0, 9.0, 11.0)
+        ObservacaoCarga(carga_t_h=x, combustivel_t_h=0.8 + 0.22 * x) for x in (5.0, 7.0, 9.0, 11.0)
     ]
-    assert residual_normalizado(
-        ajustar_baseline_carga(perfeito), carga_t_h=9.0, combustivel_t_h=3.2
-    ) is None
+    assert (
+        residual_normalizado(ajustar_baseline_carga(perfeito), carga_t_h=9.0, combustivel_t_h=3.2)
+        is None
+    )
 
     realista = [
         ObservacaoCarga(5.0, 1.90),
@@ -61,9 +59,7 @@ def test_residual_normalizado_so_sai_com_ruido_estimavel():
         ObservacaoCarga(11.0, 3.27),
         ObservacaoCarga(13.0, 3.62),
     ]
-    z = residual_normalizado(
-        ajustar_baseline_carga(realista), carga_t_h=9.0, combustivel_t_h=3.2
-    )
+    z = residual_normalizado(ajustar_baseline_carga(realista), carga_t_h=9.0, combustivel_t_h=3.2)
     assert z is not None and z > 0
 
 
