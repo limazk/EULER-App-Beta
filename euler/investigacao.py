@@ -1046,8 +1046,9 @@ def investigar(
             st_res,
             av_res,
             porque,
-            "Registrar número e duração das purgas em todos os turnos, medir CO nos gases e "
-            "procurar vazamentos de vapor e de condensado.",
+            "Registrar as purgas e, para quantificar energia, medir/estimar a massa purgada "
+            "e a pressão do ponto de purga; medir CO nos gases e procurar vazamentos de vapor "
+            "e de condensado.",
             "Diferença entre os dois caminhos (direto e indireto), que compartilham a umidade.",
             ("balanço direto", "perda nos gases", "purgas"),
             residuo,
@@ -1428,6 +1429,8 @@ def investigar(
             "cobertura_diario": r.cobertura_diario,
             "ponto_gases_id": r.ponto_gases_id,
             "instrumento_o2_id": r.instrumento_o2_id,
+            "regimes_presentes": list(r.regimes_presentes),
+            "apto_baseline_carga": r.apto_baseline_carga,
             "vapor_t": _grandeza_json(r.vapor_t),
             "energia_util": {
                 "metodo": b.metodo_energia_util,
