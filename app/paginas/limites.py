@@ -102,7 +102,9 @@ def mapa_adaptativo(pacote) -> None:
             fluxo = fluxo_entalpia_vapor(diario)
             st.markdown("#### Física já extraída do lado do vapor")
             a, b = st.columns(2)
-            a.metric("Fluxo médio de entalpia do vapor", f"{num(fluxo.media_mw, 1)} MW", border=True)
+            a.metric(
+                "Fluxo médio de entalpia do vapor", f"{num(fluxo.media_mw, 1)} MW", border=True
+            )
             b.metric("Leituras válidas", fluxo.n, border=True)
             st.caption(fluxo.nota)
             if fluxo.hipoteses:
@@ -111,8 +113,10 @@ def mapa_adaptativo(pacote) -> None:
             st.info(f"O lado do vapor está parcialmente observável: {erro.motivo}")
 
     rota_eta = perfil.rota("eficiencia_direta")
-    if diario is not None and rota_eta.situacao == "disponivel" and rota_eta.alternativa.startswith(
-        "historiador"
+    if (
+        diario is not None
+        and rota_eta.situacao == "disponivel"
+        and rota_eta.alternativa.startswith("historiador")
     ):
         try:
             b = balanco_por_vazoes(diario)
