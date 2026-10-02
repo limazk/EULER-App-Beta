@@ -74,7 +74,8 @@ def test_purga_quantificada_exige_massa_e_usa_entalpia_do_liquido():
     with pytest.raises(AnaliseBloqueada):
         energia_purga_gj(
             massa_purga_kg=-1.0,
-            p_bar_abs=10.0,
+            p_purga_bar_abs=10.0,
+            p_agua_referencia_bar_abs=10.0,
             t_agua_referencia_c=80.0,
         )
 
