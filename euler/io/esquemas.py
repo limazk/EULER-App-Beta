@@ -25,6 +25,7 @@ ROTULOS = {
     "instrumento_o2_id": "analisador de O₂", "co_ppm": "CO nos gases",
     "t_agua_alim_c": "temperatura da água de alimentação", "t_ar_c": "temperatura do ar de combustão",
     "purgas_n": "número de purgas", "purgas_s": "duração das purgas",
+    "p_agua_referencia_bar_man": "pressão da água de referência",
     "massa_purga_kg": "massa purgada", "p_purga_bar_man": "pressão da purga",
     "vazao_agua_alim_t_h": "vazão da água de alimentação",
     "p_agua_eco_bar_man": "pressão da água no economizador",
@@ -397,6 +398,15 @@ DIARIO = Tabela(
             "Alias de titulo_vapor_frac; normalizado com aviso. Se ambos forem informados, precisam coincidir.",
             "",
             faixa=(0, 1),
+        ),
+        Coluna(
+            "p_agua_referencia_bar_man",
+            "numero",
+            "bar manométrico",
+            False,
+            "Pressão da água no mesmo ponto da temperatura t_agua_alim_c, usada como referência na energia da purga.",
+            "",
+            faixa=(0, 250),
         ),
     ),
 )

@@ -65,6 +65,7 @@ Uma linha por leitura do operador (ou do sistema) na caldeira.
 | `t_gases_eco_saida_c` | °C | não | Temperatura dos gases na saída do economizador. |  | 30 a 600 |
 | `dp_gases_mbar` | mbar | não | Diferença de pressão no trecho de gases associado à análise de transferência. |  | 0 a 500 |
 | `titulo_vapor` | fração | não | Alias de titulo_vapor_frac; normalizado com aviso. Se ambos forem informados, precisam coincidir. |  | 0 a 1 |
+| `p_agua_referencia_bar_man` | bar manométrico | não | Pressão da água no mesmo ponto da temperatura t_agua_alim_c, usada como referência na energia da purga. |  | 0 a 250 |
 
 ### `combustivel.csv` · Combustível: recebimentos e estoques
 

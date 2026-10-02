@@ -224,3 +224,7 @@ Esta seção atualiza o estado das extensões que apareciam como pendentes acima
 - Caminhos de referência e geradores atualizados; mantido um redirecionamento documental para a referência antiga presente nos testes golden protegidos.
 - Validação local: cinco testes de contrato/modelos/rodapé aprovados; 83 links locais verificados antes da nota dos PDFs; Ruff check e format aprovados. CI integral executado pelo GitHub no PR.
 - Nenhuma equação, tolerância ou referência golden alterada. Estrutura de execução e CMD preservados.
+
+## Reconciliação dos PRs do motor — 02/10/2026
+
+Preservada a integração do PR #7 e a organização do PR #8. Incorporada a separação das pressões da purga e da água de referência do PR #5, com importação, bloqueio por leitura e testes. A revisão física humana permanece pendente (D77).
