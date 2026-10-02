@@ -178,9 +178,7 @@ def mapear_planta(pacote: Pacote) -> PerfilPlanta:
                 "recebimentos", ROTULOS["recebimentos"], "combustivel", n_rec
             )
         if n_est:
-            sinais["estoques"] = Sinal(
-                "estoques", ROTULOS["estoques"], "combustivel", n_est
-            )
+            sinais["estoques"] = Sinal("estoques", ROTULOS["estoques"], "combustivel", n_est)
 
     obs = set(sinais)
     termo_vapor = ("p_vapor_bar_abs", "t_agua_alim_c")
