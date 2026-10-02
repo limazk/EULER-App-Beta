@@ -35,6 +35,33 @@ _DATA_BR = re.compile(r"(\d{1,2})/(\d{1,2})/(\d{4})(?:[ T](\d{1,2}):(\d{2})(?::(
 _MILHAR_BR = re.compile(r"-?\d{1,3}(\.\d{3})+(,\d+)?")
 _MARCAS_SEM_DADO = {"-", "--", "nan", "na", "n/a", "s/d", "sd", "null", "none"}
 
+# Integração adaptativa: aliases só quando a semântica/unidade está explícita.
+# Nomes ambíguos como "steam_flow" não são convertidos silenciosamente.
+ALIASES_COLUNAS = {
+    "timestamp": "instante_observado",
+    "datetime": "instante_observado",
+    "boiler_id": "caldeira_id",
+    "steam_flow_t_h": "vazao_vapor_t_h",
+    "steam_flow_tph": "vazao_vapor_t_h",
+    "fuel_flow_kg_h": "vazao_combustivel_kg_h",
+    "fuel_pci_mj_kg": "pci_combustivel_mj_kg",
+    "fuel_thermal_power_mw": "potencia_combustivel_mw",
+    "steam_pressure_bar_g": "p_vapor_bar_man",
+    "steam_temperature_c": "t_vapor_c",
+    "steam_quality_frac": "titulo_vapor_frac",
+    "feedwater_temperature_c": "t_agua_alim_c",
+    "feedwater_flow_t_h": "vazao_agua_alim_t_h",
+    "flue_gas_temperature_c": "t_gases_c",
+    "stack_temperature_c": "t_gases_c",
+    "o2_dry_pct": "o2_seco_pct",
+    "flue_gas_o2_dry_pct": "o2_seco_pct",
+    "economizer_water_pressure_bar_g": "p_agua_eco_bar_man",
+    "economizer_water_inlet_c": "t_agua_eco_entrada_c",
+    "economizer_water_outlet_c": "t_agua_eco_saida_c",
+    "economizer_gas_inlet_c": "t_gases_eco_entrada_c",
+    "economizer_gas_outlet_c": "t_gases_eco_saida_c",
+}
+
 
 @dataclass(frozen=True)
 class Aviso:
@@ -353,8 +380,32 @@ def normalizar(
     """Converte uma tabela bruta (texto, com `linha`) para os tipos do contrato."""
     tabela = TABELAS[nome_tabela]
     avisos: list[Aviso] = []
-    presentes = [c for c in bruto.columns if c != "linha"]
+    original = bruto.reset_index(drop=True)
+    entrada = original.copy()
     nomes_contrato = [c.nome for c in tabela.colunas]
+    nomes_contrato_set = set(nomes_contrato)
+
+    renomear = {}
+    for alias, canonico in ALIASES_COLUNAS.items():
+        if alias not in entrada.columns or canonico in entrada.columns:
+            continue
+        if canonico not in nomes_contrato_set:
+            continue
+        renomear[alias] = canonico
+        avisos.append(
+            Aviso(
+                tabela.nome,
+                None,
+                alias,
+                "alias_coluna",
+                f"Coluna “{alias}” reconhecida como “{canonico}”; o arquivo original foi preservado.",
+                "info",
+            )
+        )
+    if renomear:
+        entrada = entrada.rename(columns=renomear)
+
+    presentes = [c for c in entrada.columns if c != "linha"]
 
     for extra in [c for c in presentes if c not in nomes_contrato]:
         avisos.append(
@@ -393,14 +444,13 @@ def normalizar(
                 )
             )
 
-    original = bruto.reset_index(drop=True)
     if any(a.gravidade == "erro" for a in avisos):
         vazio = pd.DataFrame(columns=["linha", *nomes_contrato])
         return Importacao(tabela.nome, original, vazio, avisos)
 
     dados = pd.DataFrame({"linha": original["linha"].astype(int)})
     for col in tabela.colunas:
-        textos = original[col.nome] if col.nome in presentes else pd.Series([""] * len(original))
+        textos = entrada[col.nome] if col.nome in presentes else pd.Series([""] * len(original))
         serie, avisos_col = _converter_coluna(
             tabela, col, textos, original["linha"], virgula_decimal, fuso
         )
