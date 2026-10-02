@@ -364,6 +364,50 @@ def test_a6_o2_nao_e_rotulado_como_causa_unica_de_excesso_de_ar():
     assert "não separa" in texto or "nao separa" in texto
 
 
+# ---------------------------------------------------------------- A7 · regime transitório
+
+
+def test_a7_transitorio_bloqueia_indireto_mas_preserva_balanco_direto():
+    pacote, lim = montar([Periodo(G01, dias=3)])
+    diario = pacote.importacoes["diario"].dados
+    ini, fim = lim[0]
+    sel = (diario["instante_observado"] >= ini) & (diario["instante_observado"] < fim)
+    idx = diario.index[sel]
+    diario.loc[idx[:4], "regime"] = "transitorio"
+
+    r = resumir_periodo(pacote, ini, fim)
+    assert r.regimes_operacao["transitorio"] == 4
+    assert "regime_indireto" in r.bloqueios
+    assert balanco_direto(r).eficiencia is not None
+    i = indireto_periodo(r, p_gases=1.01325)
+    assert i.resultado is None and i.bloqueio is not None
+    assert "transit" in i.bloqueio.motivo.lower()
+
+
+def test_a7_partida_tambem_impede_media_de_gases_de_regime_estavel():
+    pacote, lim = montar([Periodo(G01, dias=3)])
+    diario = pacote.importacoes["diario"].dados
+    ini, fim = lim[0]
+    sel = (diario["instante_observado"] >= ini) & (diario["instante_observado"] < fim)
+    primeiro = diario.index[sel][0]
+    diario.loc[primeiro, "regime"] = "partida"
+
+    r = resumir_periodo(pacote, ini, fim)
+    assert r.regimes_operacao["partida"] == 1
+    assert "regime_indireto" in r.bloqueios
+    assert indireto_periodo(r, p_gases=1.01325).resultado is None
+
+
+def test_a7_regime_estavel_nao_muda_resultado_e_aparece_no_json():
+    pacote, lim = montar([Periodo(G01), Periodo(G01)])
+    r = resumir_periodo(pacote, *lim[0])
+    assert r.regimes_operacao == {"estavel": r.n_leituras_diario}
+    assert "regime_indireto" not in r.bloqueios
+    j = investigar(pacote, lim[0], lim[1])
+    assert j["periodos"]["referencia"]["regimes_operacao"]["estavel"] > 0
+    assert j["periodos"]["referencia"]["regime_indireto"] == "estavel"
+
+
 # ---------------------------------------------------------------- relatório: quatro estados
 
 
