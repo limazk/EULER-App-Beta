@@ -23,7 +23,12 @@ from typing import Literal
 
 import pandas as pd
 
-from euler.baseline import BaselineCarga, ObservacaoCarga, ajustar_baseline_carga, residual_normalizado
+from euler.baseline import (
+    BaselineCarga,
+    ObservacaoCarga,
+    ajustar_baseline_carga,
+    residual_normalizado,
+)
 from euler.deteccao import Comparacao, comparar
 from euler.direto import balanco_direto
 from euler.formato import num
