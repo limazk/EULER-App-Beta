@@ -51,6 +51,7 @@ def test_purga_requer_pressao_propria_e_cobertura_completa():
     assert balanco_direto(r).energia_purga_gj is None
     assert "purga" in r.bloqueios
     diario["p_purga_bar_abs"] = 10.0
+    diario["p_agua_referencia_bar_abs"] = 10.0
     r = resumir_periodo(pacote, *limites)
     assert balanco_direto(r).energia_purga_gj.valor > 0
     diario.loc[diario.index[1], "massa_purga_kg"] = pd.NA
@@ -64,6 +65,7 @@ def test_purga_usa_leitura_final_nao_inicial_do_intervalo():
     bordas = diario[diario["instante_observado"].isin([ini, fim])]
     diario["massa_purga_kg"] = 0.0
     diario["p_purga_bar_abs"] = 10.0
+    diario["p_agua_referencia_bar_abs"] = 10.0
     diario.loc[bordas.index[0], "massa_purga_kg"] = 9999.0
     diario.loc[bordas.index[-1], "massa_purga_kg"] = 100.0
     r = resumir_periodo(pacote, ini, fim)
@@ -74,6 +76,7 @@ def test_purga_sem_borda_inicial_nao_inclui_massa_de_antes_do_periodo():
     pacote, limites, diario = caso()
     diario["massa_purga_kg"] = 10.0
     diario["p_purga_bar_abs"] = 10.0
+    diario["p_agua_referencia_bar_abs"] = 10.0
     pacote.importacoes["diario"].dados = diario[diario["instante_observado"] != limites[0]]
     r = resumir_periodo(pacote, *limites)
     assert r.energia_purga_intervalos_gj is None

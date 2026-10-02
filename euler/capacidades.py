@@ -435,9 +435,10 @@ def avaliar(pacote: Pacote) -> list[Capacidade]:
             (
                 ("massa_purga_kg", "massa purgada"),
                 ("p_purga_bar_abs", "pressão própria da purga"),
+                ("p_agua_referencia_bar_abs", "pressão da água de referência"),
                 ("t_agua_alim_c", "temperatura da água de alimentação"),
             ),
-            "D74",
+            "D74, D77",
         ),
         (
             "ua_economizador",

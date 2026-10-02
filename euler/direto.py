@@ -293,7 +293,7 @@ def balanco_direto(r: ResumoPeriodo) -> BalancoDireto:
             "estimado",
             None,
             "Massa purgada medida por intervalo × diferença de entalpia; líquido saturado "
-            "à pressão própria da purga, sem crédito de recuperação de calor/flash.",
+            "à pressão própria da purga e água de referência na sua própria pressão e temperatura, sem crédito de recuperação de calor/flash.",
             Orcamento(
                 faltam=[
                     Falta("incerteza da massa purgada"),

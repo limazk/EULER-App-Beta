@@ -1103,7 +1103,7 @@ def investigar(
             av_res,
             porque,
             "Registrar as purgas e, para quantificar energia, medir a massa purgada "
-            "e a pressão do ponto de purga; medir CO nos gases e procurar vazamentos de vapor "
+            "e a pressão do ponto de purga, além da pressão e temperatura da água de referência; medir CO nos gases e procurar vazamentos de vapor "
             "e de condensado.",
             "Diferença entre os dois caminhos (direto e indireto), que compartilham a umidade.",
             ("balanço direto", "perda nos gases", "purgas"),
@@ -1245,7 +1245,7 @@ def investigar(
         falta.append("registro de purgas nos dois períodos")
     if not purgas_quantificadas:
         falta.append(
-            "massa purgada e pressão própria nos dois períodos para quantificar a perda por purga"
+            "massa purgada, pressão própria da purga e condições da água de referência nos dois períodos para quantificar a perda por purga"
         )
     # incertezas necessárias não informadas (A3): em instrumentos.csv
     for g in (

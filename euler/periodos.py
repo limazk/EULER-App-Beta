@@ -950,13 +950,23 @@ def _purga_periodo(diario: pd.DataFrame, r: ResumoPeriodo) -> None:
             if massa == 0:
                 continue
             p, t = linha.p_purga_bar_abs, linha.t_agua_alim_c
-            if pd.isna(p) or pd.isna(t) or not np.isfinite([float(p), float(t)]).all():
+            p_ref = getattr(linha, "p_agua_referencia_bar_abs", pd.NA)
+            valores = (p, p_ref, t)
+            if (
+                any(pd.isna(v) for v in valores)
+                or not np.isfinite([float(v) for v in valores]).all()
+            ):
                 raise AnaliseBloqueada(
-                    "Purga com massa medida, mas sem pressão própria ou temperatura da água.",
-                    ["pressão no ponto de origem da purga e temperatura da água em cada leitura"],
+                    "Purga com massa medida, mas sem pressão própria, pressão ou temperatura da água de referência.",
+                    [
+                        "pressão no ponto de origem da purga, pressão e temperatura no ponto da água de referência em cada leitura"
+                    ],
                 )
             soma += energia_purga_gj(
-                massa_purga_kg=massa, p_bar_abs=float(p), t_agua_referencia_c=float(t)
+                massa_purga_kg=massa,
+                p_purga_bar_abs=float(p),
+                p_agua_referencia_bar_abs=float(p_ref),
+                t_agua_referencia_c=float(t),
             )
         r.massa_purga_kg = float(massas.sum())
         r.energia_purga_intervalos_gj = soma
