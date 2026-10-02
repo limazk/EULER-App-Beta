@@ -28,7 +28,9 @@ from euler.formato import num, pct
 from euler.incerteza import Componente, Falta, Orcamento, incerteza_padrao
 from euler.io import Pacote
 from euler.io.leitura import FUSO_PADRAO
+from euler.purga import energia_purga_gj
 from euler.tipos import AnaliseBloqueada, Grandeza
+from euler.transferencia import ua_economizador
 from euler.vapor import delta_h_mj_kg
 
 LEITURAS_DIARIO = {
@@ -40,6 +42,14 @@ LEITURAS_DIARIO = {
     "p_vapor_bar_abs": "bar abs",
     "t_vapor_c": "°C",
     "titulo_vapor_frac": "fração",
+    "p_purga_bar_abs": "bar abs",
+    "vazao_agua_alim_t_h": "t/h",
+    "p_agua_eco_bar_abs": "bar abs",
+    "t_agua_eco_entrada_c": "°C",
+    "t_agua_eco_saida_c": "°C",
+    "t_gases_eco_entrada_c": "°C",
+    "t_gases_eco_saida_c": "°C",
+    "dp_gases_mbar": "mbar",
 }
 ELEMENTOS = ("C", "H", "O", "N", "S")
 TOLERANCIA_INSTANTE = pd.Timedelta(minutes=1)
@@ -54,7 +64,10 @@ INSTRUMENTOS = {
     "t_gases_c": (("gases",), ("termopar", "temperatura dos gases")),
     "o2_seco_pct": (("o2",), ("o₂", "o2", "oxigênio")),
     "p_vapor_bar_abs": (("manometro", "pressao"), ("manômetro", "manometro", "pressão")),
-    "t_vapor_c": (("vapor_temperatura", "termometro_vapor"), ("temperatura do vapor",)),
+    "t_vapor_c": (
+        ("vapor_temperatura", "termometro_vapor", "temperatura_vapor", "vapor_temp"),
+        ("temperatura do vapor",),
+    ),
     "titulo_vapor_frac": (
         ("titulo_vapor", "qualidade_vapor"),
         ("título do vapor", "titulo do vapor"),
@@ -197,8 +210,11 @@ class ResumoPeriodo:
     leituras_grandeza: dict[str, Grandeza] = field(default_factory=dict)
     n_leituras_diario: int = 0
     cobertura_diario: float | None = None
+    regimes_operacao: dict[str, int] = field(default_factory=dict)
     ponto_gases_id: str | None = None
     instrumento_o2_id: str | None = None
+    regimes_presentes: tuple[str, ...] = ()
+    apto_baseline_carga: bool = False
     estado_vapor: str = "saturado_seco"
     estado_vapor_origem: str = "assumido"
     vapor_t: Grandeza | None = None
@@ -223,6 +239,10 @@ class ResumoPeriodo:
     umidade_por_fornecedor: dict[str, float] = field(default_factory=dict)
     purgas_n: float | None = None
     purgas_s: float | None = None
+    massa_purga_kg: float | None = None
+    energia_purga_intervalos_gj: float | None = None
+    q_economizador_mw: float | None = None
+    ua_economizador_mw_k: float | None = None
     eventos: list[dict] = field(default_factory=list)
     bloqueios: dict[str, AnaliseBloqueada] = field(default_factory=dict)
 
@@ -886,6 +906,101 @@ def grandeza_leitura(
     )
 
 
+def _purga_periodo(diario: pd.DataFrame, r: ResumoPeriodo) -> None:
+    """Integra massa desde a leitura anterior em (início, fim], sem usar duração como massa.
+
+    Exige cobertura de massa em todas as leituras do intervalo. A pressão própria da purga
+    e a água de referência acompanham cada massa positiva; nenhuma média supre lacunas.
+    A perda é bruta: não desconta recuperação de calor ou flash.
+    """
+    linhas = diario[
+        (diario["instante_observado"] > r.inicio) & (diario["instante_observado"] <= r.fim)
+    ].drop_duplicates(subset=[c for c in diario.columns if c != "linha"])
+    if linhas.empty or not linhas["massa_purga_kg"].notna().any():
+        return
+    try:
+        anteriores = diario[diario["instante_observado"] <= r.inicio]
+        if anteriores.empty or anteriores["instante_observado"].max() != r.inicio:
+            raise AnaliseBloqueada(
+                "Falta a leitura inicial que delimita a primeira massa de purga do período.",
+                ["leitura no início do período para delimitar a massa purgada desde a anterior"],
+            )
+        massas = linhas["massa_purga_kg"]
+        if massas.isna().any() or not np.isfinite(massas.astype(float)).all() or (massas < 0).any():
+            raise AnaliseBloqueada(
+                "Massa das purgas ausente ou inválida em parte das leituras do período.",
+                [
+                    "massa purgada desde a leitura anterior em todas as leituras, inclusive zero medido"
+                ],
+            )
+        if linhas["instante_observado"].duplicated().any():
+            raise AnaliseBloqueada(
+                "Há leituras divergentes no mesmo instante para a purga.",
+                ["revisar duplicatas do diário"],
+            )
+        # A última massa cobre até o fim; se essa borda faltar, a soma é parcial.
+        if abs(linhas["instante_observado"].max() - r.fim) > TOLERANCIA_INSTANTE:
+            raise AnaliseBloqueada(
+                "Falta a massa purgada na leitura final do período.",
+                ["leitura de purga no fim do período"],
+            )
+        soma = 0.0
+        for linha in linhas.itertuples():
+            massa = float(linha.massa_purga_kg)
+            if massa == 0:
+                continue
+            p, t = linha.p_purga_bar_abs, linha.t_agua_alim_c
+            if pd.isna(p) or pd.isna(t) or not np.isfinite([float(p), float(t)]).all():
+                raise AnaliseBloqueada(
+                    "Purga com massa medida, mas sem pressão própria ou temperatura da água.",
+                    ["pressão no ponto de origem da purga e temperatura da água em cada leitura"],
+                )
+            soma += energia_purga_gj(
+                massa_purga_kg=massa, p_bar_abs=float(p), t_agua_referencia_c=float(t)
+            )
+        r.massa_purga_kg = float(massas.sum())
+        r.energia_purga_intervalos_gj = soma
+    except AnaliseBloqueada as bloqueio:
+        r.bloqueios["purga"] = bloqueio
+
+
+def _economizador_periodo(operando: pd.DataFrame, r: ResumoPeriodo) -> None:
+    """UA aparente pela água e LMTD contracorrente equivalente, apenas em regime estável.
+
+    Valida cada conjunto simultâneo antes de resumir o período. Cobertura parcial,
+    cruzamento térmico e estado líquido impossível bloqueiam o indicador.
+    """
+    campos = {
+        "vazao_agua_t_h": "vazao_agua_alim_t_h",
+        "p_agua_bar_abs": "p_agua_eco_bar_abs",
+        "t_agua_entrada_c": "t_agua_eco_entrada_c",
+        "t_agua_saida_c": "t_agua_eco_saida_c",
+        "t_gases_entrada_c": "t_gases_eco_entrada_c",
+        "t_gases_saida_c": "t_gases_eco_saida_c",
+    }
+    dados = operando[list(campos.values())]
+    if dados.empty or not dados.notna().any().any():
+        return
+    try:
+        if not r.apto_baseline_carga:
+            raise AnaliseBloqueada(
+                "UA do economizador exige um período explicitamente estável.",
+                ["separar partida, parada e transientes"],
+            )
+        if dados.isna().any().any() or not np.isfinite(dados.astype(float)).all().all():
+            raise AnaliseBloqueada(
+                "Medições do economizador incompletas ou inválidas no período.",
+                ["vazão, pressão própria e quatro temperaturas em cada leitura"],
+            )
+        for _, linha in dados.iterrows():
+            ua_economizador(**{arg: float(linha[col]) for arg, col in campos.items()})
+        resultado = ua_economizador(**{arg: r.leituras[col].media for arg, col in campos.items()})
+        r.q_economizador_mw = resultado.q_mw
+        r.ua_economizador_mw_k = resultado.ua_mw_k
+    except AnaliseBloqueada as bloqueio:
+        r.bloqueios["ua_economizador"] = bloqueio
+
+
 def resumir_periodo(pacote: Pacote, inicio: pd.Timestamp, fim: pd.Timestamp) -> ResumoPeriodo:
     """Resume o período [inicio, fim] (inicio e fim devem ser medições de estoque)."""
     r = ResumoPeriodo(inicio=inicio, fim=fim)
@@ -898,9 +1013,32 @@ def resumir_periodo(pacote: Pacote, inicio: pd.Timestamp, fim: pd.Timestamp) -> 
         no_periodo = diario[
             (diario["instante_observado"] >= inicio) & (diario["instante_observado"] < fim)
         ]
+        regimes = [str(x) for x in no_periodo["regime"].dropna()]
+        if no_periodo["regime"].isna().any():
+            regimes.append("nao_informado")
+        r.regimes_presentes = tuple(dict.fromkeys(regimes))
+        r.apto_baseline_carga = bool(r.regimes_presentes) and set(r.regimes_presentes) == {
+            "estavel"
+        }
+
         operando = no_periodo[no_periodo["regime"].fillna("estavel") != "parada"]
         operando = operando.drop_duplicates(subset=[c for c in operando.columns if c != "linha"])
         r.n_leituras_diario = len(operando)
+        regimes = operando["regime"].fillna("estavel").astype(str)
+        r.regimes_operacao = {str(k): int(v) for k, v in regimes.value_counts().items()}
+        transitorios = [x for x in ("partida", "transitorio") if r.regimes_operacao.get(x, 0)]
+        if transitorios:
+            r.bloqueios["regime_indireto"] = AnaliseBloqueada(
+                "O período contém operação de partida ou transitória. A EULER não mistura essas "
+                "leituras com regime estável para calcular perda nos gases ou atribuir hipóteses "
+                "a partir de médias de chaminé.",
+                [
+                    (
+                        "selecionar um período inteiramente estável para a análise dos gases "
+                        "ou analisar os regimes separadamente"
+                    )
+                ],
+            )
 
         estado_series = operando["estado_vapor"].replace("", pd.NA)
         estados = tuple(
@@ -979,6 +1117,8 @@ def resumir_periodo(pacote: Pacote, inicio: pd.Timestamp, fim: pd.Timestamp) -> 
             r.purgas_n = float(no_periodo["purgas_n"].sum())
         if no_periodo["purgas_s"].notna().any():
             r.purgas_s = float(no_periodo["purgas_s"].sum())
+        _purga_periodo(diario, r)
+        _economizador_periodo(operando, r)
         _vapor(pacote, diario, r)
     _combustivel(pacote, r)
     _mistura(pacote, r)

@@ -164,6 +164,54 @@ def _tabela(s) -> None:
     st.table(pd.DataFrame(linhas), hide_index=True, border="horizontal")
 
 
+def _comparacao_por_carga(s) -> None:
+    """Exibe a referência por carga já calculada pelo motor, sem alterar o selo."""
+    with st.expander("Comparação por carga · análise complementar"):
+        st.markdown(
+            "**A produção de vapor ajuda a explicar a mudança de consumo?** Esta camada "
+            "compara o combustível com uma referência ajustada à produção de vapor. "
+            "O resultado é complementar: o selo acima continua usando a comparação "
+            "com a incerteza das medições."
+        )
+        modelo = getattr(s, "baseline_carga", None)
+        if modelo is None:
+            st.info(
+                "Não há uma referência por carga calculável com estes dados. O ajuste "
+                "exige pelo menos três períodos de referência explicitamente estáveis, "
+                "com consumo de combustível e vapor válidos e mais de uma carga observada."
+            )
+            return
+        st.caption(
+            f"Referência estimada com {modelo.n} períodos. Faixa observada: "
+            f"{num(modelo.carga_min_t_h, 2)} a {num(modelo.carga_max_t_h, 2)} t/h de vapor. "
+            "O motor não usa essa relação fora da faixa observada."
+        )
+        residuos = getattr(s, "residuos_carga", {})
+        linhas = []
+        for p in s.periodos:
+            if p.estado == "referencia":
+                continue
+            valor = residuos.get(p.indice)
+            linhas.append(
+                {
+                    "Período": f"{p.inicio:%d/%m} a {p.fim:%d/%m}",
+                    "Desvio normalizado · estimado": (
+                        "Não calculável" if valor is None else num(valor, 2)
+                    ),
+                }
+            )
+        if linhas:
+            st.table(pd.DataFrame(linhas), hide_index=True, border="horizontal")
+        st.caption(
+            "O desvio é expresso em desvios-padrão de previsão, sem unidade: positivo "
+            "significa consumo acima da referência por carga; negativo, abaixo. "
+            "Não é probabilidade nem prova de uma causa. Sem regime estável, dados "
+            "válidos, carga dentro da faixa ou dispersão estimável, o valor não é calculado. "
+            "Esta camada ainda não inclui as incertezas instrumentais separadamente "
+            "e está em revisão física."
+        )
+
+
 def mostrar(pacote) -> None:
     s = _saude(estado.assinatura(), pacote)
     cor, rotulo = SELO_SAUDE[s.selo]
@@ -191,6 +239,7 @@ def mostrar(pacote) -> None:
         _eventos(s)
         st.markdown("#### Período a período")
         _tabela(s)
+        _comparacao_por_carga(s)
     st.caption(
         "Mudou = a diferença para a referência é maior que a incerteza das medições; estável = "
         "fica dentro dela; não dá para dizer = falta o consumo do período ou a incerteza. "

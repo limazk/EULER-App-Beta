@@ -4,7 +4,8 @@ Fronteira física (D39):
 - **entra**: o combustível queimado no período (E9, massa como recebida) com seu PCI;
 - **sai como energia útil**: só o vapor que passa pelo medidor, do estado da água de
   alimentação (no ponto em que a temperatura é medida, na pressão da caldeira) até vapor
-  saturado; título x = 1 **assumido** quando não medido;
+  no estado informado (úmido, saturado seco ou superaquecido); x = 1 **assumido**
+  somente quando o estado não foi informado;
 - **fica fora da energia útil** e aparece como "outras perdas" no confronto com o caminho
   indireto: purga (D27), gases da chaminé, casco, cinzas e incombustos, vazamentos e
   qualquer vapor consumido antes do medidor.
@@ -76,6 +77,8 @@ class BalancoDireto:
     energia_util_gj: Grandeza | None = None
     metodo_energia_util: str | None = None
     energia_combustivel_gj: Grandeza | None = None
+    energia_purga_gj: Grandeza | None = None
+    perda_purga_pct_pci: float | None = None
     eficiencia: Grandeza | None = None
     eficiencia_cenarios: dict[str, float] | None = None
     consumo_t_por_t: Grandeza | None = None
@@ -160,6 +163,8 @@ def _orcamento_delta_h(
     orc.faltam = list(dict.fromkeys(orc.faltam))
     if estado == "saturado_seco" and r.estado_vapor_origem == "assumido":
         orc.nao_incluidos.append("estado do vapor não medido (saturado seco, x = 1, assumido)")
+    elif estado == "saturado_seco":
+        orc.nao_incluidos.append("incerteza da confirmação de vapor saturado seco não quantificada")
     return orc
 
 
@@ -277,6 +282,27 @@ def balanco_direto(r: ResumoPeriodo) -> BalancoDireto:
         b.energia_combustivel_gj = _grandeza(
             e, "GJ", comb.orcamento.mais(pci.orcamento), "cenário 'o que entra é o que queima'"
         )
+
+    if "purga" in r.bloqueios:
+        b.bloqueios.append(r.bloqueios["purga"])
+    if r.energia_purga_intervalos_gj is not None:
+        q_purga = r.energia_purga_intervalos_gj
+        b.energia_purga_gj = Grandeza(
+            q_purga,
+            "GJ",
+            "estimado",
+            None,
+            "Massa purgada medida por intervalo × diferença de entalpia; líquido saturado "
+            "à pressão própria da purga, sem crédito de recuperação de calor/flash.",
+            Orcamento(
+                faltam=[
+                    Falta("incerteza da massa purgada"),
+                    Falta("incerteza das condições termodinâmicas da purga", False),
+                ]
+            ),
+        )
+        if b.energia_combustivel_gj is not None and b.energia_combustivel_gj.valor > 0:
+            b.perda_purga_pct_pci = 100 * q_purga / b.energia_combustivel_gj.valor
 
     if vapor is None or comb is None:
         return b

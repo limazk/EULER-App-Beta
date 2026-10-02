@@ -43,9 +43,10 @@ def com_estoques(pacote, quantos):
 
 
 def test_com_todos_os_dados_tudo_habilitado(completo):
-    assert {c.id: c.situacao for c in avaliar(completo)} == dict.fromkeys(
-        situacao(completo), "habilitada"
-    )
+    # Este caso contém o contrato original completo; as duas extensões são opcionais.
+    opcionais = {"purga_quantificada", "ua_economizador"}
+    for c in avaliar(completo):
+        assert c.situacao == ("bloqueada" if c.id in opcionais else "habilitada")
 
 
 @pytest.mark.parametrize(

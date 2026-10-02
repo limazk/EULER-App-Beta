@@ -24,6 +24,13 @@ streamlit run app/main.py          # abre em http://localhost:8501
 
 No Windows, depois da instalação: dois cliques em `ABRIR-EULER.cmd`.
 
+O CMD e o atalho da instalação local usam `scripts/abrir_local.py`. Ele identifica o
+servidor e os arquivos instalados antes de reutilizar a porta. Quando o código muda,
+reinicia somente o servidor da própria instalação. A revisão em execução aparece em
+**Detalhes técnicos da instalação**, no menu lateral. Os registros de inicialização
+ficam em `.euler-local/`, fora do Git. Abrir o CMD não baixa código automaticamente do
+GitHub: a atualização precisa estar instalada e verificada antes da abertura.
+
 No app: **Início → Ato 1 · a EULER conclui** ou **Ato 2 · a EULER explica por que não conclui**
 (passeio guiado em `demo/PASSEIO_PELAS_TELAS.md`). O fluxo é carregar dados → ver a saúde da
 caldeira → conferir qualidade e limites → investigar → consultar fornecedores → gerar

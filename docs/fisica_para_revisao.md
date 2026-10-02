@@ -148,4 +148,14 @@ D70: no caminho de vapor úmido/superaquecido, validar as condições de cada le
 
 D71: não comparar desempenho dos gases quando os períodos têm pontos identificados diferentes ou quando só um identifica o ponto. O bloqueio restringe as conclusões comparativas; não apaga balanços individuais válidos. A compatibilidade de dois períodos sem identificação não foi comprovada: comportamento legado mantido, política de obrigatoriedade universal pendente de revisão.
 
+## Rodada integrada: carga, transientes, purga e economizador
+
+As funções a seguir ampliam a investigação; as hipóteses continuam pendentes de revisão humana.
+
+- **Regime (D72):** partida/transiente bloqueia médias estacionárias de gases. Balanço direto e consumo específico mantêm seus próprios requisitos. O baseline e o UA exigem período explicitamente estável.
+- **Baseline por carga (D73):** mínimos quadrados ordinários para `combustível/h = a + b × vapor/h`, apenas dentro das cargas de referência. O residual é dividido por `RMSE × sqrt(1 + 1/n + (carga − média)²/Sxx)`. Sem dispersão residual estimável, não há residual normalizado. Isso não substitui o orçamento metrológico nem identifica causa ou economia.
+- **Purga (D74):** `Q = Σ massa_purga × [h_líquido_saturado(p_purga) − h_água(p_purga,T_água)]`. Massa em kg e entalpias em MJ/kg; dividir por 1000 para obter GJ. Massa pertence ao intervalo encerrado pela leitura: excluir a leitura inicial e incluir a final. Pressão própria obrigatória em massas positivas, sem inferir massa de duração. Hipótese de líquido saturado e perda bruta sem recuperação/flash; incerteza permanece indisponível e a parcela não é subtraída do resíduo comparativo.
+- **Economizador (D75):** `Q = vazão_água × (h_saída − h_entrada)` e `UA = Q/LMTD`, com `ΔT1 = T_gases_entrada − T_água_saída` e `ΔT2 = T_gases_saída − T_água_entrada`. UA em MW/K, contracorrente equivalente. Temperaturas simultâneas e pressão própria da água devem manter líquido nos dois pontos; gases precisam resfriar e água aquecer. Não prova incrustação: geometria, carga, bypass, limpeza e diferença de pressão influenciam a interpretação. Incerteza não quantificada.
+- **Compatibilidade (D76):** o alias `titulo_vapor` é aceito com aviso; `titulo_vapor_frac` e a origem `registrado` são preservados. Valores conflitantes bloqueiam a importação.
+
 Revisão humana: avaliar eventual método explícito de estimativa para dados parciais e critérios documentais de equivalência entre pontos. Nenhuma dessas alternativas foi presumida aprovada nesta correção.

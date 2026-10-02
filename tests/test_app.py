@@ -112,12 +112,14 @@ def test_extrato_sem_dados_orienta_a_importar():
     assert any("Nenhum dado importado" in i.value for i in at.info)
 
 
-def test_dados_e_limites_com_demo_bloqueia_so_a_faixa_de_incerteza():
+def test_dados_e_limites_com_demo_bloqueia_incerteza_e_extensoes_sem_medicao():
     at = abrir_com_demo("limites.py")
     assert not at.exception, at.exception
     valores = {m.label: m.value for m in at.metric}
-    # auditoria A3: o demo não cadastra todos os instrumentos usados na eficiência
-    assert valores["Bloqueadas"] == "1"
+    # Incerteza da eficiência e extensões de purga/UA, cujas medições não estão no demo.
+    assert valores["Bloqueadas"] == "3"
+    assert any(e.label == "Novas análises físicas · em revisão" for e in at.expander)
+    assert any("Não calculável" in i.value for i in at.info)
 
 
 def test_dados_e_limites_com_modelos_mostra_bloqueios():
@@ -353,7 +355,8 @@ def test_investigacao_guardada_nao_serve_para_outra_altitude():
 def test_lancador_do_windows_abre_o_app():
     lancador = (APP.parent / "ABRIR-EULER.cmd").read_bytes()
     assert b"\r\n" in lancador
-    assert b"-m streamlit run app\\main.py" in lancador
+    assert b'"%~dp0scripts\\abrir_local.py" %*' in lancador
+    assert b'cd /d "%~dp0"' in lancador
 
 
 def test_saude_investigar_esta_mudanca_escolhe_os_periodos():

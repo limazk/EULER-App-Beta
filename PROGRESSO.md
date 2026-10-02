@@ -203,3 +203,15 @@ modelos de transferência/UA para fouling; primeiro ensaio com dados reais autor
 - D71: pontos de gases diferentes entre períodos (ou identificado em apenas um) não geram comparação de desempenho, efeitos de gases ou resíduo dependente. Balanços individuais preservados; investigação explica o bloqueio.
 - 14 testes novos em tests/test_regressao_fronteiras.py. Contraprovas inicialmente falharam; após correção, suíte completa: 360 passaram, nenhum pulado (344,39 s). Três avisos pandas provocados pelos valores infinitos dos testes de defesa, sem falha ou liberação indevida do cálculo. Ruff check e format aprovados (93 arquivos).
 - Golden, tolerâncias, biblioteca de propriedades e fórmulas termodinâmicas não alterados. Não houve validação com planta. Revisão física humana pendente; ver docs/decisoes.md.
+
+## Integração da versão completa — 02/10/2026
+
+Esta seção atualiza o estado das extensões que apareciam como pendentes acima.
+
+- Base preservada: `6402198` (vapor medido) e `35f2e7a` (correções da cobertura por leitura e da comparação entre pontos de gases).
+- Novidades reunidas de `codex/round2-final` (`a54fc5c`), `codex/round2-physical-engine` (`2b87d2e`) e `gpt/transient-regimes` (`82fdded`): referência por carga, regime transiente, energia de purga e UA aparente do economizador. Integração seletiva, com compatibilidade e bloqueios revistos; não simples troca de branch.
+- Contrato de importação, modelos CSV/Excel e JSON ampliados. Purga exige massa medida no intervalo, bordas e pressão própria. Economizador exige condições válidas em cada leitura e regime estável. Campos ausentes bloqueiam a extensão correspondente.
+- Referência por carga disponível em Saúde; purga e economizador em Dados e limites. Hipóteses, cobertura e incertezas ainda não quantificadas ficam explícitas. Não se atribui causa ou ganho financeiro automaticamente.
+- Inicializador Windows centralizado: evita servidores duplicados, identifica a instalação e reinicia o próprio servidor quando os arquivos mudam. CMD e atalhos apontam para a instalação `software-euler`. Abertura não executa atualização remota automática.
+- Revisão estática independente concluída. Suíte completa: 378 passaram e 5 falharam na preparação das leituras artificiais (fusos misturados fora do contrato normalizado). Corrigida a preparação, os 11 testes de integração passaram, incluindo os 5 anteriores. Assim, os 383 testes foram cobertos sem falhas remanescentes; não houve nova execução integral após esse ajuste restrito aos testes. Ruff check/format aprovados (100 arquivos). Três avisos pandas são das entradas infinitas deliberadas nos testes de defesa.
+- Golden e tolerâncias preservados. Decisões D72–D76 permanecem pendentes de revisão humana; sem validação em planta.
