@@ -1,7 +1,7 @@
 # Contrato de dados · EULER
 
 > Gerado automaticamente a partir de `euler/io/esquemas.py` por `python scripts/gerar_modelos.py`. **Não edite à mão**: mude o esquema e gere de novo.
-> Derivado dos modelos de CSV do kit de construção; a spec v0.3 não estava disponível (ver D12 em `docs/decisoes.md`).
+> Derivado dos modelos de CSV do kit de construção; a spec v0.3 não estava disponível (ver D12 em `docs/gestao/decisoes.md`).
 
 ## Regras gerais
 

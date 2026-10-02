@@ -1,6 +1,6 @@
 # As 10 decisões pendentes mais importantes · 01/10/2026
 
-Escolhidas entre as 50 propostas ainda sem aprovação em `docs/decisoes.md` (mais as partes
+Escolhidas entre as 50 propostas ainda sem aprovação em `docs/gestao/decisoes.md` (mais as partes
 pendentes das D62–D66), pelo efeito no resultado e na demonstração de 30/10. Cada linha traz
 o que a EULER faz hoje e a recomendação. **Nada aqui está aprovado**: vale o
 comportamento atual até a resposta.
@@ -27,6 +27,6 @@ comportamento atual até a resposta.
 
 **Também pendente:** conferir a tabela de capacidades e o JSON (D28, D30) contra o
 `EULER_ESPECIFICACAO_DETALHADA.md` quando o arquivo for colocado na pasta
-(`docs/conferencia_especificacao.md`).
+(`docs/desenvolvimento/conferencia_especificacao.md`).
 
-Detalhes, exemplos numéricos e as perguntas Q1–Q17: `docs/perguntas_revisores.md`.
+Detalhes, exemplos numéricos e as perguntas Q1–Q17: `docs/fisica/perguntas_revisores.md`.

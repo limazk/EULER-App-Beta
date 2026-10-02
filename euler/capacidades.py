@@ -36,7 +36,7 @@ class Capacidade:
     o_que_fazer: tuple[str, ...] = ()
     requisitos: tuple[str, ...] = field(default_factory=tuple)
     referencia: str = ""
-    """Itens de docs/fisica_para_revisao.md e decisões usados (só em "Detalhes técnicos", D64)."""
+    """Itens de docs/fisica/fisica_para_revisao.md e decisões usados (só em "Detalhes técnicos", D64)."""
 
     @property
     def habilitada(self) -> bool:

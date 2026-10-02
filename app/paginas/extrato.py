@@ -210,9 +210,9 @@ def mostrar(pacote) -> None:
     )
     with st.expander("Detalhes técnicos do extrato"):
         st.markdown(
-            "- Energia por lote e R$/GJ: item E11 de `docs/fisica_para_revisao.md` (PCI úmido: "
+            "- Energia por lote e R$/GJ: item E11 de `docs/fisica/fisica_para_revisao.md` (PCI úmido: "
             "E5).\n"
-            "- Faixa histórica de umidade: proposta D20 de `docs/decisoes.md`.\n"
+            "- Faixa histórica de umidade: proposta D20 de `docs/gestao/decisoes.md`.\n"
             "- PCI seco da amostra mais próxima do mesmo fornecedor: proposta D19."
         )
 

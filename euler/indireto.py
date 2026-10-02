@@ -1,6 +1,6 @@
 """Perda sensível nos gases de chaminé, base PCI, por kg de combustível seco (E1–E7).
 
-Referência das equações: docs/fisica_para_revisao.md, Bloco A.
+Referência das equações: docs/fisica/fisica_para_revisao.md, Bloco A.
 Convenções: composição em fração mássica base seca (C, H, O, N, S); umidade `w`
 em base úmida (fração); temperaturas em °C; PCI em MJ/kg; cp em MJ/(kg·K).
 Hipóteses: combustão completa; ar seco com 21% O₂ / 79% N₂; umidade do ar de

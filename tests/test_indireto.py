@@ -86,7 +86,7 @@ def test_umidade_do_ar_aumenta_a_perda_e_padrao_nao_muda_o_golden():
 def test_perda_por_co():
     r = calcular()
     assert indireto.perda_co_pct(0, r, 18.5, 0.40) == 0
-    # 200 ppm ≈ 0,11% do PCI (ordem de grandeza conferida à mão em docs/matriz_validacao_fisica.md)
+    # 200 ppm ≈ 0,11% do PCI (ordem de grandeza conferida à mão em docs/fisica/matriz_validacao_fisica.md)
     assert indireto.perda_co_pct(200, r, 18.5, 0.40) == pytest.approx(0.111, abs=0.002)
 
 

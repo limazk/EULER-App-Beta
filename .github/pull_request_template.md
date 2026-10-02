@@ -1,4 +1,4 @@
-Ticket: T__ (ver `docs/backlog_agentes.md`)
+Ticket: T__ (ver `docs/desenvolvimento/backlog_agentes.md`)
 
 ## O que mudou
 
@@ -17,4 +17,4 @@ Ticket: T__ (ver `docs/backlog_agentes.md`)
 - [ ] `pytest -q` e `ruff check . && ruff format --check .` passam
 - [ ] `tests/golden/` não foi alterado (ou a alteração cita o revisor e o item E__)
 - [ ] Nenhum texto gera comando operacional para a caldeira
-- [ ] Hipóteses físicas novas registradas em `docs/decisoes.md`
+- [ ] Hipóteses físicas novas registradas em `docs/gestao/decisoes.md`

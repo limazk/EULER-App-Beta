@@ -3,7 +3,7 @@
 > **Situação deste documento:** revisão técnica feita por agente de programação (Claude), a
 > pedido do Adryan em 01/10/2026. **Nada aqui é aprovação científica.** Os itens só passam a
 > "revisado por especialista" quando um revisor humano (doutorando/professor) assinar em
-> `docs/fisica_para_revisao.md`. Testes passando significam apenas que o código faz o que foi
+> `docs/fisica/fisica_para_revisao.md`. Testes passando significam apenas que o código faz o que foi
 > especificado, não que a especificação esteja certa.
 
 - **Versão examinada (diagnóstico):** commit `97ad0c6` (branch `claude/new-session-xytynj`).
@@ -26,7 +26,7 @@ Legenda de situação usada em todo o documento:
 | Sigla | Significado |
 |---|---|
 | **I** | implementado no código e coberto por testes de comportamento |
-| **V** | verificado contra referência **externa** ou por **outro método** (as quatro categorias estão em `docs/matriz_validacao_fisica.md`) |
+| **V** | verificado contra referência **externa** ou por **outro método** (as quatro categorias estão em `docs/fisica/matriz_validacao_fisica.md`) |
 | **R** | revisado e aprovado por especialista humano — **nenhum item está nesta situação** |
 
 ---
@@ -97,11 +97,11 @@ verificação (seção 3) e estavam errados. O de O₂ é maior do que o informa
 Título do vapor; base do analisador de O₂; umidade do ar; CO e incombustos; orvalho ácido;
 purga dentro ou fora da fronteira; uso do pátio (FIFO, mistura, LIFO); correlação dos erros
 dos instrumentos entre períodos; critério de relevância D29; fonte de cp(T). Ver a seção 6
-e `docs/perguntas_revisores.md`.
+e `docs/fisica/perguntas_revisores.md`.
 
 ### 1.5 Situação de cada linha depois da Fase R
 
-| # | Antes | Depois | O que mudou | Verificação (ver `docs/matriz_validacao_fisica.md`) |
+| # | Antes | Depois | O que mudou | Verificação (ver `docs/fisica/matriz_validacao_fisica.md`) |
 |---|---|---|---|---|
 | 3 | I, V | I, V | — | V-A1 a V-A5 |
 | 4 | I, V | I, V | sensibilidade ao título no resultado (x = 0,99 → −0,82%) | V-A6 |
@@ -139,7 +139,7 @@ na rede da sessão e foram citados de memória técnica ou conferidos indiretame
 | R6 | JCGM 100:2008, *Evaluation of measurement data — Guide to the expression of uncertainty in measurement* (GUM) | https://www.bipm.org/documents/20126/2071204/JCGM_100_2008_E.pdf † | 4.3.3, 4.3.7, 5.2.2 e 6.3.3 **conferidas pela auditoria externa**; 5.1.3 e 6.2.1 a conferir. A 4.3.7 trata de limites conhecidos: ler incerteza sem tipo como limite é hipótese do projeto (D35) |
 | R7 | JCGM 101:2008, *Supplement 1 to the GUM — Propagation of distributions using a Monte Carlo method* | idem † | método das verificações V-D2 a V-D4 |
 | R8 | NIST Chemistry WebBook, valores CODATA de ΔfH° a 298,15 K: CO −110,53 kJ/mol; CO₂ −393,51 kJ/mol | https://webbook.nist.gov/cgi/cbook.cgi?ID=C630080&Mask=1EE9 e https://webbook.nist.gov/cgi/cbook.cgi?ID=C124389&Mask=1 † | V-B7, **conferido pela auditoria externa**. A tabela JANAF dá −393,52 kJ/mol para o CO₂ (versão anterior deste documento atribuía os valores ao JANAF: corrigido) |
-| R9 | `docs/fisica_para_revisao.md` (E1–E15) e `tests/golden/` | repositório | especificação e valores de referência do kit |
+| R9 | `docs/fisica/fisica_para_revisao.md` (E1–E15) e `tests/golden/` | repositório | especificação e valores de referência do kit |
 | R10 | `lab/referencia_perda_gases.py` | repositório | calculadora de referência escrita fora do motor (V-E1) |
 
 Não foram usados: tabelas Shomate do NIST WebBook (bloqueado), normas de ensaio de
@@ -149,7 +149,7 @@ caldeiras (não disponíveis na sessão), dados de caldeiras reais (proibidos no
 
 ## 3. Resultados da verificação
 
-Detalhe linha a linha em `docs/matriz_validacao_fisica.md`. Resumo:
+Detalhe linha a linha em `docs/fisica/matriz_validacao_fisica.md`. Resumo:
 
 - **Água e vapor:** o motor reproduz as tabelas de verificação da IF97 com diferença
   ≤ 4·10⁻⁶ kJ/kg e ≤ 4·10⁻⁷ K. Contra a formulação científica (IAPWS-95), o Δh do
@@ -265,8 +265,8 @@ explícito como dependente de hipótese.
 9. **Lotes sem amostra.** O cenário central supõe que têm a média dos lotes medidos (D51);
    o FIFO não é calculado quando dependeria deles.
 
-Decisões abertas: `docs/perguntas_revisores.md` (três decisões prioritárias + Q1–Q17) e
-`docs/decisoes.md` (D35–D57).
+Decisões abertas: `docs/fisica/perguntas_revisores.md` (três decisões prioritárias + Q1–Q17) e
+`docs/gestao/decisoes.md` (D35–D57).
 
 ---
 
@@ -313,7 +313,7 @@ limitação daquele ambiente, não divergência física.
 
 ### 7.3 Verificação reclassificada
 
-A matriz (`docs/matriz_validacao_fisica.md`) agora tem 57 linhas em categorias: 10
+A matriz (`docs/fisica/matriz_validacao_fisica.md`) agora tem 57 linhas em categorias: 10
 externas, 8 por outro método, 5 identidades, 25 regras, 4 de consistência, 2 de regressão
 e 3 golden. "53 validações físicas independentes" era um resumo errado: parte daquelas
 verificações usa o próprio motor (ex.: V-A6 pega h_f e h_g do próprio módulo). O teste

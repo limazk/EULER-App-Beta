@@ -1,7 +1,7 @@
 # Guia da demonstração ao vivo (banca e investidores · 30/10/2026)
 
 Duração: **5 a 7 minutos** com perguntas curtas; versão curta de 2 minutos em
-`demo/ROTEIRO_VIDEO.md`. Tudo usa o **caso de demonstração sintético** em dois atos, com os
+`docs/demonstracao/ROTEIRO_VIDEO.md`. Tudo usa o **caso de demonstração sintético** em dois atos, com os
 mesmos registros de operação (`demo/caso_demo_completo/` e `demo/caso_demo/`), sem alterar
 dados.
 

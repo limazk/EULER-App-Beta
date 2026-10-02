@@ -22,7 +22,7 @@ def extrato(recebimentos: list[str], amostras: list[str], **periodo):
 
 @pytest.fixture(scope="module")
 def tabela_f1_f3():
-    # docs/fisica_para_revisao.md, E11: PCI seco 18,5; 30 t por lote
+    # docs/fisica/fisica_para_revisao.md, E11: PCI seco 18,5; 30 t por lote
     return extrato(
         [
             "2026-10-05T10:00-03:00,recebimento,F1,L1,30000,,,,5400,sintetico",

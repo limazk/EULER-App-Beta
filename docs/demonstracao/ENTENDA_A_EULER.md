@@ -60,7 +60,7 @@ com dados reais de uma caldeira (é a próxima fase).
 
 Abra com `ABRIR-EULER.cmd` (Windows) ou `streamlit run app/main.py`. Menu à esquerda; cada
 tela diz "Passo X de 6" e tem o botão **Próximo** no fim. Passeio detalhado:
-`demo/PASSEIO_PELAS_TELAS.md`.
+`docs/demonstracao/PASSEIO_PELAS_TELAS.md`.
 
 | Tela | Para que serve | O que fazer |
 |---|---|---|
