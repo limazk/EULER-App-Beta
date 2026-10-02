@@ -197,6 +197,7 @@ class ResumoPeriodo:
     leituras_grandeza: dict[str, Grandeza] = field(default_factory=dict)
     n_leituras_diario: int = 0
     cobertura_diario: float | None = None
+    regimes_operacao: dict[str, int] = field(default_factory=dict)
     ponto_gases_id: str | None = None
     instrumento_o2_id: str | None = None
     estado_vapor: str = "saturado_seco"
@@ -845,6 +846,19 @@ def resumir_periodo(pacote: Pacote, inicio: pd.Timestamp, fim: pd.Timestamp) -> 
         operando = no_periodo[no_periodo["regime"].fillna("estavel") != "parada"]
         operando = operando.drop_duplicates(subset=[c for c in operando.columns if c != "linha"])
         r.n_leituras_diario = len(operando)
+        regimes = operando["regime"].fillna("estavel").astype(str)
+        r.regimes_operacao = {str(k): int(v) for k, v in regimes.value_counts().items()}
+        transitórios = [x for x in ("partida", "transitorio") if r.regimes_operacao.get(x, 0)]
+        if transitórios:
+            r.bloqueios["regime_indireto"] = AnaliseBloqueada(
+                "O período contém operação de partida ou transitória. A EULER não mistura essas "
+                "leituras com regime estável para calcular perda nos gases ou atribuir hipóteses "
+                "a partir de médias de chaminé.",
+                [
+                    "selecionar um período inteiramente estável para a análise dos gases "
+                    "ou analisar os regimes separadamente"
+                ],
+            )
 
         estado_series = operando["estado_vapor"].replace("", pd.NA)
         estados = tuple(
