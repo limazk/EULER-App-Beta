@@ -66,7 +66,8 @@ def test_residual_normalizado_so_sai_com_ruido_estimavel():
 def test_purga_quantificada_exige_massa_e_usa_entalpia_do_liquido():
     q = energia_purga_gj(
         massa_purga_kg=1000.0,
-        p_bar_abs=10.0,
+        p_purga_bar_abs=10.0,
+        p_agua_referencia_bar_abs=10.0,
         t_agua_referencia_c=80.0,
     )
     assert 0 < q < 1.0
