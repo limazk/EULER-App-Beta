@@ -10,6 +10,7 @@ de entrada. Ausência continua ausência; hipóteses de estado ficam explicitada
 from __future__ import annotations
 
 from dataclasses import dataclass
+from itertools import pairwise
 from math import isfinite
 
 import pandas as pd
@@ -213,7 +214,7 @@ def balanco_por_vazoes(
     horas = 0.0
     usados = pulados = 0
     rows = list(d.itertuples(index=False))
-    for a, b in zip(rows[:-1], rows[1:], strict=True):
+    for a, b in pairwise(rows):
         dt_h = (b.instante_observado - a.instante_observado).total_seconds() / 3600
         if dt_h <= 0 or dt_h > limite_gap or not (a.valido_balanco and b.valido_balanco):
             pulados += 1
