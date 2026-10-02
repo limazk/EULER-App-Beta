@@ -16,7 +16,7 @@ def importar_diario(
     """Lê, normaliza e verifica o diário.
 
     Converte as pressões manométricas do vapor, da purga, da água de referência e do economizador para absolutas
-    (`p_vapor_bar_abs`, `p_purga_bar_abs` e `p_agua_eco_bar_abs`, regra 3)
+    (`p_vapor_bar_abs`, `p_purga_bar_abs`, `p_agua_referencia_bar_abs` e `p_agua_eco_bar_abs`, regra 3)
     quando a pressão atmosférica do local é conhecida; sem ela, a coluna fica vazia
     e um aviso explica por quê.
     """
