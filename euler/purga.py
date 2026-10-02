@@ -10,11 +10,15 @@ from euler.vapor import h_agua_mj_kg, h_vapor_mj_kg
 
 
 def energia_purga_gj(
-    *, massa_purga_kg: float, p_bar_abs: float, t_agua_referencia_c: float
+    *,
+    massa_purga_kg: float,
+    p_purga_bar_abs: float,
+    p_agua_referencia_bar_abs: float,
+    t_agua_referencia_c: float,
 ) -> float:
     """Energia bruta removida pela purga em relação à água de alimentação.
 
-    Q_bd = m_bd · [h_f,sat(p_bd) − h_fw(p_bd, T_fw)].
+    Q_bd = m_bd · [h_f,sat(p_bd) − h_fw(p_fw, T_fw)].
 
     Não há crédito de tanque flash nem recuperação de calor; portanto é uma perda bruta na
     fronteira da caldeira, não necessariamente a perda líquida da planta.
@@ -23,8 +27,8 @@ def energia_purga_gj(
         raise AnaliseBloqueada("Massa de purga negativa: confira a medição.")
     if massa_purga_kg == 0:
         return 0.0
-    h_bd = h_vapor_mj_kg(p_bar_abs, "umido", titulo=0.0)
-    h_fw = h_agua_mj_kg(p_bar_abs, t_agua_referencia_c)
+    h_bd = h_vapor_mj_kg(p_purga_bar_abs, "umido", titulo=0.0)
+    h_fw = h_agua_mj_kg(p_agua_referencia_bar_abs, t_agua_referencia_c)
     if h_bd <= h_fw:
         raise AnaliseBloqueada(
             "A entalpia calculada da purga não supera a da água de alimentação; confira os dados."
