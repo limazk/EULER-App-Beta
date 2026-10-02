@@ -848,7 +848,9 @@ def resumir_periodo(pacote: Pacote, inicio: pd.Timestamp, fim: pd.Timestamp) -> 
         if no_periodo["regime"].isna().any():
             regimes.append("nao_informado")
         r.regimes_presentes = tuple(dict.fromkeys(regimes))
-        r.apto_baseline_carga = bool(r.regimes_presentes) and set(r.regimes_presentes) == {"estavel"}
+        r.apto_baseline_carga = bool(r.regimes_presentes) and set(r.regimes_presentes) == {
+            "estavel"
+        }
 
         operando = no_periodo[no_periodo["regime"].fillna("estavel") != "parada"]
         operando = operando.drop_duplicates(subset=[c for c in operando.columns if c != "linha"])
