@@ -122,7 +122,7 @@ class Indireto:
 def _entradas_indireto(
     r: ResumoPeriodo, umidade: float | None = None
 ) -> dict[str, float] | AnaliseBloqueada:
-    for chave_bloqueio in ("ponto_gases", "instrumento_o2"):
+    for chave_bloqueio in ("regime_indireto", "ponto_gases", "instrumento_o2"):
         if chave_bloqueio in r.bloqueios:
             return r.bloqueios[chave_bloqueio]
     faltas = []
@@ -652,6 +652,10 @@ def investigar(
     i_ref, i_comp = indireto_periodo(ref, p_gases), indireto_periodo(comp, p_gases)
 
     def leitura(chave: str, nome: str, unidade: str) -> Comparacao:
+        if chave in {"t_gases_c", "o2_seco_pct", "t_ar_c"} and (
+            "regime_indireto" in ref.bloqueios or "regime_indireto" in comp.bloqueios
+        ):
+            return comparar(nome, unidade, None, None)
         return comparar(
             nome, unidade, ref.leituras_grandeza.get(chave), comp.leituras_grandeza.get(chave)
         )
@@ -1426,6 +1430,10 @@ def investigar(
             "rotulo": r.rotulo(),
             "leituras_diario": r.n_leituras_diario,
             "cobertura_diario": r.cobertura_diario,
+            "regimes_operacao": r.regimes_operacao,
+            "regime_indireto": (
+                "misto_transitorio" if "regime_indireto" in r.bloqueios else "estavel"
+            ),
             "ponto_gases_id": r.ponto_gases_id,
             "instrumento_o2_id": r.instrumento_o2_id,
             "vapor_t": _grandeza_json(r.vapor_t),
