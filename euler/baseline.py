@@ -54,7 +54,8 @@ class BaselineCarga:
 def ajustar_baseline_carga(observacoes: list[ObservacaoCarga]) -> BaselineCarga:
     if len(observacoes) < 3:
         raise AnaliseBloqueada(
-            "São necessários ao menos três períodos de referência para ajustar o baseline por carga.",
+            "São necessários ao menos três períodos de referência para ajustar o baseline "
+            "por carga.",
             ["três ou mais períodos de referência quase estacionários"],
         )
     x = np.array([o.carga_t_h for o in observacoes], dtype=float)
