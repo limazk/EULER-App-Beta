@@ -425,4 +425,60 @@ def avaliar(pacote: Pacote) -> list[Capacidade]:
             "E14",
         )
     )
+    # Camadas opcionais: a presença dos campos habilita tentativa de análise; o resumo
+    # ainda valida cobertura, domínio físico e regime do período selecionado.
+    for id_, nome, pergunta, campos, referencia in (
+        (
+            "purga_quantificada",
+            "Energia bruta das purgas",
+            "Quanta energia saiu nas purgas com massa medida?",
+            (
+                ("massa_purga_kg", "massa purgada"),
+                ("p_purga_bar_abs", "pressão própria da purga"),
+                ("t_agua_alim_c", "temperatura da água de alimentação"),
+            ),
+            "D74",
+        ),
+        (
+            "ua_economizador",
+            "Transferência no economizador",
+            "Os registros permitem calcular o indicador aparente de transferência?",
+            (
+                ("vazao_agua_alim_t_h", "vazão da água"),
+                ("p_agua_eco_bar_abs", "pressão própria do economizador"),
+                ("t_agua_eco_entrada_c", "temperatura da água na entrada"),
+                ("t_agua_eco_saida_c", "temperatura da água na saída"),
+                ("t_gases_eco_entrada_c", "temperatura dos gases na entrada"),
+                ("t_gases_eco_saida_c", "temperatura dos gases na saída"),
+            ),
+            "D75",
+        ),
+    ):
+        v = _Verificador()
+        for coluna, rotulo in campos:
+            v.exigir(
+                _tem(diario, coluna),
+                f"Sem {rotulo}.",
+                f"Registrar {rotulo} nas leituras do período.",
+            )
+        capacidade = v.capacidade(
+            id_, nome, pergunta, tuple(rotulo for _, rotulo in campos), referencia
+        )
+        if capacidade.habilitada:
+            capacidade = Capacidade(
+                id_,
+                nome,
+                pergunta,
+                "parcial",
+                (
+                    (
+                        "O período ainda precisa passar pela validação de cobertura e compatibilidade física. "
+                        "A incerteza do novo indicador ainda não foi quantificada."
+                    ),
+                ),
+                ("Conferir os bloqueios do período em Dados e limites.",),
+                capacidade.requisitos,
+                referencia,
+            )
+        caps.append(capacidade)
     return caps

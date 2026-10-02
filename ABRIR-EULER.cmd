@@ -1,15 +1,17 @@
 @echo off
-rem Abre a EULER no navegador (Windows): dois cliques neste arquivo.
-rem Instalacao, uma vez so, nesta pasta:
-rem   python -m venv .venv
-rem   .venv\Scripts\python -m pip install -e ".[dev]"
-rem Para fechar a EULER, feche esta janela.
+setlocal
 cd /d "%~dp0"
-if exist ".venv\Scripts\python.exe" (
-  ".venv\Scripts\python.exe" -m streamlit run app\main.py
-) else (
-  echo Ambiente .venv nao encontrado nesta pasta: tentando o Python do computador.
-  echo Se der erro, veja a secao Comecar do README.md.
-  python -m streamlit run app\main.py
+set "EULER_PYTHON=%USERPROFILE%\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe"
+if exist "%EULER_PYTHON%" goto iniciar
+set "EULER_PYTHON=%~dp0.venv\Scripts\python.exe"
+if exist "%EULER_PYTHON%" goto iniciar
+set "EULER_PYTHON=python"
+:iniciar
+echo Abrindo a instalacao atual da EULER...
+"%EULER_PYTHON%" "%~dp0scripts\abrir_local.py" %*
+if errorlevel 1 (
+  echo Nao foi possivel abrir. Veja a mensagem acima.
+  pause
+  exit /b 1
 )
-pause
+exit /b 0

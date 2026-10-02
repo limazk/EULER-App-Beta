@@ -3,6 +3,8 @@
 Rodar com: streamlit run app/main.py
 """
 
+import os
+
 import estado
 import streamlit as st
 from componentes import ICONE, LOGO, MARCA, aplicar_estilo, rodape
@@ -49,3 +51,7 @@ elif estado.dados_sinteticos():
 else:
     situacao_dados = "dados enviados em uso (não sintéticos)"
 st.sidebar.caption(f"EULER · protótipo v{euler.__version__} · {situacao_dados}")
+if os.environ.get("EULER_BUILD_LABEL"):
+    st.sidebar.caption(os.environ["EULER_BUILD_LABEL"])
+    with st.sidebar.expander("Detalhes técnicos da instalação"):
+        st.caption("Revisão em execução: " + os.environ["EULER_BUILD_ID"])

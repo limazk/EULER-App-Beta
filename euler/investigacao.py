@@ -122,7 +122,7 @@ class Indireto:
 def _entradas_indireto(
     r: ResumoPeriodo, umidade: float | None = None
 ) -> dict[str, float] | AnaliseBloqueada:
-    for chave_bloqueio in ("ponto_gases", "instrumento_o2"):
+    for chave_bloqueio in ("regime_indireto", "ponto_gases", "instrumento_o2"):
         if chave_bloqueio in r.bloqueios:
             return r.bloqueios[chave_bloqueio]
     faltas = []
@@ -650,8 +650,32 @@ def investigar(
     b_ref, b_comp = balanco_direto(ref), balanco_direto(comp)
     p_gases = pacote.p_atm_bar or P_ATM_NIVEL_DO_MAR_BAR
     i_ref, i_comp = indireto_periodo(ref, p_gases), indireto_periodo(comp, p_gases)
+    # Preservar os balanços individuais; a restrição é sobre comparar fronteiras.
+    i_ref_periodo, i_comp_periodo = i_ref, i_comp
+    bloqueio_gases = None
+    if ref.ponto_gases_id != comp.ponto_gases_id:
+        bloqueio_gases = AnaliseBloqueada(
+            "Os períodos têm pontos de medição dos gases diferentes ou sem identificação "
+            "em um deles. Não dá para interpretar essa diferença como mudança de desempenho.",
+            ["leituras dos gases no mesmo ponto identificado nos dois períodos"],
+        )
+    else:
+        for periodo in (ref, comp):
+            bloqueio_gases = periodo.bloqueios.get("ponto_gases") or periodo.bloqueios.get(
+                "regime_indireto"
+            )
+            if bloqueio_gases is not None:
+                break
+    if bloqueio_gases is not None:
+        i_ref = Indireto(None, None, {}, bloqueio=bloqueio_gases)
+        i_comp = Indireto(None, None, {}, bloqueio=bloqueio_gases)
 
     def leitura(chave: str, nome: str, unidade: str) -> Comparacao:
+        if (bloqueio_gases is not None and chave in {"t_gases_c", "o2_seco_pct"}) or (
+            chave in {"t_gases_c", "o2_seco_pct", "t_ar_c"}
+            and ("regime_indireto" in ref.bloqueios or "regime_indireto" in comp.bloqueios)
+        ):
+            return comparar(nome, unidade, None, None)
         return comparar(
             nome, unidade, ref.leituras_grandeza.get(chave), comp.leituras_grandeza.get(chave)
         )
@@ -659,7 +683,12 @@ def investigar(
     c_tg = leitura("t_gases_c", "temperatura dos gases", "°C")
     c_o2 = leitura("o2_seco_pct", "O₂ nos gases", "%")
     c_tar = leitura("t_ar_c", "temperatura do ar de combustão", "°C")
-    c_co = comparar("CO nos gases", "ppm", ref.leituras.get("co_ppm"), comp.leituras.get("co_ppm"))
+    c_co = comparar(
+        "CO nos gases",
+        "ppm",
+        ref.leituras.get("co_ppm") if bloqueio_gases is None else None,
+        comp.leituras.get("co_ppm") if bloqueio_gases is None else None,
+    )
     c_w = comparar(
         "umidade do combustível recebido", "fração", ref.umidade_mistura, comp.umidade_mistura
     )
@@ -786,6 +815,8 @@ def investigar(
         return _complemento(av, efeito, lim, criterio_relevancia, c_cons)
 
     def titulo(c: Comparacao, subiu: str, caiu: str, neutro: str) -> str:
+        if bloqueio_gases is not None and (c is c_tg or c is c_o2):
+            return neutro
         if c.disponivel and c.detectabilidade in ("sim", "condicional"):
             return subiu if c.delta > 0 else caiu
         if c_cons.disponivel and c_cons.detectabilidade == "sim":
@@ -795,6 +826,8 @@ def investigar(
     hipoteses = []
     st, av = avaliacoes["temperatura_gases"]
     porque = _texto_mudanca(c_tg, "a temperatura dos gases", "°C", 1)
+    if bloqueio_gases is not None:
+        porque = bloqueio_gases.motivo
     if c_tg.detectabilidade == "sim" and ef_tg is not None:
         porque += f" Só isso muda a perda nos gases em {_sinal(ef_tg)} p.p. do PCI."
     porque += complemento(av, por_perda(ef_tg))
@@ -810,7 +843,10 @@ def investigar(
             st,
             av,
             porque,
-            "Comparar a leitura do termopar da chaminé com um termômetro de referência. Se a "
+            "Obter leituras dos gases em regime estável, no mesmo ponto nos dois períodos. "
+            "Conferir os registros de localização antes de comparar o desempenho."
+            if bloqueio_gases is not None
+            else "Comparar a leitura do termopar da chaminé com um termômetro de referência. Se a "
             "leitura se confirmar, inspecionar as superfícies de troca (fuligem ou incrustação) "
             "na próxima parada programada.",
             "Uma fonte: o termopar dos gases (caminho indireto). O balanço direto só corrobora se "
@@ -823,6 +859,8 @@ def investigar(
     )
     st, av = avaliacoes["excesso_ar"]
     porque = _texto_mudanca(c_o2, "o O₂ nos gases", "%", 1)
+    if bloqueio_gases is not None:
+        porque = bloqueio_gases.motivo
     if c_o2.detectabilidade == "sim" and ef_o2 is not None:
         porque += f" Só isso muda a perda nos gases em {_sinal(ef_o2)} p.p. do PCI."
     porque += complemento(av, por_perda(ef_o2))
@@ -900,9 +938,16 @@ def investigar(
     )
     st, av = avaliacoes["condicao_vapor"]
     if not c_dh.disponivel:
+        motivos_estado = [
+            r.bloqueios["estado_vapor"].motivo for r in (ref, comp) if "estado_vapor" in r.bloqueios
+        ]
         porque = (
-            "Faltam pressão do vapor, altitude ou temperatura da água de alimentação em um dos "
-            "períodos."
+            " ".join(dict.fromkeys(motivos_estado))
+            if motivos_estado
+            else (
+                "Faltam pressão do vapor, altitude ou temperatura da água de alimentação em um dos "
+                "períodos."
+            )
         )
     else:
         fim_frase = {
@@ -958,7 +1003,12 @@ def investigar(
                 if nr in b_ref.eficiencia_cenarios and nc in b_comp.eficiencia_cenarios
             ]
             faixa_residuo = (min(plaus), max(plaus))
-    purgas_registradas = ref.purgas_n is not None and comp.purgas_n is not None
+    purgas_registradas = (ref.purgas_n is not None or ref.massa_purga_kg is not None) and (
+        comp.purgas_n is not None or comp.massa_purga_kg is not None
+    )
+    purgas_quantificadas = (
+        b_ref.perda_purga_pct_pci is not None and b_comp.perda_purga_pct_pci is not None
+    )
     av_res = {
         "mudanca_detectavel": None,
         "relevante": None,
@@ -1020,6 +1070,12 @@ def investigar(
                 f"O balanço direto mostra {_sinal(residuo)} p.p. de perda além do que a chaminé "
                 f"explica (incerteza {texto_u}). Pode ser purga, casco, vazamento de vapor ou "
                 "combustão incompleta: os registros atuais não separam essas causas."
+                + (
+                    " A purga tem estimativa energética separada, mas ainda não entra neste "
+                    "resíduo porque sua incerteza não foi fechada."
+                    if purgas_quantificadas
+                    else ""
+                )
             )
             if nivel == "condicional":
                 porque += (
@@ -1046,8 +1102,9 @@ def investigar(
             st_res,
             av_res,
             porque,
-            "Registrar número e duração das purgas em todos os turnos, medir CO nos gases e "
-            "procurar vazamentos de vapor e de condensado.",
+            "Registrar as purgas e, para quantificar energia, medir a massa purgada "
+            "e a pressão do ponto de purga; medir CO nos gases e procurar vazamentos de vapor "
+            "e de condensado.",
             "Diferença entre os dois caminhos (direto e indireto), que compartilham a umidade.",
             ("balanço direto", "perda nos gases", "purgas"),
             residuo,
@@ -1185,7 +1242,11 @@ def investigar(
         if ind.bloqueio is not None:
             falta += ind.bloqueio.falta
     if not purgas_registradas:
-        falta.append("registro de purgas (número e duração) nos dois períodos")
+        falta.append("registro de purgas nos dois períodos")
+    if not purgas_quantificadas:
+        falta.append(
+            "massa purgada e pressão própria nos dois períodos para quantificar a perda por purga"
+        )
     # incertezas necessárias não informadas (A3): em instrumentos.csv
     for g in (
         b_ref.eficiencia, b_comp.eficiencia, b_ref.consumo_t_por_t, b_comp.consumo_t_por_t,
@@ -1426,8 +1487,14 @@ def investigar(
             "rotulo": r.rotulo(),
             "leituras_diario": r.n_leituras_diario,
             "cobertura_diario": r.cobertura_diario,
+            "regimes_operacao": r.regimes_operacao,
+            "regime_indireto": (
+                "misto_transitorio" if "regime_indireto" in r.bloqueios else "estavel"
+            ),
             "ponto_gases_id": r.ponto_gases_id,
             "instrumento_o2_id": r.instrumento_o2_id,
+            "regimes_presentes": list(r.regimes_presentes),
+            "apto_baseline_carga": r.apto_baseline_carga,
             "vapor_t": _grandeza_json(r.vapor_t),
             "energia_util": {
                 "metodo": b.metodo_energia_util,
@@ -1463,6 +1530,27 @@ def investigar(
             "preco_brl_t": r.preco_brl_t,
             "preco_brl_gj": r.preco_brl_gj,
             "purgas_n": r.purgas_n,
+            "purgas_s": r.purgas_s,
+            "massa_purga_kg": r.massa_purga_kg,
+            "energia_purga": _grandeza_json(b.energia_purga_gj),
+            "perda_purga_pct_pci": b.perda_purga_pct_pci,
+            "bloqueio_purga": str(r.bloqueios["purga"]) if "purga" in r.bloqueios else None,
+            "economizador": {
+                "q_mw": r.q_economizador_mw,
+                "ua_aparente_mw_k": r.ua_economizador_mw_k,
+                "dp_gases_mbar": _grandeza_json(r.leituras_grandeza.get("dp_gases_mbar")),
+                "incerteza": None,
+                "bloqueio": str(r.bloqueios["ua_economizador"])
+                if "ua_economizador" in r.bloqueios
+                else None,
+                "nota": (
+                    "UA aparente contracorrente equivalente é indicador de transferência, "
+                    "não prova de incrustação; interpretar com carga, pontos de medição, "
+                    "bypass, limpeza e diferença de pressão. Incerteza ainda não quantificada."
+                    if r.ua_economizador_mw_k is not None
+                    else None
+                ),
+            },
             "eventos": [
                 {
                     "instante": e["instante"].isoformat(),
@@ -1487,10 +1575,13 @@ def investigar(
             "caldeira_id": caldeira,
             "origem_dados": sorted(origens),
             "periodos": {
-                "referencia": periodo_json(ref, b_ref, i_ref),
-                "comparacao": periodo_json(comp, b_comp, i_comp),
+                "referencia": periodo_json(ref, b_ref, i_ref_periodo),
+                "comparacao": periodo_json(comp, b_comp, i_comp_periodo),
             },
             "o_que_mudou": {
+                "bloqueio_comparacao_gases": (
+                    None if bloqueio_gases is None else bloqueio_gases.motivo
+                ),
                 "frase": frase_consumo,
                 "consumo_especifico": _comparacao_json(c_cons),
                 "custo_vapor": custo,

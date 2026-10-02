@@ -39,11 +39,10 @@ def test_fluxo_completo_do_caso_de_demonstracao():
     assert any("Não dá para concluir" in w.value for w in at.warning)
     assert _rodape_ok(at)
 
-    # só a faixa de incerteza da eficiência fica bloqueada (o demo não cadastra todos os
-    # instrumentos; auditoria A3)
+    # Além da incerteza, as novas extensões purga/UA não têm medições no demo.
     at.switch_page("paginas/limites.py").run()
     assert not at.exception, at.exception
-    assert {m.label: m.value for m in at.metric}.get("Bloqueadas") == "1"
+    assert {m.label: m.value for m in at.metric}.get("Bloqueadas") == "3"
 
     at.switch_page("paginas/extrato.py").run()
     assert not at.exception, at.exception
@@ -59,12 +58,12 @@ def test_fluxo_completo_do_caso_de_demonstracao():
 
 def test_ato_1_caso_completo_conclui():
     """Ato 1 (D62): os mesmos registros, com a incerteza de todos os instrumentos cadastrada.
-    Nada fica bloqueado e a investigação conclui, sem abstenção."""
+    A investigação principal conclui; purga/UA continuam sem as medições opcionais."""
     at = AppTest.from_file(str(APP), default_timeout=60).run()
     next(b for b in at.button if b.label.startswith("Ato 1")).click().run()
     assert not at.exception, at.exception
     at.switch_page("paginas/limites.py").run()
-    assert {m.label: m.value for m in at.metric}.get("Bloqueadas") == "0"
+    assert {m.label: m.value for m in at.metric}.get("Bloqueadas") == "2"
     at.switch_page("paginas/investigacao.py").run()
     assert not at.exception, at.exception
     assert not any("Não dá para concluir" in w.value for w in at.warning)
