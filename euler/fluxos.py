@@ -21,6 +21,8 @@ from euler.vapor import delta_h_mj_kg, h_vapor_mj_kg, t_sat_c
 @dataclass(frozen=True)
 class FluxoEntalpiaVapor:
     n: int
+    n_total: int
+    cobertura_leituras: float
     media_mw: float
     minimo_mw: float
     maximo_mw: float
@@ -102,6 +104,8 @@ def fluxo_entalpia_vapor(diario: pd.DataFrame) -> FluxoEntalpiaVapor:
         hipoteses.append("sem estado/T do vapor em parte das leituras: x = 1 assumido")
     return FluxoEntalpiaVapor(
         n=len(serie),
+        n_total=len(diario),
+        cobertura_leituras=len(serie) / len(diario),
         media_mw=float(serie.mean()),
         minimo_mw=float(serie.min()),
         maximo_mw=float(serie.max()),
@@ -176,8 +180,10 @@ def balanco_por_vazoes(
     positivos = passos_h[passos_h > 0]
     if positivos.empty:
         raise AnaliseBloqueada("Os instantes não formam intervalos positivos.")
-    passo_mediano = float(positivos.median())
-    limite_gap = max_gap_factor * passo_mediano
+    # Quartil inferior com interpolação "lower": conservador contra uma lacuna grande que
+    # contaminaria a mediana em séries curtas. Não "preenche" buracos do historiador.
+    passo_tipico = float(positivos.quantile(0.25, interpolation="lower"))
+    limite_gap = max_gap_factor * passo_tipico
 
     qv = []
     qf = []
