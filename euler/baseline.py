@@ -76,9 +76,7 @@ def ajustar_baseline_carga(observacoes: list[ObservacaoCarga]) -> BaselineCarga:
     a = float(y.mean() - b * xbar)
     residuos = y - (a + b * x)
     rmse = float(sqrt(float((residuos**2).sum()) / (len(x) - 2)))
-    return BaselineCarga(
-        a, b, float(x.min()), float(x.max()), xbar, sxx, rmse, len(x)
-    )
+    return BaselineCarga(a, b, float(x.min()), float(x.max()), xbar, sxx, rmse, len(x))
 
 
 def residual_normalizado(
