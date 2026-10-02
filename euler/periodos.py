@@ -848,15 +848,17 @@ def resumir_periodo(pacote: Pacote, inicio: pd.Timestamp, fim: pd.Timestamp) -> 
         r.n_leituras_diario = len(operando)
         regimes = operando["regime"].fillna("estavel").astype(str)
         r.regimes_operacao = {str(k): int(v) for k, v in regimes.value_counts().items()}
-        transitórios = [x for x in ("partida", "transitorio") if r.regimes_operacao.get(x, 0)]
-        if transitórios:
+        transitorios = [x for x in ("partida", "transitorio") if r.regimes_operacao.get(x, 0)]
+        if transitorios:
             r.bloqueios["regime_indireto"] = AnaliseBloqueada(
                 "O período contém operação de partida ou transitória. A EULER não mistura essas "
                 "leituras com regime estável para calcular perda nos gases ou atribuir hipóteses "
                 "a partir de médias de chaminé.",
                 [
-                    "selecionar um período inteiramente estável para a análise dos gases "
-                    "ou analisar os regimes separadamente"
+                    (
+                        "selecionar um período inteiramente estável para a análise dos gases "
+                        "ou analisar os regimes separadamente"
+                    )
                 ],
             )
 
