@@ -188,6 +188,8 @@ class ResumoPeriodo:
     leituras_grandeza: dict[str, Grandeza] = field(default_factory=dict)
     n_leituras_diario: int = 0
     cobertura_diario: float | None = None
+    ponto_gases_id: str | None = None
+    instrumento_o2_id: str | None = None
     vapor_t: Grandeza | None = None
     energia_util_intervalos_gj: float | None = None
     combustivel_kg: Grandeza | None = None
@@ -809,19 +811,54 @@ def resumir_periodo(pacote: Pacote, inicio: pd.Timestamp, fim: pd.Timestamp) -> 
         operando = no_periodo[no_periodo["regime"].fillna("estavel") != "parada"]
         operando = operando.drop_duplicates(subset=[c for c in operando.columns if c != "linha"])
         r.n_leituras_diario = len(operando)
+
+        # Temperatura e O₂ só podem alimentar o caminho indireto quando pertencem a uma
+        # mesma fronteira física. Misturar, por exemplo, saída da caldeira e pós-economizador
+        # cria uma média que não representa nenhum estado real (D67).
+        usa_gases = operando["t_gases_c"].notna() | operando["o2_seco_pct"].notna()
+        pontos = operando.loc[usa_gases, "ponto_gases_id"].dropna().astype(str).str.strip()
+        pontos = tuple(dict.fromkeys(p for p in pontos if p))
+        if len(pontos) == 1:
+            r.ponto_gases_id = pontos[0]
+        elif len(pontos) > 1:
+            r.bloqueios["ponto_gases"] = AnaliseBloqueada(
+                "Há leituras de gases em mais de um ponto no mesmo período "
+                f"({', '.join(pontos)}). A EULER não mistura pontos físicos diferentes.",
+                [
+                    (
+                        "selecionar um único ponto de medição dos gases para o período "
+                        "ou analisar cada ponto separadamente"
+                    )
+                ],
+            )
         if r.horas > 0 and len(no_periodo):
             r.cobertura_diario = min(1.0, len(no_periodo) * _intervalo_tipico_h(diario) / r.horas)
         for coluna, unidade in LEITURAS_DIARIO.items():
             est = estatistica_diaria(operando[coluna], operando["instante_observado"], unidade)
             if est is not None:
                 r.leituras[coluna] = est
-        id_o2 = operando["instrumento_o2_id"].dropna()
+        id_o2 = operando.loc[operando["o2_seco_pct"].notna(), "instrumento_o2_id"]
+        id_o2 = tuple(dict.fromkeys(str(x).strip() for x in id_o2.dropna() if str(x).strip()))
+        if len(id_o2) == 1:
+            r.instrumento_o2_id = id_o2[0]
+        elif len(id_o2) > 1:
+            r.bloqueios["instrumento_o2"] = AnaliseBloqueada(
+                "Há leituras de O₂ de mais de um analisador no mesmo período "
+                f"({', '.join(id_o2)}). A EULER não atribui a média à incerteza de um único "
+                "instrumento.",
+                [
+                    (
+                        "separar as leituras por analisador de O₂ ou confirmar qual instrumento "
+                        "representa o período"
+                    )
+                ],
+            )
         for coluna in r.leituras:
             g = grandeza_leitura(
                 pacote,
                 r,
                 coluna,
-                id_o2.mode().iloc[0] if coluna == "o2_seco_pct" and len(id_o2) else None,
+                r.instrumento_o2_id if coluna == "o2_seco_pct" else None,
             )
             if g is not None:
                 r.leituras_grandeza[coluna] = g

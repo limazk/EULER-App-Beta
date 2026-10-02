@@ -122,6 +122,9 @@ class Indireto:
 def _entradas_indireto(
     r: ResumoPeriodo, umidade: float | None = None
 ) -> dict[str, float] | AnaliseBloqueada:
+    for chave_bloqueio in ("ponto_gases", "instrumento_o2"):
+        if chave_bloqueio in r.bloqueios:
+            return r.bloqueios[chave_bloqueio]
     faltas = []
     for chave, nome in (
         ("t_gases_c", "temperatura dos gases"),
@@ -828,16 +831,19 @@ def investigar(
             "excesso_ar",
             titulo(
                 c_o2,
-                "Mais excesso de ar (O₂ maior nos gases)",
-                "Menos excesso de ar (O₂ menor nos gases)",
-                "Excesso de ar diferente (O₂ nos gases)",
+                "O₂ maior nos gases",
+                "O₂ menor nos gases",
+                "O₂ diferente nos gases",
             ),
             st,
             av,
             porque,
-            "Conferir a calibração do analisador de O₂, a base da medição (seca ou úmida) e "
-            "comparar com uma medição portátil no mesmo ponto.",
-            "Uma fonte: o analisador de O₂ (caminho indireto).",
+            "Conferir a calibração do analisador de O₂, a base da medição (seca ou úmida), "
+            "o ponto físico e comparar com uma medição portátil no mesmo ponto. Se a leitura se "
+            "confirmar, comparar O₂ em pontos a montante e a jusante para separar excesso de ar "
+            "na combustão de entrada de ar falso no caminho dos gases.",
+            "Uma fonte: o analisador de O₂ (caminho indireto). O₂ maior, sozinho, não separa "
+            "excesso de ar na combustão de entrada de ar falso após a zona de combustão.",
             ("O₂ nos gases",),
             ef_o2,
             por_perda(ef_o2),
@@ -1420,6 +1426,8 @@ def investigar(
             "rotulo": r.rotulo(),
             "leituras_diario": r.n_leituras_diario,
             "cobertura_diario": r.cobertura_diario,
+            "ponto_gases_id": r.ponto_gases_id,
+            "instrumento_o2_id": r.instrumento_o2_id,
             "vapor_t": _grandeza_json(r.vapor_t),
             "energia_util": {
                 "metodo": b.metodo_energia_util,
@@ -1442,6 +1450,11 @@ def investigar(
             "composicao_origem": r.composicao_origem,
             "eficiencia_direta": _grandeza_json(b.eficiencia),
             "eficiencia_cenarios_patio": b.eficiencia_cenarios,
+            "estado_vapor": {
+                "estado": b.estado_vapor,
+                "origem": b.estado_vapor_origem,
+                "titulo": b.titulo_vapor,
+            },
             "sensibilidade_titulo_vapor_pct": b.sensibilidade_titulo_pct,
             "fronteira_balanco_direto": b.fronteira,
             "consumo_t_por_t": _grandeza_json(b.consumo_t_por_t),
