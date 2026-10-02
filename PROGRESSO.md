@@ -196,3 +196,28 @@ incerteza ou números usados na demonstração.
 humana:** usar vapor superaquecido/título medido no caminho principal; normalização por carga
 e baseline multivariável; tratamento explícito de regimes transitórios; quantificação de purga;
 modelos de transferência/UA para fouling; primeiro ensaio com dados reais autorizados.
+
+
+## Segunda rodada do motor físico · 02/10/2026
+
+Pedido do Adryan: avançar a física do motor com cuidado, sem quebrar o que já funcionava e
+revisando cada mudança pelo CI.
+
+| Item | O que mudou | Situação |
+|---|---|---|
+| Estado real do vapor (D69) | a base já passou a aceitar vapor saturado registrado, superaquecido com T medida e úmido com título medido; x = 1 fica apenas como hipótese explícita quando nada é informado | **integrado na base antes desta PR** (`6402198`; CI daquela etapa: 346 testes) |
+| Baseline por carga (D70) | novo módulo `euler/baseline.py`: referência linear auditável entre vazão média de vapor e combustível; mínimo 3 pontos, sem extrapolação, residual normalizado só quando há ruído estimável | **feito e testado** |
+| Regime operacional (D71) | período só pode treinar o baseline estacionário se todo o diário do período estiver explicitamente em `estavel`; transiente/partida/parada/ausência de regime ficam fora da referência | **feito e testado** |
+| Purga (D72) | novo módulo `euler/purga.py`: calcula perda bruta apenas com massa purgada e condições termodinâmicas suficientes; contagem/duração não viram massa; pressão da purga e pressão da água de referência são entradas distintas | **motor pronto e testado; integração de tags pendente do piloto** |
+| Transferência no economizador (D73) | novo módulo `euler/transferencia.py`: Q pelo lado da água e UA aparente por LMTD; cruzamento térmico bloqueia; UA não prova fouling | **motor pronto e testado; integração de tags pendente do piloto** |
+| Saúde / residual por carga | a tela de saúde mantém a detecção principal existente e ganha a estrutura de baseline/resíduos como camada secundária; falha de ajuste ou extrapolação gera abstenção | **feito** |
+| Investigação | JSON passa a declarar os regimes presentes e se o período é elegível para baseline; recomendação de purga deixa explícito que massa/pressão são necessárias para quantificar energia | **feito** |
+| Revisão numérica | o teste encontrou RMSE residual de ordem de erro de ponto flutuante em uma reta perfeita; o motor agora trata somente esse ruído de máquina como zero, evitando z-score artificialmente enorme | **corrigido e testado** |
+| CI antes da documentação | `ruff check .`, `ruff format --check .` e `pytest -q` | **352 testes passando; lint/format sem erros** |
+
+**Preservado:** nenhum arquivo em `tests/golden/` foi alterado, nenhum número do demo foi
+ajustado e nenhuma tolerância foi relaxada para fazer teste passar.
+
+**Decisão deliberada de escopo:** os cálculos de purga e UA estão disponíveis como APIs do
+motor, mas ainda não foram adicionados ao contrato padrão de upload nem à interface. Isso
+evita inventar nomes/pontos de tags antes de ver a instrumentação da primeira planta real.
