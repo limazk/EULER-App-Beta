@@ -16,6 +16,8 @@ from typing import Literal
 import pandas as pd
 
 from euler.io import Pacote
+from euler.io.esquemas import TABELAS
+from euler.io.leitura import ALIASES_COLUNAS
 
 SituacaoRota = Literal["disponivel", "parcial", "indisponivel"]
 
@@ -45,6 +47,7 @@ class RotaFisica:
 class PerfilPlanta:
     sinais: dict[str, Sinal] = field(default_factory=dict)
     rotas: tuple[RotaFisica, ...] = ()
+    nao_mapeados: tuple[str, ...] = ()
 
     def rota(self, id_: str) -> RotaFisica:
         return next(r for r in self.rotas if r.id == id_)
@@ -179,6 +182,14 @@ def mapear_planta(pacote: Pacote) -> PerfilPlanta:
             )
         if n_est:
             sinais["estoques"] = Sinal("estoques", ROTULOS["estoques"], "combustivel", n_est)
+
+    nao_mapeados: tuple[str, ...] = ()
+    imp_diario = pacote.importacoes.get("diario")
+    if imp_diario is not None:
+        conhecidas = {c.nome for c in TABELAS["diario"].colunas} | set(ALIASES_COLUNAS) | {"linha"}
+        nao_mapeados = tuple(
+            c for c in imp_diario.original.columns if c not in conhecidas and not str(c).startswith("_")
+        )
 
     obs = set(sinais)
     termo_vapor = ("p_vapor_bar_abs", "t_agua_alim_c")
@@ -346,4 +357,4 @@ def mapear_planta(pacote: Pacote) -> PerfilPlanta:
             "Detectar mudança em um sinal não identifica causa nem equivale a perda de eficiência.",
         ),
     ]
-    return PerfilPlanta(sinais=sinais, rotas=tuple(rotas))
+    return PerfilPlanta(sinais=sinais, rotas=tuple(rotas), nao_mapeados=nao_mapeados)
