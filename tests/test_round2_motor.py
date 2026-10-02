@@ -9,7 +9,6 @@ from euler.purga import energia_purga_gj
 from euler.tipos import AnaliseBloqueada
 from euler.transferencia import ua_economizador
 
-
 G01 = 11.773
 
 
