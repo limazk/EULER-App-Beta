@@ -1,6 +1,6 @@
 """Contrato de dados: tabelas, colunas, unidades, obrigatoriedade e faixas plausíveis (T02).
 
-Fonte única do contrato. `docs/contrato_dados.md` e `templates/planilha_modelo_euler.xlsx`
+Fonte única do contrato. `docs/dados/contrato_dados.md` e `templates/planilha_modelo_euler.xlsx`
 são gerados a partir daqui (`python scripts/gerar_modelos.py`); um teste garante que
 estão em dia.
 

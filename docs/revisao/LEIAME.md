@@ -1,8 +1,13 @@
 # Material para os revisores científicos
 
 Para enviar a professores e doutorandos (termodinâmica, combustão, química, metrologia).
-Gerado por `python scripts/gerar_pdfs_revisao.py` a partir dos arquivos `.md` de `docs/`
+Gerado por `python scripts/gerar_pdfs_revisao.py` a partir dos arquivos `.md` de `docs/fisica/`
 (fonte única; o PDF só formata para imprimir e anotar).
+
+**Confira a versão antes de enviar.** Os PDFs desta pasta são cópias históricas e não
+acompanham automaticamente as mudanças do motor. As fontes atuais estão no
+[índice da revisão científica](../fisica/README.md). As descrições abaixo correspondem
+ao material gerado na etapa original.
 
 | Arquivo | Conteúdo | Páginas |
 |---|---|---|
@@ -10,8 +15,8 @@ Gerado por `python scripts/gerar_pdfs_revisao.py` a partir dos arquivos `.md` de
 | `perguntas_revisores.pdf` | **Três decisões prioritárias** (com exemplo numérico e efeito no relatório) + perguntas Q1–Q17 | 7 |
 
 Material de apoio (no repositório, se o revisor quiser aprofundar):
-`docs/revisao_motor_fisico.md` (diagnóstico e correções), `docs/matriz_validacao_fisica.md`
-(o que cada teste demonstra e o que não demonstra), `docs/decisoes.md` (D01–D57).
+`docs/fisica/revisao_motor_fisico.md` (diagnóstico e correções), `docs/fisica/matriz_validacao_fisica.md`
+(o que cada teste demonstra e o que não demonstra), `docs/gestao/decisoes.md` (D01–D57).
 
 ## Situação
 
@@ -21,7 +26,7 @@ as hipóteses aguardam revisão humana; não houve validação com dados reais d
 
 ## As três decisões prioritárias (começar por elas)
 
-| # | Decisão | Hoje no protótipo | Situação |
+| # | Decisão | Na versão dos PDFs | Situação |
 |---|---|---|---|
 | 1 | Qual combustível foi realmente queimado (estoque do pátio) | cenário "o que entra é o que queima" + FIFO + limites contábeis; lotes sem amostra com a média dos medidos (D22, D38, D51) | aguardando resposta |
 | 2 | Como amostrar a umidade e tratar o estado do vapor | sem a incerteza do método de umidade, a mudança de umidade é só "condicional"; título x = 1 assumido (D21, D52, D09) | aguardando resposta |
@@ -30,5 +35,5 @@ as hipóteses aguardam revisão humana; não houve validação com dados reais d
 ## Como devolver
 Para cada item: aprovado · aprovado com ressalva · corrigir · fora do escopo, com a forma
 correta e a referência bibliográfica quando houver correção. Cada resposta vira uma decisão
-"aprovada por <nome>" em `docs/decisoes.md`; mudanças em `tests/golden/` só por uma pessoa,
+"aprovada por <nome>" em `docs/gestao/decisoes.md`; mudanças em `tests/golden/` só por uma pessoa,
 com o nome do revisor no commit.

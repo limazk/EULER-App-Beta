@@ -2,7 +2,7 @@
 
 Tempo: uns 10 minutos, com calma. Tudo com o **caso de demonstração sintético** (dados
 inventados para teste). Para a apresentação com cliques e números exatos, use
-`demo/GUIA_DEMONSTRACAO_AO_VIVO.md`.
+`docs/demonstracao/GUIA_DEMONSTRACAO_AO_VIVO.md`.
 
 ## Como abrir
 

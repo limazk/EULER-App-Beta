@@ -1,3 +1,7 @@
+> **Documento histórico.** Registra uma etapa anterior. Para trabalhar na versão atual,
+> consulte o [guia dos desenvolvedores](../desenvolvimento/README.md) e o
+> [progresso](../desenvolvimento/PROGRESSO.md). As referências de caminhos foram atualizadas.
+
 # EULER · Arquivo mestre de construção do software
 
 > **Para o Claude Code:** este arquivo contém tudo o que você precisa para construir, comigo, o protótipo do software da EULER. Leia-o inteiro antes de agir. A Parte 1 diz como trabalhar comigo; a Parte 2 é o plano em etapas; a Parte 3 traz os arquivos que você deve criar exatamente como estão.
@@ -14,7 +18,7 @@
 3. Faça você mesmo tudo o que for possível: criar pastas, instalar pacotes, rodar comandos, testes e commits. Só me peça para agir quando for impossível (por exemplo, instalar o Python, fazer login no GitHub ou aprovar algo). Nesse caso, me dê o passo exato, um de cada vez.
 4. **Para eu ver o software:** deixe o app rodando em segundo plano (`streamlit run app/main.py`) e me diga o endereço (normalmente http://localhost:8501) e **exatamente onde clicar** para ver o que mudou. Se houver painel de pré-visualização disponível, use-o. Tire também prints das telas alteradas (Playwright), salve em `prints/` e me liste os arquivos.
 5. Quando algo não aparece no app (um cálculo interno), me mostre um exemplo de entrada e saída numa tabela.
-6. Ao final de cada etapa: rode `pytest -q` e `ruff check .`, faça commit com mensagem clara e **atualize o `PROGRESSO.md`** (etapa concluída, o que funciona, o que ficou pendente, próximo passo). Nas próximas sessões eu vou dizer só "continue": leia o `PROGRESSO.md` e siga.
+6. Ao final de cada etapa: rode `pytest -q` e `ruff check .`, faça commit com mensagem clara e **atualize o `docs/desenvolvimento/PROGRESSO.md`** (etapa concluída, o que funciona, o que ficou pendente, próximo passo). Nas próximas sessões eu vou dizer só "continue": leia o `docs/desenvolvimento/PROGRESSO.md` e siga.
 7. Se algo quebrar: volte ao último commit que funcionava e me explique o que aconteceu, sem jargão.
 8. Se faltar uma decisão de produto ou de física que este arquivo não responde, **não decida sozinho**: me pergunte com 2 ou 3 opções e a sua recomendação.
 9. Siga sempre as regras invioláveis do `AGENTS.md` (Parte 3).
@@ -25,7 +29,7 @@
 
 Prazo externo: o protótipo precisa estar demonstrável antes de **15/11/2026** (edital Fábrica de Spinoff da UnB).
 
-| Etapa | Tickets (ver `docs/backlog_agentes.md`) | O que o Adryan vai ver ao final |
+| Etapa | Tickets (ver `docs/desenvolvimento/backlog_agentes.md`) | O que o Adryan vai ver ao final |
 |---|---|---|
 | **0 · Preparar** | — | Verificar Python 3.11+ e Git (se faltar, me guiar na instalação). Criar todos os arquivos da Parte 3 exatamente como estão, `git init`, ambiente virtual `.venv`, instalar dependências, primeiro commit. Eu vejo: a lista de arquivos criados e os testes golden aparecendo como "skipped". |
 | **1 · Fundação** | T01 | O app abre no navegador com a tela inicial da EULER e o rodapé de segurança. |
@@ -35,12 +39,12 @@ Prazo externo: o protótipo precisa estar demonstrável antes de **15/11/2026** 
 | **5 · Investigação** | T11, T13 (e T10 se der tempo) | Telas "Dados e limites" (o que dá e o que não dá para concluir, e por quê) e "Investigação" (hipóteses, o que falta, próxima verificação). |
 | **6 · Relatório** | T14 | Botão "Gerar relatório" que cria um HTML com os 5 blocos; 3 exemplos em `docs/exemplos_relatorio/` para eu revisar o texto. |
 | **7 · Demonstração** | T18, T15 | Caso sintético completo em `demo/`; fluxo inteiro no app em menos de 5 minutos; roteiro de 2 minutos para o vídeo do edital. |
-| **8 · Entrega aos devs** | T19 | Revisão crítica do próprio código, `HANDOFF.md` sincero (o que está pronto, o que é provisório, riscos, o que falta), README atualizado e repositório privado no GitHub. |
+| **8 · Entrega aos devs** | T19 | Revisão crítica do próprio código, `docs/historico/ENTREGA_2026-10-01.md` sincero (o que está pronto, o que é provisório, riscos, o que falta), README atualizado e repositório privado no GitHub. |
 | Extras (se sobrar tempo) | T04, T12, T16 | Mapeamento automático de colunas, detecção de degrau, registro de horas. |
 
 Observações:
-- **T17 (benchmark cego)** deve ser feito depois por outra pessoa, num repositório separado. Não crie o gerador de gabarito neste projeto; registre isso no `HANDOFF.md`.
-- Os valores de `tests/golden/` estão **pendentes de revisão científica** por doutorandos. Na Etapa 8, gere também uma versão em PDF de `docs/fisica_para_revisao.md` para eu enviar aos revisores.
+- **T17 (benchmark cego)** deve ser feito depois por outra pessoa, num repositório separado. Não crie o gerador de gabarito neste projeto; registre isso no `docs/historico/ENTREGA_2026-10-01.md`.
+- Os valores de `tests/golden/` estão **pendentes de revisão científica** por doutorandos. Na Etapa 8, gere também uma versão em PDF de `docs/fisica/fisica_para_revisao.md` para eu enviar aos revisores.
 - Quando um revisor corrigir um item (E1–E15), eu vou pedir: "atualize o golden com a correção do revisor X no item Ey". Só nesse caso `tests/golden/` pode mudar.
 
 ---
@@ -61,8 +65,8 @@ As regras do projeto ficam num arquivo só, compartilhado com outros agentes (ex
 ## Como trabalhar com o Adryan (fundador, não programador)
 - Português simples; explique antes e depois de agir; uma etapa por vez, com plano curto e "ok" dele.
 - Deixe o app rodando (`streamlit run app/main.py`), informe o endereço e onde clicar para ver o que mudou; salve prints em `prints/`.
-- Ao fim de cada etapa: `pytest -q`, `ruff check .`, commit e atualização do `PROGRESSO.md`.
-- Quando ele disser "continue": leia `PROGRESSO.md` e siga o plano em `EULER_CONSTRUCAO_COMPLETA.md` (Parte 2).
+- Ao fim de cada etapa: `pytest -q`, `ruff check .`, commit e atualização do `docs/desenvolvimento/PROGRESSO.md`.
+- Quando ele disser "continue": leia `docs/desenvolvimento/PROGRESSO.md` e siga o plano em `docs/historico/PLANO_ORIGINAL.md` (Parte 2).
 - Decisões de produto ou de física não especificadas: pergunte com opções e recomendação.
 ~~~~
 
@@ -79,7 +83,7 @@ EULER é um SaaS de **investigação física** para caldeiras industriais. Ele *
 Às vezes a resposta certa é **"não dá para concluir"** + a próxima medição. Essa abstenção é uma funcionalidade, não uma falha.
 
 ## Regras invioláveis
-1. **Nunca** gerar comando operacional para a caldeira (abrir válvula, mudar setpoint, ajustar queimador). O software investiga e recomenda **verificações**. Ver rodapé de segurança em `docs/visao_produto.md`.
+1. **Nunca** gerar comando operacional para a caldeira (abrir válvula, mudar setpoint, ajustar queimador). O software investiga e recomenda **verificações**. Ver rodapé de segurança em `docs/produto/visao_produto.md`.
 2. **Ausente ≠ zero.** Nada é preenchido, interpolado ou corrigido em silêncio. Toda correção guarda original, novo valor, motivo, autor e data.
 3. **Unidades SI internamente:** kg, MJ, °C/K, bar **absoluto**. Converter na entrada; nomear colunas com a unidade (`t_gases_c`, `p_vapor_bar_abs`).
 4. **Toda análise tem pré-requisitos** (`euler/capacidades.py`). Se faltar dado, a análise é **bloqueada** com motivo legível. Nunca usar porcentagem arbitrária para "completar" perdas.
@@ -113,10 +117,10 @@ docs/             contrato de dados, física, decisões
 ```
 
 ## Como trabalhar
-- **Uma tarefa = um branch = um PR pequeno.** Siga o ticket em `docs/backlog_agentes.md`.
+- **Uma tarefa = um branch = um PR pequeno.** Siga o ticket em `docs/desenvolvimento/backlog_agentes.md`.
 - Antes de codar, escreva/atualize os testes do ticket. Depois implemente até passarem.
-- Funções puras e com docstring: entrada, saída, unidades, hipóteses, referência da equação (ex.: "E7 em docs/fisica_para_revisao.md").
-- Toda hipótese física nova vai para `docs/decisoes.md` (data, decisão, motivo, quem revisa).
+- Funções puras e com docstring: entrada, saída, unidades, hipóteses, referência da equação (ex.: "E7 em docs/fisica/fisica_para_revisao.md").
+- Toda hipótese física nova vai para `docs/gestao/decisoes.md` (data, decisão, motivo, quem revisa).
 - No PR, descreva: o que mudou, como testar, o que ficou fora, dúvidas para revisão humana.
 - Se a tarefa exigir decisão de produto ou de física não especificada, **não decida sozinho**: liste as opções no PR.
 
@@ -124,7 +128,7 @@ docs/             contrato de dados, física, decisões
 Português claro, frases curtas, sem jargão desnecessário. Números sempre com unidade e origem (`medido`, `estimado`, `assumido`). Nunca "IA prevê", "economia garantida" ou "comprovado" sem evidência.
 ~~~~
 
-### Arquivo 3: `PROGRESSO.md`
+### Arquivo 3: `docs/desenvolvimento/PROGRESSO.md`
 
 ~~~~
 # PROGRESSO da construção
@@ -144,7 +148,7 @@ Português claro, frases curtas, sem jargão desnecessário. Números sempre com
 **Próximo passo:** Etapa 0.
 ~~~~
 
-### Arquivo 4: `docs/visao_produto.md`
+### Arquivo 4: `docs/produto/visao_produto.md`
 
 ~~~~
 # EULER · Visão de produto (resumo para a equipe e para os agentes)
@@ -181,7 +185,7 @@ Hardware próprio · controle automático da caldeira · personalizações por c
 > Ferramenta de registro e apoio à investigação. Não emite comandos operacionais nem substitui procedimentos da instalação, alarmes, intertravamentos ou a avaliação do responsável técnico. Não é um Registro de Segurança conforme a NR-13.
 ~~~~
 
-### Arquivo 5: `docs/backlog_agentes.md`
+### Arquivo 5: `docs/desenvolvimento/backlog_agentes.md`
 
 ~~~~
 # EULER · Backlog para agentes (Codex / Claude Code) · Fase 0 (edital, até 15/11/2026)
@@ -202,7 +206,7 @@ Legenda de status: ☐ a fazer · ◐ em andamento · ☑ pronto (testes passand
 - Não fazer: nenhum código de física.
 
 **T02 · Contrato de dados e planilhas modelo** — AD + P3 ☐
-- Objetivo: `docs/contrato_dados.md` (da spec v0.3) + `templates/*.csv` (deste kit) + uma planilha modelo .xlsx com abas iguais aos CSVs e instruções para o operador.
+- Objetivo: `docs/dados/contrato_dados.md` (da spec v0.3) + `templates/*.csv` (deste kit) + uma planilha modelo .xlsx com abas iguais aos CSVs e instruções para o operador.
 - Aceite: cada coluna com unidade, obrigatoriedade e exemplo; planilha abre no Excel/Google Sheets e exporta CSV que o importador aceita.
 - Não fazer: colunas sem unidade no nome.
 
@@ -238,7 +242,7 @@ Legenda de status: ☐ a fazer · ◐ em andamento · ☑ pronto (testes passand
 
 **T09 · Extrato de energia por fornecedor (M1)** — P1 ☐ *(novo, principal argumento de valor)*
 - Objetivo: E11. Para cada lote/fornecedor: energia entregue, R$/GJ, umidade e origem do dado; ranking por R$/GJ; alerta quando a umidade do lote foge da faixa histórica do fornecedor.
-- Aceite: reproduz a tabela F1–F3 de `docs/fisica_para_revisao.md`; lote sem umidade medida aparece como "energia não determinada" (nunca assume).
+- Aceite: reproduz a tabela F1–F3 de `docs/fisica/fisica_para_revisao.md`; lote sem umidade medida aparece como "energia não determinada" (nunca assume).
 - Não fazer: acusar fornecedor; texto neutro ("umidade acima da faixa histórica").
 
 **T10 · `direto.py` · eficiência direta** — P1 ☐
@@ -289,7 +293,7 @@ Legenda de status: ☐ a fazer · ◐ em andamento · ☑ pronto (testes passand
 Alertas automáticos · registro de ações e verificação do resultado (M4) · fechamento mensal do custo do vapor (M5) · várias caldeiras e plantas · login e nuvem · API para parceiros · foto do caderno (OCR) · assistente de dúvidas com base nos dados do cliente · comparação anônima entre plantas · base de qualidade por fornecedor.
 ~~~~
 
-### Arquivo 6: `docs/fisica_para_revisao.md`
+### Arquivo 6: `docs/fisica/fisica_para_revisao.md`
 
 ~~~~
 # EULER · Física e cálculos para revisão científica
@@ -437,7 +441,7 @@ Revisor: ☐ ☐ ☐ ☐ · Observações:
 Toda correção aprovada vira: (1) ticket no backlog, (2) atualização de `tests/golden/`, feita **por uma pessoa**, com o nome do revisor no commit.
 ~~~~
 
-### Arquivo 7: `docs/decisoes.md`
+### Arquivo 7: `docs/gestao/decisoes.md`
 
 ~~~~
 # Registro de decisões (técnicas e de produto)
@@ -494,7 +498,7 @@ P05,18.5,0.50,8.029,0.001,pendente
 """Testes golden da EULER.
 
 SOMENTE LEITURA para agentes de programação: valores revisados pela equipe científica
-(ver docs/fisica_para_revisao.md). Se falhar, o código está errado até prova em contrário.
+(ver docs/fisica/fisica_para_revisao.md). Se falhar, o código está errado até prova em contrário.
 Ajuste apenas os imports/assinaturas quando os módulos existirem (tickets T06, T07, T08).
 """
 from pathlib import Path

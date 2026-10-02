@@ -1,7 +1,7 @@
 """Verificações de qualidade dos registros importados (T03, T05).
 
 Nada aqui altera dados: cada função só devolve avisos com linha e motivo
-(AGENTS.md, regra 2). Os limites são propostas registradas em docs/decisoes.md.
+(AGENTS.md, regra 2). Os limites são propostas registradas em docs/gestao/decisoes.md.
 """
 
 from __future__ import annotations

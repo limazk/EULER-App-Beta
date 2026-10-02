@@ -1,6 +1,6 @@
 """Combustível: PCI úmido, queimado no período, energia e extrato por fornecedor (E5, E9–E11).
 
-Convenções (docs/fisica_para_revisao.md): umidade `w` em base úmida (kg de água
+Convenções (docs/fisica/fisica_para_revisao.md): umidade `w` em base úmida (kg de água
 por kg de combustível úmido, fração de 0 a 1); PCI em MJ/kg; massas em kg.
 """
 

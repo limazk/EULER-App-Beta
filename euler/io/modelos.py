@@ -19,7 +19,7 @@ from euler.io.esquemas import TABELAS, Coluna
 
 RAIZ = Path(__file__).resolve().parents[2]
 PASTA_MODELOS = RAIZ / "templates"
-ARQUIVO_CONTRATO = RAIZ / "docs" / "contrato_dados.md"
+ARQUIVO_CONTRATO = RAIZ / "docs" / "dados" / "contrato_dados.md"
 ARQUIVO_PLANILHA = PASTA_MODELOS / "planilha_modelo_euler.xlsx"
 
 REGRAS_GERAIS = """\
@@ -57,7 +57,7 @@ def _descricao(col: Coluna) -> str:
 
 
 def contrato_markdown() -> str:
-    """Texto completo de docs/contrato_dados.md."""
+    """Texto completo de docs/dados/contrato_dados.md."""
     partes = [
         "# Contrato de dados · EULER",
         "",
@@ -67,7 +67,7 @@ def contrato_markdown() -> str:
         ),
         (
             "> Derivado dos modelos de CSV do kit de construção; a spec v0.3 não estava "
-            "disponível (ver D12 em `docs/decisoes.md`)."
+            "disponível (ver D12 em `docs/gestao/decisoes.md`)."
         ),
         "",
         "## Regras gerais",

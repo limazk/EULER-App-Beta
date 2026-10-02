@@ -3,11 +3,11 @@
 Para: professores / doutorandos que revisam a física da EULER. Preparado pelo agente de
 programação em 01/10/2026. Cada pergunta traz **a hipótese atual**, **por que importa**,
 **alternativas** e um **exemplo numérico** calculado com o código (versão indicada em
-`docs/revisao_motor_fisico.md`, seção 5). Os números são de casos sintéticos: servem para
+`docs/fisica/revisao_motor_fisico.md`, seção 5). Os números são de casos sintéticos: servem para
 dar a ordem de grandeza, não descrevem nenhuma caldeira real.
 
 Como responder: escreva a escolha e a fonte ao lado da pergunta (ou em
-`docs/fisica_para_revisao.md`); a decisão correspondente em `docs/decisoes.md` passa de
+`docs/fisica/fisica_para_revisao.md`); a decisão correspondente em `docs/gestao/decisoes.md` passa de
 "pendente" para "aprovada por …". **Enquanto não houver resposta, o comportamento atual
 continua marcado como proposta.**
 

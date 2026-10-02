@@ -41,4 +41,4 @@ do demo não foram alterados para mudar esse resultado.
 Energia útil = vapor × 2,424 MJ/kg; rendimento = 0,80 − 0,00076·(T_gases − 186) −
 0,10·(umidade − 0,42); PCI úmido = (1 − w)·18,5 − 2,442·w; combustível queimado =
 energia útil ÷ (rendimento × PCI úmido). As sensibilidades vêm de
-`docs/fisica_para_revisao.md`. O gerador não importa nada de `euler/` (AGENTS.md, regra 7).
+`docs/fisica/fisica_para_revisao.md`. O gerador não importa nada de `euler/` (AGENTS.md, regra 7).

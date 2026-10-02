@@ -16,7 +16,7 @@ Legenda de status: ☐ a fazer · ◐ em andamento · ☑ pronto (testes passand
 - Não fazer: nenhum código de física.
 
 **T02 · Contrato de dados e planilhas modelo** — AD + P3 ☐
-- Objetivo: `docs/contrato_dados.md` (da spec v0.3) + `templates/*.csv` (deste kit) + uma planilha modelo .xlsx com abas iguais aos CSVs e instruções para o operador.
+- Objetivo: `docs/dados/contrato_dados.md` (da spec v0.3) + `templates/*.csv` (deste kit) + uma planilha modelo .xlsx com abas iguais aos CSVs e instruções para o operador.
 - Aceite: cada coluna com unidade, obrigatoriedade e exemplo; planilha abre no Excel/Google Sheets e exporta CSV que o importador aceita.
 - Não fazer: colunas sem unidade no nome.
 
@@ -52,7 +52,7 @@ Legenda de status: ☐ a fazer · ◐ em andamento · ☑ pronto (testes passand
 
 **T09 · Extrato de energia por fornecedor (M1)** — P1 ☐ *(novo, principal argumento de valor)*
 - Objetivo: E11. Para cada lote/fornecedor: energia entregue, R$/GJ, umidade e origem do dado; ranking por R$/GJ; alerta quando a umidade do lote foge da faixa histórica do fornecedor.
-- Aceite: reproduz a tabela F1–F3 de `docs/fisica_para_revisao.md`; lote sem umidade medida aparece como "energia não determinada" (nunca assume).
+- Aceite: reproduz a tabela F1–F3 de `docs/fisica/fisica_para_revisao.md`; lote sem umidade medida aparece como "energia não determinada" (nunca assume).
 - Não fazer: acusar fornecedor; texto neutro ("umidade acima da faixa histórica").
 
 **T10 · `direto.py` · eficiência direta** — P1 ☐

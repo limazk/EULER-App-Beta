@@ -96,8 +96,8 @@ def mostrar(pacote) -> None:
 
     with st.expander("Detalhes técnicos: equações e decisões de cada análise"):
         st.markdown(
-            "Itens E (equações) de `docs/fisica_para_revisao.md` e propostas D de "
-            "`docs/decisoes.md`, todos em revisão.\n\n"
+            "Itens E (equações) de `docs/fisica/fisica_para_revisao.md` e propostas D de "
+            "`docs/gestao/decisoes.md`, todos em revisão.\n\n"
             + "\n".join(f"- {c.nome}: {c.referencia}" for c in caps if c.referencia)
         )
 

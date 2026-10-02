@@ -3,7 +3,7 @@
 Cada linha é uma verificação **executável** (teste automático) com a referência usada, a
 tolerância e o motivo dela. Criada na Fase R e reclassificada depois da auditoria externa
 de 01/10/2026 (versão examinada `2cd4dc3`). **Nenhuma linha é aprovação científica**: ver
-a legenda I / V / R em `docs/revisao_motor_fisico.md`.
+a legenda I / V / R em `docs/fisica/revisao_motor_fisico.md`.
 
 ## Categorias (o que cada verificação demonstra)
 
@@ -147,6 +147,6 @@ física. **Não é validação independente.**
 | P-2 | Seções do GUM | auditoria conferiu 4.3.3, 4.3.7, 5.2.2 e 6.3.3; **faltam 5.1.3 e 6.2.1**. A 4.3.7 **não** autoriza tratar incerteza sem tipo como limite: isso é hipótese do projeto (D35) | revisor |
 | P-3 | Entalpias de formação | **conferido pela auditoria** (CODATA no NIST WebBook) | — |
 | P-4 | **Comparação com uma caldeira real** | não feita; sem dados reais no repositório | ensaio de referência com dados autorizados e critérios definidos antes de ver os resultados |
-| P-5 | Título, base do O₂, orvalho ácido, purga, uso do pátio | dependem de medição ou decisão | `docs/perguntas_revisores.md` |
+| P-5 | Título, base do O₂, orvalho ácido, purga, uso do pátio | dependem de medição ou decisão | `docs/fisica/perguntas_revisores.md` |
 | P-6 | Representatividade da amostragem de umidade | sem amostras em duplicata | Q14 |
 | P-7 | **Casos reservados independentes da lógica do motor** | não existem: todos os casos de investigação usam hipóteses do motor | montar casos por outra pessoa ou outro cálculo, guardados fora do alcance de quem ajusta o motor |

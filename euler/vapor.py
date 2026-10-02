@@ -1,4 +1,4 @@
-"""Entalpias de vapor e água pela IAPWS-IF97 (E8 em docs/fisica_para_revisao.md).
+"""Entalpias de vapor e água pela IAPWS-IF97 (E8 em docs/fisica/fisica_para_revisao.md).
 
 Unidades: pressão em bar absoluto, temperatura em °C, entalpia em MJ/kg.
 A biblioteca `iapws` trabalha em MPa, K e kJ/kg; a conversão fica só aqui.

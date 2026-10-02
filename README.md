@@ -1,79 +1,64 @@
-# EULER · protótipo (Fase 0)
+# EULER
 
-Protótipo de **investigação físico-energética** para caldeiras industriais, inicialmente
-desenvolvido para o domínio de dados e hipóteses já implementados (com forte foco em
-combustível sólido/biomassa). Usa registros que a fábrica já tem para estimar quanto de
-energia foi comprada, quanto virou vapor, quais perdas mensuráveis mudaram e o que permanece
-sem explicação — e diz com clareza quando os dados **não** bastam para concluir.
+Software de investigação do consumo de combustível em caldeiras industriais. Reúne os
+registros da operação para mostrar o que mudou, quais explicações são compatíveis com
+os dados e qual verificação pode esclarecer a mudança.
 
-> **Situação:** cálculos implementados e verificados por testes automáticos; hipóteses
-> físicas em revisão científica (nenhuma aprovada); sem validação com dados reais. Os dados
-> do repositório são **sintéticos**. A EULER **não emite comandos para a caldeira**: indica
-> verificações.
+**Protótipo em desenvolvimento.** A demonstração usa dados sintéticos. Os cálculos têm
+testes automáticos; as hipóteses físicas dependem de revisão humana e não houve validação
+em planta. A EULER indica verificações e não emite comandos para a caldeira.
 
-## Começar
+## Comece por aqui
 
-Requer **Python 3.11+**.
-
-```bash
-python -m venv .venv
-source .venv/bin/activate          # Windows: .venv\Scripts\activate
-pip install -e ".[dev]"
-streamlit run app/main.py          # abre em http://localhost:8501
-```
-
-No Windows, depois da instalação: dois cliques em `ABRIR-EULER.cmd`.
-
-O CMD e o atalho da instalação local usam `scripts/abrir_local.py`. Ele identifica o
-servidor e os arquivos instalados antes de reutilizar a porta. Quando o código muda,
-reinicia somente o servidor da própria instalação. A revisão em execução aparece em
-**Detalhes técnicos da instalação**, no menu lateral. Os registros de inicialização
-ficam em `.euler-local/`, fora do Git. Abrir o CMD não baixa código automaticamente do
-GitHub: a atualização precisa estar instalada e verificada antes da abertura.
-
-No app: **Início → Ato 1 · a EULER conclui** ou **Ato 2 · a EULER explica por que não conclui**
-(passeio guiado em `demo/PASSEIO_PELAS_TELAS.md`). O fluxo é carregar dados → ver a saúde da
-caldeira → conferir qualidade e limites → investigar → consultar fornecedores → gerar
-relatório.
-
-## Verificar
-
-```bash
-pytest -q                          # ~2 min
-ruff check . && ruff format --check .
-```
-
-Para rodar também a verificação independente da física (CoolProp, Cantera):
-`pip install -e ".[validacao]"`. Versões exatas testadas: `requirements-lock.txt`.
-
-## PDF do relatório, prints e vídeo
-
-```bash
-pip install -e ".[prints]"         # playwright + markdown
-playwright install chromium
-python scripts/prints.py           # prints/ (8 telas)
-python scripts/gravar_video_demo.py  # demo/video/ (rascunho sem narração; MP4 com ffmpeg)
-python scripts/gerar_pdfs_revisao.py # docs/revisao/ (PDFs para os revisores)
-python scripts/gerar_previa.py      # demo/previa/index.html (prévia interativa, sem Streamlit)
-```
-
-Sem o Chromium, o app oferece só **Baixar HTML**; abra no navegador e use
-**Imprimir → Salvar como PDF**.
-
-## Onde está cada coisa
-
-| Caminho | Conteúdo |
+| Quero… | Acesse |
 |---|---|
-| `HANDOFF.md` | **entrega aos desenvolvedores**: organização, o que funciona, limitações, prioridades |
-| `PROGRESSO.md` | andamento por etapa |
-| `euler/` | motor (física, importação, investigação, relatório) |
-| `app/` | telas Streamlit |
-| `tests/` | testes; `tests/golden/` são valores de referência **somente leitura** |
-| `demo/` | caso sintético, **Entenda a EULER** (`ENTENDA_A_EULER.md`), passeio pelas telas, guia da demonstração ao vivo, roteiro do vídeo |
-| `docs/` | visão de produto, física para revisão, decisões, revisão do motor, matriz de validação, perguntas aos revisores, contrato de dados, exemplos de relatório |
-| `docs/revisao/` | PDFs para enviar aos revisores |
-| `templates/` | modelos de CSV e planilha para o cliente preencher |
-| `prints/` | prints das telas |
-| `lab/` | calculadora de referência dos revisores (não é o motor) |
+| Entender o produto | [Visão do produto](docs/produto/visao_produto.md) |
+| Instalar e desenvolver | [Guia dos desenvolvedores](docs/desenvolvimento/README.md) |
+| Conhecer as telas | [Passeio pela demonstração](docs/demonstracao/PASSEIO_PELAS_TELAS.md) |
+| Preparar arquivos para importar | [Modelos de dados](templates/README.md) |
+| Revisar os cálculos | [Documentação científica](docs/fisica/README.md) |
+| Encontrar um documento | [Índice da documentação](docs/README.md) |
 
-Regras para quem programa (pessoas ou agentes): `AGENTS.md`.
+## Rodar o software
+
+Requer **Python 3.11+**. Execute dentro da pasta do repositório.
+
+**Windows — Prompt de Comando:**
+
+```bat
+python -m venv .venv
+.venv\Scripts\python.exe -m pip install -e ".[dev]"
+.venv\Scripts\python.exe -m streamlit run app/main.py
+```
+
+**Linux ou macOS:**
+
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -e ".[dev]"
+.venv/bin/python -m streamlit run app/main.py
+```
+
+Abra **http://localhost:8501** e escolha **Ato 1 · a EULER conclui** para percorrer o caso
+completo, ou **Ato 2** para ver como o software informa que faltam dados.
+
+Na instalação Windows já preparada, use [ABRIR-EULER.cmd](ABRIR-EULER.cmd). O inicializador
+evita servidores duplicados e reconhece mudanças no código instalado; não baixa atualizações
+do GitHub automaticamente.
+
+## Mapa do repositório
+
+| Pasta | Conteúdo |
+|---|---|
+| [app/](app/) | Interface e telas |
+| [euler/](euler/) | Motor físico, importação e investigação |
+| [tests/](tests/) | Testes e valores de referência protegidos |
+| [docs/](docs/README.md) | Produto, desenvolvimento, física, dados, decisões e histórico |
+| [templates/](templates/README.md) | CSVs e planilha para preencher |
+| [demo/](demo/README.md) | Dados sintéticos e gerador da demonstração |
+| [scripts/](scripts/README.md) | Ferramentas de apoio e geração de arquivos |
+| [prints/](prints/README.md) | Capturas de referência das telas |
+| [lab/](lab/) | Calculadora de referência, separada do motor do produto |
+
+Quem altera o projeto deve seguir [AGENTS.md](AGENTS.md). Entregas e próximos passos:
+[progresso](docs/desenvolvimento/PROGRESSO.md) e [backlog](docs/desenvolvimento/backlog_agentes.md).

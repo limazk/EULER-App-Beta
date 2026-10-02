@@ -64,7 +64,7 @@ with envio, cartao("arquivos"):
         st.markdown(
             "Cada registro vai num arquivo com o nome abaixo (ou numa aba da planilha com o "
             "mesmo nome, sem o `.csv`). Colunas e unidades completas no contrato de dados "
-            "(`docs/contrato_dados.md`)."
+            "(`docs/dados/contrato_dados.md`)."
         )
         st.dataframe(
             [

@@ -359,7 +359,7 @@ function telaLimites() {
       ${c.o_que_fazer.length ? `<div><b>Para liberar:</b><ul>${c.o_que_fazer.map((m) => `<li>${e(m)}</li>`).join("")}</ul></div>` : ""}</div>`).join("") : ""}
     <h2>Liberadas com estes dados</h2>
     <div class="cartao"><div class="grade g2">${liberadas.map((c) => `<div><span style="color:var(--t-green)">✓</span> <b>${e(c.nome)}</b><br><span class="legenda">${e(c.pergunta)}</span></div>`).join("")}</div></div>
-    <details><summary>Detalhes técnicos: equações e decisões de cada análise</summary><p class="legenda">Itens E (equações) de docs/fisica_para_revisao.md e propostas D de docs/decisoes.md, todos em revisão.</p><ul>${caps.filter((c) => c.referencia).map((c) => `<li>${e(c.nome)}: ${e(c.referencia)}</li>`).join("")}</ul></details>
+    <details><summary>Detalhes técnicos: equações e decisões de cada análise</summary><p class="legenda">Itens E (equações) de docs/fisica/fisica_para_revisao.md e propostas D de docs/gestao/decisoes.md, todos em revisão.</p><ul>${caps.filter((c) => c.referencia).map((c) => `<li>${e(c.nome)}: ${e(c.referencia)}</li>`).join("")}</ul></details>
     <p class="legenda">${plural(N, "período", "períodos")} entre medições de estoque, de ${e(A().periodos[0].ini)} a ${e(A().periodos[N - 1].fim)}.</p>
     <h2>Período a período</h2>
     <p class="legenda">Cada linha vai de uma medição de estoque à seguinte. <b>Com limites</b>: falta a incerteza de algum instrumento ou a perda nos gases; <b>Não dá para concluir</b>: falta a eficiência ou o consumo. O motivo de cada um está em “Ver detalhes de cada período”.</p>

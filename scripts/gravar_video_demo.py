@@ -1,5 +1,5 @@
 """Grava um RASCUNHO do vídeo da demonstração (sem narração, com legendas) seguindo
-demo/ROTEIRO_VIDEO.md, usando o app real.
+docs/demonstracao/ROTEIRO_VIDEO.md, usando o app real.
 
 Uso:
     pip install -e ".[prints]"
@@ -69,7 +69,7 @@ def mover(p: Page, alca: int, tecla: str, vezes: int = 1) -> None:
 
 
 def roteiro(p: Page, url: str) -> None:
-    """Cenas de demo/ROTEIRO_VIDEO.md (as legendas resumem a narração).
+    """Cenas de docs/demonstracao/ROTEIRO_VIDEO.md (as legendas resumem a narração).
 
     Cada cena começa no tempo marcado no roteiro (`ate`), para a narração gravada depois
     casar com a imagem.

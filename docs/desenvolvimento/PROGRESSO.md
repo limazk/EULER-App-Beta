@@ -3,29 +3,29 @@
 | Etapa | Status | Data | O que funciona | Pendências |
 |---|---|---|---|---|
 | 0 · Preparar | concluída | 2026-10-01 | 17 arquivos da Parte 3 criados idênticos ao arquivo mestre (conferido por script); `.venv` com Python 3.11; dependências instaladas (`pip install -e ".[dev]"`); `pytest -q` → testes golden *skipped*; `ruff check .` sem erros. Checagem extra: `lab/referencia_perda_gases.py` e IAPWS reproduzem todos os valores golden (G01–G12, V01, P01–P05). | Spec v0.3 não está no repositório (citada por T02, T11, T12, T13): pedir ao Adryan antes da Etapa 3. |
-| 1 · Fundação | concluída | 2026-10-01 | App abre com a tela inicial e o rodapé de segurança (texto único em `euler/textos.py`, testado contra `docs/visao_produto.md`). CI no GitHub Actions (ruff + pytest), modelo de PR, README, script de prints (`scripts/prints.py`). | — |
+| 1 · Fundação | concluída | 2026-10-01 | App abre com a tela inicial e o rodapé de segurança (texto único em `euler/textos.py`, testado contra `docs/produto/visao_produto.md`). CI no GitHub Actions (ruff + pytest), modelo de PR, README, script de prints (`scripts/prints.py`). | — |
 | 2 · Física | concluída | 2026-10-01 | `euler/vapor.py` (IF97, E8), `euler/indireto.py` (E1–E7, modo constante), `euler/combustivel.py` (E5, E9, E10). **18 testes golden passando** (G01–G12, V01, P01–P05). Página "Calculadora de referência" com perda, λ, PCI úmido, sensibilidades e aviso de simulação; bloqueia com motivo fora do domínio (ex.: abaixo do orvalho). | Modo cp variável aguarda fonte de cp(T) do revisor (D08). Decisões D05–D11 aguardam aprovação. |
-| 3 · Entrada de dados | concluída | 2026-10-01 | Contrato de dados em `euler/io/esquemas.py`, que gera `docs/contrato_dados.md` e `templates/planilha_modelo_euler.xlsx` (`python scripts/gerar_modelos.py`). Importadores de todas as tabelas (CSV com `,` ou `;`, vírgula decimal, codificação Windows, planilha .xlsx). Avisos com linha e motivo: lacunas, duplicatas, totalizador reiniciado, registro tardio, unidades suspeitas, volume sem densidade, relações entre tabelas. Tela "Importar dados" com exemplo de problemas em `demo/qualidade/`. | Registro de correções manuais (original, novo valor, motivo, autor, data) ainda não existe: hoje nada é corrigido. Decisões D12–D18 aguardam aprovação. |
+| 3 · Entrada de dados | concluída | 2026-10-01 | Contrato de dados em `euler/io/esquemas.py`, que gera `docs/dados/contrato_dados.md` e `templates/planilha_modelo_euler.xlsx` (`python scripts/gerar_modelos.py`). Importadores de todas as tabelas (CSV com `,` ou `;`, vírgula decimal, codificação Windows, planilha .xlsx). Avisos com linha e motivo: lacunas, duplicatas, totalizador reiniciado, registro tardio, unidades suspeitas, volume sem densidade, relações entre tabelas. Tela "Importar dados" com exemplo de problemas em `demo/qualidade/`. | Registro de correções manuais (original, novo valor, motivo, autor, data) ainda não existe: hoje nada é corrigido. Decisões D12–D18 aguardam aprovação. |
 | 4 · Extrato por fornecedor | concluída | 2026-10-01 | `extrato_por_fornecedor` (E11): energia e R$/GJ por lote e fornecedor, origem de cada dado, ranking por energia × por tonelada, alerta neutro de umidade fora da faixa histórica, "energia não determinada" sem umidade medida. Reproduz a tabela F1–F3 do documento. Tela "Extrato por fornecedor" com gráficos (preço/t × custo/GJ; umidade por semana). **Dados do caso de demonstração (T18) adiantados:** `demo/caso_demo/` + `demo/gerar_caso_demo.py`, botão "Caso de demonstração" na importação. | Decisões D19–D21 aguardam aprovação. Roteiro do vídeo fica para a Etapa 7. |
 | 5 · Investigação | concluída | 2026-10-01 | `periodos.py` (resumo entre medições de estoque), `direto.py` (T10: eficiência com intervalo, E13 testado), `deteccao.py` (mudança detectável), `investigacao.py` (T13: JSON com o que mudou, hipóteses, independência E12, o que falta, próxima verificação, abstenção, valor em jogo só com base, custo E14), `capacidades.py` (T11, 11 análises). Testes: casos A, B, C, contraexemplo da purga e semana sem vapor. Telas "Dados e limites" (com período a período) e "Investigação" (5 blocos, gráfico e JSON). | T12 (detecção de degrau) não feito (extra). Decisões D22–D32 aguardam aprovação; formato do JSON e tabela de capacidades a conferir com a spec v0.3. |
 | 6 · Relatório | concluída | 2026-10-01 | `euler/relatorio.py`: JSON → HTML com os 5 blocos fixos, rodapé de segurança, selo "dados sintéticos", pronto para A4; PDF pelo Chromium quando disponível. Teste com lista de verbos proibidos (e trava no app). Tela "Relatório" com botão "Gerar relatório", prévia e downloads. **3 exemplos em `docs/exemplos_relatorio/`** (HTML + PDF) com guia de revisão. | **Adryan: revisar o texto dos 3 exemplos.** Decisões D33–D34. |
-| 7 · Demonstração | concluída (falta só o ensaio e a narração, que dependem de pessoas) | 2026-10-01 | Caso sintético completo (`demo/caso_demo/`, D53: dados **mantidos**, abstenção preservada); fluxo inteiro no app em menos de 5 minutos; revisão de uso como usuário novo com 5 falhas reais corrigidas e testadas (resultado antigo nunca aparece com dados novos); 8 prints (`prints/`); vídeo **rascunho sem narração** de 2 min (`demo/video/rascunho_video_demo.mp4`) com o texto da narração em `demo/ROTEIRO_VIDEO.md`; guia de cliques da apresentação ao vivo (`demo/GUIA_DEMONSTRACAO_AO_VIVO.md`). | Adryan: gravar a narração; ensaiar no notebook da apresentação (ver seção abaixo). |
-| 8 · Entrega aos devs | concluída (repositório já privado; falta a autoria/registro, decisão do Adryan) | 2026-10-01 | `HANDOFF.md` (instalação, organização, o que funciona, experimental, limitações, revisão crítica do código, decisões pendentes, casos, prioridades até 30/10); README reescrito; `requirements-lock.txt`; instalação do zero conferida; PDFs para os revisores em `docs/revisao/` (física E1–E15 e as três decisões prioritárias + Q1–Q17). | **Repositório ainda público** → Adryan torna privado. T19 (tag e autoria para o INPI) → Adryan. T17 fica fora deste repositório. |
+| 7 · Demonstração | concluída (falta só o ensaio e a narração, que dependem de pessoas) | 2026-10-01 | Caso sintético completo (`demo/caso_demo/`, D53: dados **mantidos**, abstenção preservada); fluxo inteiro no app em menos de 5 minutos; revisão de uso como usuário novo com 5 falhas reais corrigidas e testadas (resultado antigo nunca aparece com dados novos); 8 prints (`prints/`); vídeo **rascunho sem narração** de 2 min (`demo/video/rascunho_video_demo.mp4`) com o texto da narração em `docs/demonstracao/ROTEIRO_VIDEO.md`; guia de cliques da apresentação ao vivo (`docs/demonstracao/GUIA_DEMONSTRACAO_AO_VIVO.md`). | Adryan: gravar a narração; ensaiar no notebook da apresentação (ver seção abaixo). |
+| 8 · Entrega aos devs | concluída (repositório já privado; falta a autoria/registro, decisão do Adryan) | 2026-10-01 | `docs/historico/ENTREGA_2026-10-01.md` (instalação, organização, o que funciona, experimental, limitações, revisão crítica do código, decisões pendentes, casos, prioridades até 30/10); README reescrito; `requirements-lock.txt`; instalação do zero conferida; PDFs para os revisores em `docs/revisao/` (física E1–E15 e as três decisões prioritárias + Q1–Q17). | **Repositório ainda público** → Adryan torna privado. T19 (tag e autoria para o INPI) → Adryan. T17 fica fora deste repositório. |
 
 ## Fase R · Revisão e validação do motor físico (pedido do Adryan em 01/10/2026)
 
 | Item | Implementação | Aprovação científica | Onde ver |
 |---|---|---|---|
-| Diagnóstico (matriz de 28 cálculos, erros ER-1 a ER-9) | **concluída** | não se aplica | `docs/revisao_motor_fisico.md` §1 |
+| Diagnóstico (matriz de 28 cálculos, erros ER-1 a ER-9) | **concluída** | não se aplica | `docs/fisica/revisao_motor_fisico.md` §1 |
 | Correções dos erros demonstráveis | **concluída** (ER-1 a ER-9) | **pendente** (revisor) | §4 do mesmo documento |
 | Novas funções experimentais (cp(T) NASA, umidade do ar, CO, O₂ úmido) | **concluída**, marcada como experimental | **pendente** (Q2–Q4, Q10) | `euler/indireto.py`, `euler/propriedades_gases.py` |
 | Incerteza por componentes (GUM) e correlação entre períodos | **concluída** | **pendente** (Q8, Q11, Q12, Q16) | `euler/incerteza.py` |
 | Recebido × queimado (cenários do pátio) | **concluída** | **pendente** (Q7) | `euler/periodos.py` |
 | Regras da investigação (vocabulário, `oposta`, fechamento) | **concluída** | **pendente** (Q9, Q17) | `euler/investigacao.py` |
-| Verificação | **concluída**, mas a auditoria mostrou que "53 verificações independentes" era um resumo errado; reclassificada em categorias (ver revisão de confiabilidade) | não se aplica: verificar ≠ aprovar | `docs/matriz_validacao_fisica.md` |
+| Verificação | **concluída**, mas a auditoria mostrou que "53 verificações independentes" era um resumo errado; reclassificada em categorias (ver revisão de confiabilidade) | não se aplica: verificar ≠ aprovar | `docs/fisica/matriz_validacao_fisica.md` |
 | Comparação com caldeira real | **não feita** (sem dados reais no repositório) | — | matriz, P-4 |
-| Perguntas aos revisores | **prontas** (Q1–Q17) | aguardando respostas | `docs/perguntas_revisores.md` |
-| Decisões | D35–D50 propostas; D08, D24 e D26 substituídas | **todas pendentes** | `docs/decisoes.md` |
+| Perguntas aos revisores | **prontas** (Q1–Q17) | aguardando respostas | `docs/fisica/perguntas_revisores.md` |
+| Decisões | D35–D50 propostas; D08, D24 e D26 substituídas | **todas pendentes** | `docs/gestao/decisoes.md` |
 
 **Situação:** a implementação da Fase R está concluída e verificada; **nenhum item tem
 aprovação científica**. Testes passando mostram que o código faz o que foi especificado, não
@@ -55,9 +55,9 @@ golden nem nos dados do demo.
 | Relatório: quatro estados da detecção | **corrigido** (relatório e tela) | não se aplica | V-E7 |
 | Tela sem as hipóteses `oposta` (achado desta revisão) | **corrigido** | não se aplica | V-E8 |
 | PCI seco e dispersão de Δh no orçamento | **implementado** | **pendente** | D55, D57 |
-| Matriz reclassificada (57 linhas, 4 categorias + consistência, regressão, golden); 18 pontos reservados IF97 × IAPWS-95 | **concluída** | não se aplica | `docs/matriz_validacao_fisica.md` |
-| Referências corrigidas (GUM 4.3.7 como hipótese do projeto; CODATA × JANAF; IAPWS conferido pela auditoria) | **concluída** | — | `docs/revisao_motor_fisico.md` §2 e §7 |
-| Pauta de revisão humana: três decisões prioritárias + Q1–Q17 | **pronta** | aguardando reunião | `docs/perguntas_revisores.md` |
+| Matriz reclassificada (57 linhas, 4 categorias + consistência, regressão, golden); 18 pontos reservados IF97 × IAPWS-95 | **concluída** | não se aplica | `docs/fisica/matriz_validacao_fisica.md` |
+| Referências corrigidas (GUM 4.3.7 como hipótese do projeto; CODATA × JANAF; IAPWS conferido pela auditoria) | **concluída** | — | `docs/fisica/revisao_motor_fisico.md` §2 e §7 |
+| Pauta de revisão humana: três decisões prioritárias + Q1–Q17 | **pronta** | aguardando reunião | `docs/fisica/perguntas_revisores.md` |
 | Demo: história mudou (umidade só condicional, abstenção) sem alterar dados | **feito**; gabarito, exemplos de relatório, roteiro e prints 05/06 atualizados | — | D53 (**decisão do Adryan**) |
 | Comparação externa e piloto com dados autorizados | **não feita** | — | matriz, P-4 e P-7 |
 
@@ -66,7 +66,7 @@ golden nem nos dados do demo.
   `tests/golden/` e `lab/` sem alteração.
 
 **Próximo passo:** reunião com os revisores começando pelas três decisões prioritárias
-(`docs/perguntas_revisores.md`); decisão do Adryan sobre o demo (D53). Depois: casos
+(`docs/fisica/perguntas_revisores.md`); decisão do Adryan sobre o demo (D53). Depois: casos
 reservados montados fora da lógica do motor e piloto com dados autorizados de uma caldeira.
 Vídeo e prints 04 e 07 da Etapa 7 são apresentação do fluxo sintético, não evidência de
 validação.
@@ -98,13 +98,13 @@ as telas e no relatório, quadro "Em que pé está a EULER" (verificado · em re
 | **Revisão humana e validação externa** | três decisões prioritárias + Q1–Q17 (`docs/revisao/`); golden; piloto com dados reais autorizados; T17 em repositório separado | **pendentes**: nenhuma proposta foi marcada como aprovada sem resposta humana |
 
 - Versão examinada nesta etapa: `e49338d` (a mesma da capa dos PDFs de
-  `docs/revisao/` e do `HANDOFF.md`).
+  `docs/revisao/` e do `docs/historico/ENTREGA_2026-10-01.md`).
 - Repositório **privado** (conferido no GitHub em 01/10/2026, rodada de melhorias).
 
 **Próximo passo até 30/10:** (1) Adryan define a autoria e o registro da versão (T19); (2) ensaio no notebook
-da apresentação seguindo `demo/GUIA_DEMONSTRACAO_AO_VIVO.md`, duas vezes seguidas sem ajuda;
+da apresentação seguindo `docs/demonstracao/GUIA_DEMONSTRACAO_AO_VIVO.md`, duas vezes seguidas sem ajuda;
 (3) narração gravada sobre o rascunho do vídeo; (4) enviar `docs/revisao/` aos revisores.
-Detalhes e responsáveis: `HANDOFF.md` §9.
+Detalhes e responsáveis: `docs/historico/ENTREGA_2026-10-01.md` §9.
 
 ## Visual do app (pedido do Adryan em 01/10/2026, depois da conferência no Windows)
 
@@ -119,8 +119,8 @@ cara de aplicativo, **sem mexer em cálculos, demo, incertezas nem resultados in
 | Investigação | resultado no topo (conclusão + próxima verificação lado a lado; consumo, valor em jogo e explicações em cartões); blocos 1–4 em abas; linha do tempo dos períodos; gráfico com escolha da grandeza; coluna **Diferença (± incerteza)**; selos para os quatro estados da detecção | **feito**; D59 **proposta pendente (Adryan)** |
 | Relatório | botões lado a lado; **Imprimir ou salvar como PDF** na prévia (funciona sem Chromium) | **feito**; D60 **proposta pendente (Adryan)** |
 | Falha encontrada | um texto interno aparecia na tela do Relatório (Streamlit mostra texto solto da página) | **corrigida**, com teste |
-| Passeio escrito | `demo/PASSEIO_PELAS_TELAS.md` (onde clicar em cada tela + como atualizar a cópia do Windows) | **feito** |
-| Guia ao vivo | `demo/GUIA_DEMONSTRACAO_AO_VIVO.md` refeito para o visual novo | **feito** |
+| Passeio escrito | `docs/demonstracao/PASSEIO_PELAS_TELAS.md` (onde clicar em cada tela + como atualizar a cópia do Windows) | **feito** |
+| Guia ao vivo | `docs/demonstracao/GUIA_DEMONSTRACAO_AO_VIVO.md` refeito para o visual novo | **feito** |
 | Prints e vídeo | não refeitos (pedido do Adryan: ele mesmo faz o vídeo); `prints/` mostra o visual anterior | — |
 
 - Cálculos, JSON da investigação, relatório baixado, demo e `tests/golden/` **sem
@@ -157,18 +157,18 @@ cara de aplicativo, **sem mexer em cálculos, demo, incertezas nem resultados in
 | 3 · Linguagem de fábrica | nenhum nome de arquivo, coluna ou código de equação fora de "Detalhes técnicos"; `tests/test_linguagem.py` percorre todas as telas e os relatórios | **feito** (`457711c`); D64 |
 | 4 · Saúde da caldeira | tela nova logo depois de carregar os dados: consumo por t de vapor semana a semana, eventos, selo mudou / estável / não dá para dizer e **Investigar esta mudança**; menu com 6 passos | **feito** (`1bbeccc`); D65 (regras do selo: proposta pendente) |
 | 5 · Dados e limites mais leve | tabela com período, eficiência, consumo por t de vapor e situação; o resto em "Ver detalhes de cada período" | **feito** (`fc081bc`); D66 |
-| 6 · Conferir contra a especificação detalhada | o arquivo `EULER_ESPECIFICACAO_DETALHADA.md` ainda não está no repositório; retrato atual em `docs/conferencia_especificacao.md`; **nada mudado** | **aguardando o arquivo** |
-| 7 · Decisões pendentes | `docs/resumo_decisoes_pendentes.md`: 10 decisões em 1 página (6 de física, 4 de produto), com recomendação | **feito** (`546da69`) |
+| 6 · Conferir contra a especificação detalhada | o arquivo `EULER_ESPECIFICACAO_DETALHADA.md` ainda não está no repositório; retrato atual em `docs/desenvolvimento/conferencia_especificacao.md`; **nada mudado** | **aguardando o arquivo** |
+| 7 · Decisões pendentes | `docs/fisica/resumo_decisoes_pendentes.md`: 10 decisões em 1 página (6 de física, 4 de produto), com recomendação | **feito** (`546da69`) |
 | Prévia e guias | prévia interativa com os dois atos e as telas novas; passeio, guia ao vivo, roteiro, "Entenda a EULER", README e HANDOFF atualizados | **feito** |
 
 - Cálculos físicos e `tests/golden/` **sem alteração**: o painel Saúde reaproveita o balanço
   direto e a regra de detecção da Investigação. Nenhuma proposta foi marcada como aprovada
   sem resposta humana.
 
-**Modo de trabalho:** automático (pedido do Adryan em 01/10/2026): seguir as etapas sem esperar "ok"; decisões não especificadas vão para `docs/decisoes.md` como propostas pendentes.
+**Modo de trabalho:** automático (pedido do Adryan em 01/10/2026): seguir as etapas sem esperar "ok"; decisões não especificadas vão para `docs/gestao/decisoes.md` como propostas pendentes.
 
 ## Notas da Etapa 0
-- O arquivo mestre foi copiado para a raiz (`EULER_CONSTRUCAO_COMPLETA.md`) para que "continue" funcione em sessões novas.
+- O arquivo mestre foi copiado para a raiz (`docs/historico/PLANO_ORIGINAL.md`) para que "continue" funcione em sessões novas.
 - `pyproject.toml` mínimo criado já na Etapa 0 (necessário para instalar dependências). A Etapa 1 (T01) completa com CI e modelo de PR.
 - Ruff ignora `lab/` (calculadora de referência copiada como veio, não é código do produto); `ruff format` não toca em `tests/golden/`.
 - Ambiente na nuvem: o endereço `localhost:8501` não abre no computador do Adryan. Nas etapas com tela, mostrar prints (Playwright) enviados na conversa.
@@ -202,7 +202,7 @@ modelos de transferência/UA para fouling; primeiro ensaio com dados reais autor
 - D70: validar pressão, água de alimentação e temperatura/título do vapor úmido/superaquecido por leitura, antes das médias. Cobertura parcial, valores não finitos e estados incompatíveis bloqueiam energia e eficiência; incluir leituras de borda com massa positiva. Consumo específico preservado quando seus dados são suficientes.
 - D71: pontos de gases diferentes entre períodos (ou identificado em apenas um) não geram comparação de desempenho, efeitos de gases ou resíduo dependente. Balanços individuais preservados; investigação explica o bloqueio.
 - 14 testes novos em tests/test_regressao_fronteiras.py. Contraprovas inicialmente falharam; após correção, suíte completa: 360 passaram, nenhum pulado (344,39 s). Três avisos pandas provocados pelos valores infinitos dos testes de defesa, sem falha ou liberação indevida do cálculo. Ruff check e format aprovados (93 arquivos).
-- Golden, tolerâncias, biblioteca de propriedades e fórmulas termodinâmicas não alterados. Não houve validação com planta. Revisão física humana pendente; ver docs/decisoes.md.
+- Golden, tolerâncias, biblioteca de propriedades e fórmulas termodinâmicas não alterados. Não houve validação com planta. Revisão física humana pendente; ver docs/gestao/decisoes.md.
 
 ## Integração da versão completa — 02/10/2026
 
@@ -215,3 +215,12 @@ Esta seção atualiza o estado das extensões que apareciam como pendentes acima
 - Inicializador Windows centralizado: evita servidores duplicados, identifica a instalação e reinicia o próprio servidor quando os arquivos mudam. CMD e atalhos apontam para a instalação `software-euler`. Abertura não executa atualização remota automática.
 - Revisão estática independente concluída. Suíte completa: 378 passaram e 5 falharam na preparação das leituras artificiais (fusos misturados fora do contrato normalizado). Corrigida a preparação, os 11 testes de integração passaram, incluindo os 5 anteriores. Assim, os 383 testes foram cobertos sem falhas remanescentes; não houve nova execução integral após esse ajuste restrito aos testes. Ruff check/format aprovados (100 arquivos). Três avisos pandas são das entradas infinitas deliberadas nos testes de defesa.
 - Golden e tolerâncias preservados. Decisões D72–D76 permanecem pendentes de revisão humana; sem validação em planta.
+
+## Organização do repositório — 02/10/2026
+
+- README principal reduzido a apresentação, primeiros passos e mapa das pastas.
+- Documentação agrupada por produto, desenvolvimento, dados, física, gestão, demonstração e histórico; 17 documentos realocados com histórico Git preservado.
+- Entrega antiga e plano original identificados como históricos; guia atual dos desenvolvedores criado. Dados sintéticos, modelos, scripts e capturas ganharam guias próprios.
+- Caminhos de referência e geradores atualizados; mantido um redirecionamento documental para a referência antiga presente nos testes golden protegidos.
+- Validação local: cinco testes de contrato/modelos/rodapé aprovados; 83 links locais verificados antes da nota dos PDFs; Ruff check e format aprovados. CI integral executado pelo GitHub no PR.
+- Nenhuma equação, tolerância ou referência golden alterada. Estrutura de execução e CMD preservados.

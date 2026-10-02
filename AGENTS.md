@@ -8,7 +8,7 @@ EULER é um SaaS de **investigação física** para caldeiras industriais. Ele *
 Às vezes a resposta certa é **"não dá para concluir"** + a próxima medição. Essa abstenção é uma funcionalidade, não uma falha.
 
 ## Regras invioláveis
-1. **Nunca** gerar comando operacional para a caldeira (abrir válvula, mudar setpoint, ajustar queimador). O software investiga e recomenda **verificações**. Ver rodapé de segurança em `docs/visao_produto.md`.
+1. **Nunca** gerar comando operacional para a caldeira (abrir válvula, mudar setpoint, ajustar queimador). O software investiga e recomenda **verificações**. Ver rodapé de segurança em `docs/produto/visao_produto.md`.
 2. **Ausente ≠ zero.** Nada é preenchido, interpolado ou corrigido em silêncio. Toda correção guarda original, novo valor, motivo, autor e data.
 3. **Unidades SI internamente:** kg, MJ, °C/K, bar **absoluto**. Converter na entrada; nomear colunas com a unidade (`t_gases_c`, `p_vapor_bar_abs`).
 4. **Toda análise tem pré-requisitos** (`euler/capacidades.py`). Se faltar dado, a análise é **bloqueada** com motivo legível. Nunca usar porcentagem arbitrária para "completar" perdas.
@@ -42,10 +42,10 @@ docs/             contrato de dados, física, decisões
 ```
 
 ## Como trabalhar
-- **Uma tarefa = um branch = um PR pequeno.** Siga o ticket em `docs/backlog_agentes.md`.
+- **Uma tarefa = um branch = um PR pequeno.** Siga o ticket em `docs/desenvolvimento/backlog_agentes.md`.
 - Antes de codar, escreva/atualize os testes do ticket. Depois implemente até passarem.
-- Funções puras e com docstring: entrada, saída, unidades, hipóteses, referência da equação (ex.: "E7 em docs/fisica_para_revisao.md").
-- Toda hipótese física nova vai para `docs/decisoes.md` (data, decisão, motivo, quem revisa).
+- Funções puras e com docstring: entrada, saída, unidades, hipóteses, referência da equação (ex.: "E7 em docs/fisica/fisica_para_revisao.md").
+- Toda hipótese física nova vai para `docs/gestao/decisoes.md` (data, decisão, motivo, quem revisa).
 - No PR, descreva: o que mudou, como testar, o que ficou fora, dúvidas para revisão humana.
 - Se a tarefa exigir decisão de produto ou de física não especificada, **não decida sozinho**: liste as opções no PR.
 

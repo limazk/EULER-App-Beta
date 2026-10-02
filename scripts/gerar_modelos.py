@@ -1,4 +1,4 @@
-"""Gera docs/contrato_dados.md e templates/planilha_modelo_euler.xlsx a partir dos esquemas.
+"""Gera docs/dados/contrato_dados.md e templates/planilha_modelo_euler.xlsx a partir dos esquemas.
 
 Uso: python scripts/gerar_modelos.py
 """

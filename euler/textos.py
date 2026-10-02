@@ -1,7 +1,7 @@
 """Textos fixos mostrados ao usuário final (app e relatórios).
 
 O rodapé de segurança é obrigatório em todas as telas e relatórios
-(docs/visao_produto.md, seção "Rodapé de segurança"). O teste
+(docs/produto/visao_produto.md, seção "Rodapé de segurança"). O teste
 tests/test_textos.py garante que o texto daqui é idêntico ao do documento.
 """
 

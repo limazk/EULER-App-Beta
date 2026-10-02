@@ -1,8 +1,8 @@
 """Gera os PDFs para os revisores científicos (Etapa 8) em docs/revisao/.
 
-- fisica_para_revisao.pdf: docs/fisica_para_revisao.md na íntegra, com uma capa que diz a
+- fisica_para_revisao.pdf: docs/fisica/fisica_para_revisao.md na íntegra, com uma capa que diz a
   versão do código e a situação da revisão (nenhum item aprovado).
-- perguntas_revisores.pdf: docs/perguntas_revisores.md (três decisões prioritárias + Q1–Q17).
+- perguntas_revisores.pdf: docs/fisica/perguntas_revisores.md (três decisões prioritárias + Q1–Q17).
 
 Uso:
     pip install -e ".[prints]"     # playwright + markdown
@@ -94,7 +94,7 @@ def _capa(titulo: str, versao: str) -> str:
             "Como devolver",
             (
                 "Marcar o status de cada item e escrever correções com referência "
-                "bibliográfica. Cada resposta vira uma decisão aprovada em docs/decisoes.md, "
+                "bibliográfica. Cada resposta vira uma decisão aprovada em docs/gestao/decisoes.md, "
                 "com o nome do revisor."
             ),
         ),
@@ -115,7 +115,7 @@ def _capa(titulo: str, versao: str) -> str:
 
 
 def _html(nome: str, titulo: str, versao: str, linha_por_frase: bool) -> str:
-    texto = (RAIZ / "docs" / f"{nome}.md").read_text(encoding="utf-8")
+    texto = (RAIZ / "docs" / "fisica" / f"{nome}.md").read_text(encoding="utf-8")
     extensoes = ["tables", "sane_lists"] + (["nl2br"] if linha_por_frase else [])
     corpo = markdown.markdown(texto, extensions=extensoes)
     return (
