@@ -291,6 +291,11 @@ def mostrar(pacote) -> None:
             "verificação indicada."
         )
     _numeros_principais(j)
+    st.page_link(
+        "paginas/financeiro.py",
+        label="Ver impacto em reais e simular recuperação",
+        icon=":material/payments:",
+    )
     prox = j["proxima_verificacao"]
     st.info(
         f"**Próxima verificação, em detalhe:** {md(prox['acao'])}  \n{md(prox['porque'])}",

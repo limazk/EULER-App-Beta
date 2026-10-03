@@ -32,6 +32,9 @@ paginas = {
         ),
         st.Page("paginas/relatorio.py", title="6. Relatório", icon=":material/description:"),
     ],
+    "Gestão": [
+        st.Page("paginas/financeiro.py", title="Financeiro", icon=":material/payments:"),
+    ],
     "Referência": [
         st.Page(
             "paginas/calculadora.py", title="Calculadora de referência", icon=":material/calculate:"

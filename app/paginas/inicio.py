@@ -42,6 +42,11 @@ st.info(
 )
 
 st.markdown("### Como funciona, em 6 passos")
+st.page_link(
+    "paginas/financeiro.py",
+    label="Financeiro · veja o consumo em reais",
+    icon=":material/payments:",
+)
 passos = [
     (":material/upload_file:", "paginas/importar.py", "Importar", "Os registros que a fábrica já tem (CSV ou planilha). Nada é corrigido em silêncio."),
     (":material/monitor_heart:", "paginas/saude.py", "Saúde da caldeira", "O consumo por tonelada de vapor semana a semana: mudou ou ficou estável?"),
