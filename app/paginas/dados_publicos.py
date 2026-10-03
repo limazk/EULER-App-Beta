@@ -5,7 +5,9 @@ import pandas as pd
 import streamlit as st
 from ensaio_publico import DADOS, comparar_custo_publicado, executar
 
+from euler.economia import comparar_consumos
 from euler.formato import num
+from euler.tipos import Grandeza
 
 st.title("Testes com dados públicos")
 st.caption(
@@ -23,6 +25,82 @@ def resultado():
 
 
 r = resultado()
+st.subheader("Consumo aumentou: teste real com biomassa")
+st.caption("Diniz · UTFPR, 2014 · indústria de papel · comparação de médias entre seca e chuva.")
+fonte_aumento = r["caso_aumento"]["fonte"]
+st.markdown(
+    "**Este é um caso de aumento publicado, sem inverter os períodos.** "
+    "Os valores abaixo entram no motor de comparação e valorização da EULER. "
+    "Você pode executar novamente ou editar as entradas para um cenário separado."
+)
+with st.form("ensaio_aumento"):
+    a, b = st.columns(2)
+    ref = a.number_input(
+        "Consumo na seca (t biomassa/t vapor)",
+        min_value=0.0001,
+        value=0.30,
+        step=0.01,
+        format="%.4f",
+    )
+    comp = b.number_input(
+        "Consumo na chuva (t biomassa/t vapor)",
+        min_value=0.0001,
+        value=0.35,
+        step=0.01,
+        format="%.4f",
+    )
+    prod = a.number_input("Vapor produzido (t/dia)", min_value=0.01, value=1200.0)
+    preco = b.number_input("Preço histórico (US$/t biomassa)", min_value=0.0, value=26.53)
+    st.form_submit_button("Executar comparação na EULER", type="primary")
+publicado = (ref, comp, prod, preco) == (0.30, 0.35, 1200.0, 26.53)
+aumento = comparar_consumos(
+    Grandeza(ref, "t/t", "estimado"), Grandeza(comp, "t/t", "estimado"), prod, preco, "USD"
+)
+if not publicado:
+    st.warning(
+        "Cenário editado por você. Os resultados abaixo não reproduzem mais as entradas publicadas."
+    )
+else:
+    st.caption(
+        "Entradas publicadas preservadas. O cálculo é executado ao abrir e a cada envio do formulário."
+    )
+a, b, c = st.columns(3)
+a.metric("Variação de consumo", f"{num(aumento['aumento_pct'])}%", border=True)
+b.metric("Diferença de biomassa", f"{num(aumento['combustivel_adicional_t'])} t/dia", border=True)
+c.metric("Diferença valorizada", f"US$ {num(aumento['diferenca_valorizada'])}/dia", border=True)
+st.caption("Valores com sinal: positivo = aumento; negativo = redução. Não há conversão cambial.")
+st.markdown(
+    f"Combustível para a mesma produção: **{num(aumento['combustivel_referencia_t'])} → "
+    f"{num(aumento['combustivel_comparacao_t'])} t/dia**. "
+    f"Custo calculado: **US\\$ {num(aumento['custo_referencia'])} → "
+    f"US\\$ {num(aumento['custo_comparacao'])}/dia**."
+)
+if publicado:
+    st.success(
+        "Conferência independente: (0,35 − 0,30) × 1.200 × 26,53 = US\\$ 1.591,80/dia. "
+        "O motor reproduz essa conta. O texto publicado dá US\\$ 1.591/dia pela diferença "
+        "de custos sem casas decimais: a divergência é de US\\$ 0,80/dia (0,05%)."
+    )
+st.info(
+    "O número acima é uma diferença aritmética a preço constante. Sem incertezas dos "
+    "instrumentos, a mudança não é confirmada metrologicamente. A fonte associa o aumento "
+    "à chuva/umidade, mas este recorte não permite à EULER separar umidade, carga e outras causas. "
+    "Não é economia garantida."
+)
+with st.expander("Rastreabilidade, limites e próxima verificação"):
+    st.markdown(
+        "- O preço é histórico em dólares. A unidade por tonelada é inferida da aritmética "
+        "da fonte, que não escreve o denominador na frase do preço.\n"
+        "- São médias publicadas, sem séries brutas. Não criamos estoques, horários ou leituras.\n"
+        "- Esta rota testa comparação de consumo e valorização E13; não executa balanço "
+        "térmico completo, atribuição de causa ou comprovação de recuperação.\n"
+        "- Próxima verificação: conferir massa/medidor de vapor, incertezas, carga e "
+        "condições do vapor; medir a umidade dos lotes efetivamente queimados nos dois períodos. "
+        "Esses registros permitem avaliar a hipótese de umidade antes de recomendar investimento."
+    )
+    st.json(aumento, expanded=False)
+    st.link_button("Fonte do aumento · UTFPR, página 33 do PDF", fonte_aumento["pdf_url"])
+st.divider()
 st.subheader("Quanto isso representa em dinheiro?")
 st.caption(
     "Caso brasileiro publicado pela Unisanta (2015) · médias de 2010 e 2011 · gás natural. "

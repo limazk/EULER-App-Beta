@@ -14,6 +14,7 @@ import pandas as pd
 
 from euler.capacidades import avaliar
 from euler.deteccao import comparar
+from euler.economia import comparar_consumos
 from euler.fluxos import fluxo_entalpia_vapor
 from euler.io import importar_pacote
 from euler.saude import avaliar_saude
@@ -21,6 +22,19 @@ from euler.tipos import Grandeza
 from euler.vapor import h_agua_mj_kg, h_liquido_saturado_mj_kg, h_vapor_mj_kg
 
 DADOS = Path(__file__).resolve().parents[1] / "validation/public/ensaio_2026"
+
+
+def testar_aumento_publicado() -> dict:
+    """Envia médias de Diniz ao motor; USD permanece USD, sem datas artificiais."""
+    fonte = json.loads((DADOS / "diniz.json").read_text(encoding="utf-8"))
+    r = comparar_consumos(
+        Grandeza(fonte["consumo_seco_t_t"], "t/t", "estimado", nota="Média publicada: seca"),
+        Grandeza(fonte["consumo_chuvoso_t_t"], "t/t", "estimado", nota="Média publicada: chuva"),
+        fonte["producao_vapor_t_dia"],
+        fonte["preco_publicado_usd_t"],
+        "USD",
+    )
+    return {"fonte": fonte, "motor": r}
 
 
 def comparar_custo_publicado(preco_brl_kg: float | None = None) -> dict:
@@ -128,6 +142,7 @@ def executar() -> dict:
     caps = {c.id: c.situacao for c in avaliar(pacote)}
     saude = avaliar_saude(pacote)
     return {
+        "caso_aumento": testar_aumento_publicado(),
         "caso_financeiro": comparar_custo_publicado(),
         "fonte_subcritica": fonte,
         "estados": estados,

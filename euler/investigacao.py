@@ -41,6 +41,7 @@ import pandas as pd
 from euler import __version__
 from euler.deteccao import Comparacao, comparar
 from euler.direto import MEDICOES_DIRETO, BalancoDireto, balanco_direto
+from euler.economia import valorizar_diferenca
 from euler.formato import num, pct, plural
 from euler.incerteza import (
     Componente,
@@ -1427,7 +1428,7 @@ def investigar(
     ):
         extra_t = c_cons.delta * comp.vapor_t.valor
         valor_em_jogo = {
-            "valor_brl": extra_t * comp.preco_brl_t,
+            "valor_brl": valorizar_diferenca(c_cons.delta, comp.vapor_t.valor, comp.preco_brl_t),
             "incerteza_brl": None
             if c_cons.incerteza_delta is None
             else c_cons.incerteza_delta * comp.vapor_t.valor * comp.preco_brl_t,

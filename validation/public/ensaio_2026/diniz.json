@@ -1,0 +1,17 @@
+{
+  "titulo": "Iuri Sousa Diniz, UTFPR, 2014",
+  "url": "https://repositorio.utfpr.edu.br/jspui/handle/1/23284",
+  "pdf_url": "https://repositorio.utfpr.edu.br/jspui/bitstream/1/23284/3/PG_CEEP_2014_1_17.pdf",
+  "pagina_pdf": 33,
+  "consumo_seco_t_t": 0.3,
+  "consumo_chuvoso_t_t": 0.35,
+  "producao_vapor_t_dia": 1200,
+  "preco_publicado_usd_t": 26.53,
+  "unidade_preco": "USD/t inferida da aritmética da própria publicação; denominador não explícito na frase do preço.",
+  "incerteza_instrumental": null,
+  "observacao": "Histórico industrial real agregado. Meses comparáveis por carga, condições do vapor e intervenções não demonstrados. Valores históricos, sem atualização monetária.",
+  "custo_seco_publicado_usd_dia": 9551,
+  "custo_chuvoso_publicado_usd_dia": 11142,
+  "base_temporal": "dia médio publicado, sem datas de leituras individuais",
+  "hipotese_autor": "Maior umidade da biomassa no período chuvoso; não equivale a diagnóstico independente da EULER."
+}

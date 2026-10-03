@@ -2,6 +2,42 @@
 
 ## Resultado e alcance
 
+### Teste de aumento de consumo na própria EULER
+
+Caso Diniz, UTFPR (2014), [fonte original](https://repositorio.utfpr.edu.br/jspui/bitstream/1/23284/3/PG_CEEP_2014_1_17.pdf),
+página 33 do PDF (página impressa 31). Indústria de papel; médias publicadas de seca
+e chuva, não uma inversão do caso de redução da Unisanta. `diniz.json` transcreve a fonte.
+
+| Grandeza | Seca | Chuva |
+|---|---:|---:|
+| Consumo publicado (t biomassa/t vapor) | 0,30 | 0,35 |
+| Vapor (t/dia), mesma base publicada | 1.200 | 1.200 |
+| Biomassa calculada (t/dia) | 360 | 420 |
+| Custo calculado (USD/dia), a USD 26,53/t | 9.550,80 | 11.142,60 |
+
+Aumento de 16,67%; diferença de 60 t/dia e USD 1.591,80/dia. Gabarito independente
+em aritmética decimal: (0,35 − 0,30) × 1.200 × 26,53. O texto original fornece custos
+sem casas decimais de 9.551 e 11.142, cuja diferença é 1.591; discrepância de USD 0,80/dia
+(0,05%). Não ajustamos coeficientes para reproduzir arredondamentos da fonte.
+
+A página **Testes com dados públicos** executa `euler.economia.comparar_consumos`,
+que chama `euler.deteccao.comparar` e `valorizar_diferenca` (E13). A investigação clássica
+também usa essa última rotina. O formulário permite repetir e mudar entradas, rotulando
+automaticamente o resultado modificado como cenário. Nenhuma data, estoque, incerteza,
+medição térmica ou conversão cambial foi criada. O preço é histórico e o denominador
+USD/t é inferido da aritmética da publicação, não explícito na frase do preço.
+
+O software anteriormente só expunha o valor em jogo confirmado no caminho temporal.
+Esta nova rota expõe a diferença aritmética agregada separadamente da confirmação:
+`valor_em_jogo_confirmado=null`, `economia_comprovada=null`, `causa_comprovada=false`.
+Não relaxa a exigência de detectabilidade no fluxo clássico e não executa o balanço
+térmico completo com estas médias. A tese associa aumento a chuva/umidade; a EULER
+não confirma essa hipótese sem amostras e controles de carga/estado do vapor.
+
+Teste adicional com caso **sintético de regressão**, identificado no código, verifica
+que a investigação completa chama a mesma função E13 e mantém o comportamento anterior.
+Esse teste de engenharia de software não é apresentado como evidência industrial.
+
 A EULER importou 7.200 registros públicos de temperatura sem alterar os valores,
 reconheceu a origem pública e bloqueou eficiência e energia do vapor por falta de dados.
 Em outro conjunto, os cálculos de 15 estados de água e vapor foram confrontados com
