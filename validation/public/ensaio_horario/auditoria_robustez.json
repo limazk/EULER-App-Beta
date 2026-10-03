@@ -1,0 +1,899 @@
+{
+  "protocolo": "robustez-v1",
+  "semente": 20261003,
+  "repeticoes": 2000,
+  "fonte_sha256": "53ff6a441b5f2574a34f169b2714a6688bf97b7f53bd44b5169486968fe9eb3b",
+  "assinaturas": {
+    "app/robustez_ensaio.py": "d8537b7c615671808af5b5005c5409496f5b8da0a5d2271b52b994ca2dab776c",
+    "app/ensaio_horario.py": "31386d8e0d7c54acc73ef20f6506e33a5c240dababb45420bfa5db67bab2c49c",
+    "euler/deteccao.py": "712d143fb3b21cebdbbd015114fae620d11673a8d875a3f0ce050397560b971c",
+    "euler/economia.py": "1768dc9e9a8f55fdedff9fcbc8fa81a715de5cfad4c90f2dcb7ea26c692fc7b2",
+    "validation/public/ensaio_horario/fontes.json": "0cb4af44f2c114d8e32bac858bb11440255eafa34aa2249f3b4dc5ae586389bb",
+    "docs/fisica/protocolo_robustez_ensaio_publico.md": "a5b0165a900c561036a203cc6609ce820ee35cad2ccb4edc502094870b2d7f0b",
+    "scripts/auditar_ensaio_publico.py": "5fbb4028a5f23e83392b36fb935eceadc1561c57152afb741a2c0e64fef9c07f",
+    "tests/test_robustez_ensaio.py": "453de77d469bc85a4017add88a3592cec43cbec4f05f1fb0a37edb22a41fbb33"
+  },
+  "versoes": {
+    "numpy": "2.3.5",
+    "pandas": "3.0.1"
+  },
+  "natureza": "sensibilidade retrospectiva; não é inferência causal ou metrológica",
+  "unidades": {
+    "B06": {
+      "qualidade": {
+        "recebidos": 1579,
+        "usados": 1574,
+        "excluidos": 5
+      },
+      "diagnostico": {
+        "r2": 0.9957559269538637,
+        "autocorrelacao_residuos": {
+          "1": {
+            "pares": 197,
+            "correlacao": 0.8381316707534942
+          },
+          "24": {
+            "pares": 174,
+            "correlacao": 0.08128223952050741
+          }
+        },
+        "validacao_temporal": [
+          {
+            "treino_fim": "2023-01-14",
+            "teste_inicio": "2023-01-15",
+            "teste_fim": "2023-01-21",
+            "horas_treino": 0,
+            "horas_teste": 0,
+            "horas_comparaveis": 0,
+            "vies_pct": null,
+            "motivo": "Referência insuficiente neste trecho; não foi substituída por outro período.",
+            "erro_absoluto_medio_gj_h": null
+          },
+          {
+            "treino_fim": "2023-01-21",
+            "teste_inicio": "2023-01-22",
+            "teste_fim": "2023-01-31",
+            "horas_treino": 0,
+            "horas_teste": 198,
+            "horas_comparaveis": 0,
+            "vies_pct": null,
+            "motivo": "Referência insuficiente neste trecho; não foi substituída por outro período.",
+            "erro_absoluto_medio_gj_h": null
+          }
+        ]
+      },
+      "meses": [
+        {
+          "mes": "2023-02",
+          "delta_original_pct": -0.09858682118635648,
+          "delta_original_gj": -79.71664254652696,
+          "valor_condicional_usd": -582.659158276492,
+          "horas_comparaveis": 434,
+          "horas_validas": 672,
+          "modelos": {
+            "horas_comuns": 427,
+            "horas_excluidas": 245,
+            "metodos": [
+              {
+                "metodo": "linear",
+                "horas": 427,
+                "delta_gj": -76.41982330352226,
+                "delta_pct": -0.09547207000026285
+              },
+              {
+                "metodo": "quadratico",
+                "horas": 427,
+                "delta_gj": -81.095342179705,
+                "delta_pct": -0.1013073262077525
+              },
+              {
+                "metodo": "faixas_5_t_h",
+                "horas": 427,
+                "delta_gj": -80.58750187220303,
+                "delta_pct": -0.1006735518399551
+              },
+              {
+                "metodo": "faixas_10_t_h",
+                "horas": 427,
+                "delta_gj": -87.74400727662166,
+                "delta_pct": -0.10960398318961911
+              }
+            ]
+          },
+          "referencias": {
+            "horas_comuns": 0,
+            "metodos": [],
+            "motivo": "Uma metade de janeiro não permite ajuste; comparação bloqueada."
+          },
+          "retirada_de_um_dia_pct": {
+            "min": -0.15764755597183341,
+            "max": -0.016989207854053476
+          },
+          "reamostragem": [
+            {
+              "bloco_dias": 1,
+              "validas": 2000,
+              "invalidas": 0,
+              "quantil_025_pct": -0.8203546512115989,
+              "quantil_975_pct": 0.7671064118068649
+            },
+            {
+              "bloco_dias": 3,
+              "validas": 1946,
+              "invalidas": 54,
+              "quantil_025_pct": -1.0008588731159653,
+              "quantil_975_pct": 1.7032272002696591
+            },
+            {
+              "bloco_dias": 7,
+              "validas": 1723,
+              "invalidas": 277,
+              "quantil_025_pct": -0.2880965762919766,
+              "quantil_975_pct": 26.615307990781776
+            }
+          ],
+          "reducao_energia_reportada_para_zerar_pct": -0.09868411071414095,
+          "causa_comprovada": false,
+          "economia_recuperavel_usd": null
+        },
+        {
+          "mes": "2023-03",
+          "delta_original_pct": -0.34844418942809635,
+          "delta_original_gj": -19.980357280838295,
+          "valor_condicional_usd": -119.0891534066732,
+          "horas_comparaveis": 31,
+          "horas_validas": 704,
+          "modelos": {
+            "horas_comuns": 31,
+            "horas_excluidas": 673,
+            "metodos": [
+              {
+                "metodo": "linear",
+                "horas": 31,
+                "delta_gj": -19.980357280838575,
+                "delta_pct": -0.3484441894281013
+              },
+              {
+                "metodo": "quadratico",
+                "horas": 31,
+                "delta_gj": -21.24284552713914,
+                "delta_pct": -0.3703796014342926
+              },
+              {
+                "metodo": "faixas_5_t_h",
+                "horas": 31,
+                "delta_gj": -24.724461299899332,
+                "delta_pct": -0.4308217832446022
+              },
+              {
+                "metodo": "faixas_10_t_h",
+                "horas": 31,
+                "delta_gj": -37.485580415989546,
+                "delta_pct": -0.6517340692525191
+              }
+            ]
+          },
+          "referencias": {
+            "horas_comuns": 0,
+            "metodos": [],
+            "motivo": "Uma metade de janeiro não permite ajuste; comparação bloqueada."
+          },
+          "retirada_de_um_dia_pct": {
+            "min": -0.8315986903108448,
+            "max": 1.2439696500887027
+          },
+          "reamostragem": [
+            {
+              "bloco_dias": 1,
+              "validas": 1995,
+              "invalidas": 5,
+              "quantil_025_pct": -1.7306012397729134,
+              "quantil_975_pct": 1.893116716335307
+            },
+            {
+              "bloco_dias": 3,
+              "validas": 1946,
+              "invalidas": 54,
+              "quantil_025_pct": -1.7262352194272004,
+              "quantil_975_pct": 3.072105479725852
+            },
+            {
+              "bloco_dias": 7,
+              "validas": 1753,
+              "invalidas": 247,
+              "quantil_025_pct": -1.2477126792202613,
+              "quantil_975_pct": 26.459410304993696
+            }
+          ],
+          "reducao_energia_reportada_para_zerar_pct": -0.3496625683300524,
+          "causa_comprovada": false,
+          "economia_recuperavel_usd": null
+        }
+      ]
+    },
+    "B07": {
+      "qualidade": {
+        "recebidos": 2143,
+        "usados": 2138,
+        "excluidos": 5
+      },
+      "diagnostico": {
+        "r2": 0.9943619028150432,
+        "autocorrelacao_residuos": {
+          "1": {
+            "pares": 743,
+            "correlacao": 0.96345878735404
+          },
+          "24": {
+            "pares": 720,
+            "correlacao": 0.6969078141398481
+          }
+        },
+        "validacao_temporal": [
+          {
+            "treino_fim": "2023-01-14",
+            "teste_inicio": "2023-01-15",
+            "teste_fim": "2023-01-21",
+            "horas_treino": 336,
+            "horas_teste": 168,
+            "horas_comparaveis": 168,
+            "vies_pct": -1.4854459022984374,
+            "motivo": null,
+            "erro_absoluto_medio_gj_h": 4.893423957636297
+          },
+          {
+            "treino_fim": "2023-01-21",
+            "teste_inicio": "2023-01-22",
+            "teste_fim": "2023-01-31",
+            "horas_treino": 504,
+            "horas_teste": 240,
+            "horas_comparaveis": 229,
+            "vies_pct": -2.8812849635555033,
+            "motivo": null,
+            "erro_absoluto_medio_gj_h": 6.087792135993183
+          }
+        ]
+      },
+      "meses": [
+        {
+          "mes": "2023-02",
+          "delta_original_pct": -1.924911739939446,
+          "delta_original_gj": -2571.5954658093888,
+          "valor_condicional_usd": -18796.120881052106,
+          "horas_comparaveis": 644,
+          "horas_validas": 651,
+          "modelos": {
+            "horas_comuns": 593,
+            "horas_excluidas": 58,
+            "metodos": [
+              {
+                "metodo": "linear",
+                "horas": 593,
+                "delta_gj": -2579.979963803774,
+                "delta_pct": -2.0207768974586044
+              },
+              {
+                "metodo": "quadratico",
+                "horas": 593,
+                "delta_gj": -2544.465472718657,
+                "delta_pct": -1.9935146003856605
+              },
+              {
+                "metodo": "faixas_5_t_h",
+                "horas": 593,
+                "delta_gj": -2249.1295833699564,
+                "delta_pct": -1.7662143231214626
+              },
+              {
+                "metodo": "faixas_10_t_h",
+                "horas": 593,
+                "delta_gj": -2300.2605673917296,
+                "delta_pct": -1.805641856756088
+              }
+            ]
+          },
+          "referencias": {
+            "horas_comuns": 639,
+            "metodos": [
+              {
+                "referencia": "janeiro_completo",
+                "horas": 639,
+                "delta_gj": -2589.616974979866,
+                "delta_pct": -1.9442917515060711
+              },
+              {
+                "referencia": "janeiro_01_15",
+                "horas": 639,
+                "delta_gj": -4872.615101813404,
+                "delta_pct": -3.596722451863843
+              },
+              {
+                "referencia": "janeiro_16_31",
+                "horas": 639,
+                "delta_gj": -1144.8360310067392,
+                "delta_pct": -0.8689722697534406
+              }
+            ]
+          },
+          "retirada_de_um_dia_pct": {
+            "min": -1.9773822966385486,
+            "max": -1.8515834717454438
+          },
+          "reamostragem": [
+            {
+              "bloco_dias": 1,
+              "validas": 2000,
+              "invalidas": 0,
+              "quantil_025_pct": -2.552667413384416,
+              "quantil_975_pct": -1.1909520478534885
+            },
+            {
+              "bloco_dias": 3,
+              "validas": 2000,
+              "invalidas": 0,
+              "quantil_025_pct": -3.081383991060966,
+              "quantil_975_pct": -1.1071590151265966
+            },
+            {
+              "bloco_dias": 7,
+              "validas": 2000,
+              "invalidas": 0,
+              "quantil_025_pct": -3.4426761118605778,
+              "quantil_975_pct": -0.9251129701107742
+            }
+          ],
+          "reducao_energia_reportada_para_zerar_pct": -1.96269182530355,
+          "causa_comprovada": false,
+          "economia_recuperavel_usd": null
+        },
+        {
+          "mes": "2023-03",
+          "delta_original_pct": -0.2644248591954217,
+          "delta_original_gj": -295.36474217157894,
+          "valor_condicional_usd": -1760.4658714049708,
+          "horas_comparaveis": 698,
+          "horas_validas": 743,
+          "modelos": {
+            "horas_comuns": 437,
+            "horas_excluidas": 306,
+            "metodos": [
+              {
+                "metodo": "linear",
+                "horas": 437,
+                "delta_gj": -558.8975896393457,
+                "delta_pct": -0.6808288217050145
+              },
+              {
+                "metodo": "quadratico",
+                "horas": 437,
+                "delta_gj": -652.9290546036959,
+                "delta_pct": -0.794464524907901
+              },
+              {
+                "metodo": "faixas_5_t_h",
+                "horas": 437,
+                "delta_gj": -579.7913866781169,
+                "delta_pct": -0.7061011719323103
+              },
+              {
+                "metodo": "faixas_10_t_h",
+                "horas": 437,
+                "delta_gj": -687.9191947188034,
+                "delta_pct": -0.8366832622716844
+              }
+            ]
+          },
+          "referencias": {
+            "horas_comuns": 643,
+            "metodos": [
+              {
+                "referencia": "janeiro_completo",
+                "horas": 643,
+                "delta_gj": -412.969013448519,
+                "delta_pct": -0.3914566061670597
+              },
+              {
+                "referencia": "janeiro_01_15",
+                "horas": 643,
+                "delta_gj": -3154.2548768006454,
+                "delta_pct": -2.9142176806620084
+              },
+              {
+                "referencia": "janeiro_16_31",
+                "horas": 643,
+                "delta_gj": 351.5697824614277,
+                "delta_pct": 0.33568856433236716
+              }
+            ]
+          },
+          "retirada_de_um_dia_pct": {
+            "min": -0.33461642550189086,
+            "max": -0.18124405456828957
+          },
+          "reamostragem": [
+            {
+              "bloco_dias": 1,
+              "validas": 2000,
+              "invalidas": 0,
+              "quantil_025_pct": -1.4004855439589932,
+              "quantil_975_pct": 1.1698458023434009
+            },
+            {
+              "bloco_dias": 3,
+              "validas": 2000,
+              "invalidas": 0,
+              "quantil_025_pct": -2.6049103059640704,
+              "quantil_975_pct": 1.0226853099635809
+            },
+            {
+              "bloco_dias": 7,
+              "validas": 2000,
+              "invalidas": 0,
+              "quantil_025_pct": -2.6439402010802495,
+              "quantil_975_pct": 0.5763922646240277
+            }
+          ],
+          "reducao_energia_reportada_para_zerar_pct": -0.2651259180308756,
+          "causa_comprovada": false,
+          "economia_recuperavel_usd": null
+        }
+      ]
+    },
+    "B08": {
+      "qualidade": {
+        "recebidos": 2160,
+        "usados": 2157,
+        "excluidos": 3
+      },
+      "diagnostico": {
+        "r2": 0.9973271870726632,
+        "autocorrelacao_residuos": {
+          "1": {
+            "pares": 743,
+            "correlacao": 0.9301833217784612
+          },
+          "24": {
+            "pares": 720,
+            "correlacao": 0.6896352506221634
+          }
+        },
+        "validacao_temporal": [
+          {
+            "treino_fim": "2023-01-14",
+            "teste_inicio": "2023-01-15",
+            "teste_fim": "2023-01-21",
+            "horas_treino": 336,
+            "horas_teste": 168,
+            "horas_comparaveis": 167,
+            "vies_pct": 0.1609015284049276,
+            "motivo": null,
+            "erro_absoluto_medio_gj_h": 0.8991831355999479
+          },
+          {
+            "treino_fim": "2023-01-21",
+            "teste_inicio": "2023-01-22",
+            "teste_fim": "2023-01-31",
+            "horas_treino": 504,
+            "horas_teste": 240,
+            "horas_comparaveis": 239,
+            "vies_pct": -1.4966819309374042,
+            "motivo": null,
+            "erro_absoluto_medio_gj_h": 4.490829954172097
+          }
+        ]
+      },
+      "meses": [
+        {
+          "mes": "2023-02",
+          "delta_original_pct": -1.9858283066820346,
+          "delta_original_gj": -4006.0588669755452,
+          "valor_condicional_usd": -29280.797746539592,
+          "horas_comparaveis": 669,
+          "horas_validas": 672,
+          "modelos": {
+            "horas_comuns": 627,
+            "horas_excluidas": 45,
+            "metodos": [
+              {
+                "metodo": "linear",
+                "horas": 627,
+                "delta_gj": -3861.8439210697597,
+                "delta_pct": -1.9907732771889144
+              },
+              {
+                "metodo": "quadratico",
+                "horas": 627,
+                "delta_gj": -3868.535059821548,
+                "delta_pct": -1.9941537628930976
+              },
+              {
+                "metodo": "faixas_5_t_h",
+                "horas": 627,
+                "delta_gj": -3836.7699288456038,
+                "delta_pct": -1.9781033630072538
+              },
+              {
+                "metodo": "faixas_10_t_h",
+                "horas": 627,
+                "delta_gj": -3841.6673553192595,
+                "delta_pct": -1.9805782950824928
+              }
+            ]
+          },
+          "referencias": {
+            "horas_comuns": 661,
+            "metodos": [
+              {
+                "referencia": "janeiro_completo",
+                "horas": 661,
+                "delta_gj": -3996.755882368245,
+                "delta_pct": -1.9909161358570029
+              },
+              {
+                "referencia": "janeiro_01_15",
+                "horas": 661,
+                "delta_gj": -4851.3450715424015,
+                "delta_pct": -2.406371340629402
+              },
+              {
+                "referencia": "janeiro_16_31",
+                "horas": 661,
+                "delta_gj": -3233.3564834131266,
+                "delta_pct": -1.6167899158245693
+              }
+            ]
+          },
+          "retirada_de_um_dia_pct": {
+            "min": -2.021171221820672,
+            "max": -1.9527712862768927
+          },
+          "reamostragem": [
+            {
+              "bloco_dias": 1,
+              "validas": 2000,
+              "invalidas": 0,
+              "quantil_025_pct": -2.3238053308701954,
+              "quantil_975_pct": -1.5869219881831844
+            },
+            {
+              "bloco_dias": 3,
+              "validas": 2000,
+              "invalidas": 0,
+              "quantil_025_pct": -2.5914479025162094,
+              "quantil_975_pct": -1.4604456426684167
+            },
+            {
+              "bloco_dias": 7,
+              "validas": 2000,
+              "invalidas": 0,
+              "quantil_025_pct": -2.748037064633813,
+              "quantil_975_pct": -1.5862834050370394
+            }
+          ],
+          "reducao_energia_reportada_para_zerar_pct": -2.0260624278860595,
+          "causa_comprovada": false,
+          "economia_recuperavel_usd": null
+        },
+        {
+          "mes": "2023-03",
+          "delta_original_pct": -1.140440687787979,
+          "delta_original_gj": -2159.237831824819,
+          "valor_condicional_usd": -12869.730094480556,
+          "horas_comparaveis": 689,
+          "horas_validas": 741,
+          "modelos": {
+            "horas_comuns": 634,
+            "horas_excluidas": 107,
+            "metodos": [
+              {
+                "metodo": "linear",
+                "horas": 634,
+                "delta_gj": -1987.0293241378029,
+                "delta_pct": -1.1136893195708297
+              },
+              {
+                "metodo": "quadratico",
+                "horas": 634,
+                "delta_gj": -1995.8147703751865,
+                "delta_pct": -1.1185583040887521
+              },
+              {
+                "metodo": "faixas_5_t_h",
+                "horas": 634,
+                "delta_gj": -1892.455377776709,
+                "delta_pct": -1.0612450874856505
+              },
+              {
+                "metodo": "faixas_10_t_h",
+                "horas": 634,
+                "delta_gj": -1893.4349057300374,
+                "delta_pct": -1.0617885516774297
+              }
+            ]
+          },
+          "referencias": {
+            "horas_comuns": 677,
+            "metodos": [
+              {
+                "referencia": "janeiro_completo",
+                "horas": 677,
+                "delta_gj": -2121.2172902654543,
+                "delta_pct": -1.1352213174600903
+              },
+              {
+                "referencia": "janeiro_01_15",
+                "horas": 677,
+                "delta_gj": -3134.1632242193764,
+                "delta_pct": -1.668280316291827
+              },
+              {
+                "referencia": "janeiro_16_31",
+                "horas": 677,
+                "delta_gj": -1509.2793589690204,
+                "delta_pct": -0.8103817134973387
+              }
+            ]
+          },
+          "retirada_de_um_dia_pct": {
+            "min": -1.169510670881802,
+            "max": -1.103651447164789
+          },
+          "reamostragem": [
+            {
+              "bloco_dias": 1,
+              "validas": 2000,
+              "invalidas": 0,
+              "quantil_025_pct": -1.5372058819024164,
+              "quantil_975_pct": -0.7029715556185157
+            },
+            {
+              "bloco_dias": 3,
+              "validas": 2000,
+              "invalidas": 0,
+              "quantil_025_pct": -1.770484825322927,
+              "quantil_975_pct": -0.5301705047794517
+            },
+            {
+              "bloco_dias": 7,
+              "validas": 2000,
+              "invalidas": 0,
+              "quantil_025_pct": -1.8533743307817558,
+              "quantil_975_pct": -0.5766451718094614
+            }
+          ],
+          "reducao_energia_reportada_para_zerar_pct": -1.1535967747805997,
+          "causa_comprovada": false,
+          "economia_recuperavel_usd": null
+        }
+      ]
+    },
+    "B10": {
+      "qualidade": {
+        "recebidos": 2152,
+        "usados": 2136,
+        "excluidos": 16
+      },
+      "diagnostico": {
+        "r2": 0.8987019649053845,
+        "autocorrelacao_residuos": {
+          "1": {
+            "pares": 743,
+            "correlacao": 0.5844828078149268
+          },
+          "24": {
+            "pares": 720,
+            "correlacao": 0.5560358063011852
+          }
+        },
+        "validacao_temporal": [
+          {
+            "treino_fim": "2023-01-14",
+            "teste_inicio": "2023-01-15",
+            "teste_fim": "2023-01-21",
+            "horas_treino": 336,
+            "horas_teste": 168,
+            "horas_comparaveis": 160,
+            "vies_pct": 0.23345098826713587,
+            "motivo": null,
+            "erro_absoluto_medio_gj_h": 5.446304657557668
+          },
+          {
+            "treino_fim": "2023-01-21",
+            "teste_inicio": "2023-01-22",
+            "teste_fim": "2023-01-31",
+            "horas_treino": 504,
+            "horas_teste": 240,
+            "horas_comparaveis": 220,
+            "vies_pct": 1.563470922709267,
+            "motivo": null,
+            "erro_absoluto_medio_gj_h": 9.9565826465198
+          }
+        ]
+      },
+      "meses": [
+        {
+          "mes": "2023-02",
+          "delta_original_pct": 2.093994383796592,
+          "delta_original_gj": 4795.7548514527625,
+          "valor_condicional_usd": 35052.78691857814,
+          "horas_comparaveis": 441,
+          "horas_validas": 672,
+          "modelos": {
+            "horas_comuns": 246,
+            "horas_excluidas": 426,
+            "metodos": [
+              {
+                "metodo": "linear",
+                "horas": 246,
+                "delta_gj": 2735.6855573990633,
+                "delta_pct": 2.1075558936609258
+              },
+              {
+                "metodo": "quadratico",
+                "horas": 246,
+                "delta_gj": 2926.222369752251,
+                "delta_pct": 2.25765830255416
+              },
+              {
+                "metodo": "faixas_5_t_h",
+                "horas": 246,
+                "delta_gj": 3147.3291131626333,
+                "delta_pct": 2.432397449657916
+              },
+              {
+                "metodo": "faixas_10_t_h",
+                "horas": 246,
+                "delta_gj": 3125.980332281876,
+                "delta_pct": 2.415499611430858
+              }
+            ]
+          },
+          "referencias": {
+            "horas_comuns": 104,
+            "metodos": [
+              {
+                "referencia": "janeiro_completo",
+                "horas": 104,
+                "delta_gj": 931.6359996589085,
+                "delta_pct": 1.5514675679069179
+              },
+              {
+                "referencia": "janeiro_01_15",
+                "horas": 104,
+                "delta_gj": 1378.01596949731,
+                "delta_pct": 2.312017596715773
+              },
+              {
+                "referencia": "janeiro_16_31",
+                "horas": 104,
+                "delta_gj": 581.0809564522355,
+                "delta_pct": 0.9620665381345253
+              }
+            ]
+          },
+          "retirada_de_um_dia_pct": {
+            "min": 1.8495118999060474,
+            "max": 2.1615619439581515
+          },
+          "reamostragem": [
+            {
+              "bloco_dias": 1,
+              "validas": 2000,
+              "invalidas": 0,
+              "quantil_025_pct": 0.22249833347660652,
+              "quantil_975_pct": 3.6138941951358703
+            },
+            {
+              "bloco_dias": 3,
+              "validas": 2000,
+              "invalidas": 0,
+              "quantil_025_pct": -0.26954057562224104,
+              "quantil_975_pct": 5.0296695337456105
+            },
+            {
+              "bloco_dias": 7,
+              "validas": 2000,
+              "invalidas": 0,
+              "quantil_025_pct": 1.0560628094639073,
+              "quantil_975_pct": 5.558766731063994
+            }
+          ],
+          "reducao_energia_reportada_para_zerar_pct": 2.051045604038885,
+          "causa_comprovada": false,
+          "economia_recuperavel_usd": null
+        },
+        {
+          "mes": "2023-03",
+          "delta_original_pct": 2.9610837474065117,
+          "delta_original_gj": 8381.116318054304,
+          "valor_condicional_usd": 49954.064028531975,
+          "horas_comparaveis": 553,
+          "horas_validas": 720,
+          "modelos": {
+            "horas_comuns": 174,
+            "horas_excluidas": 546,
+            "metodos": [
+              {
+                "metodo": "linear",
+                "horas": 174,
+                "delta_gj": 2410.4318182402712,
+                "delta_pct": 2.7475254993246705
+              },
+              {
+                "metodo": "quadratico",
+                "horas": 174,
+                "delta_gj": 2629.5600043508384,
+                "delta_pct": 3.0048034701934396
+              },
+              {
+                "metodo": "faixas_5_t_h",
+                "horas": 174,
+                "delta_gj": 2743.7862693353254,
+                "delta_pct": 3.1394278392151076
+              },
+              {
+                "metodo": "faixas_10_t_h",
+                "horas": 174,
+                "delta_gj": 2742.927175175332,
+                "delta_pct": 3.138414017842808
+              }
+            ]
+          },
+          "referencias": {
+            "horas_comuns": 34,
+            "metodos": [
+              {
+                "referencia": "janeiro_completo",
+                "horas": 34,
+                "delta_gj": 609.8817164643632,
+                "delta_pct": 3.082499606310461
+              },
+              {
+                "referencia": "janeiro_01_15",
+                "horas": 34,
+                "delta_gj": 736.40490733944,
+                "delta_pct": 3.745935006287074
+              },
+              {
+                "referencia": "janeiro_16_31",
+                "horas": 34,
+                "delta_gj": 500.39403375951144,
+                "delta_pct": 2.5152019991457766
+              }
+            ]
+          },
+          "retirada_de_um_dia_pct": {
+            "min": 2.907744297224972,
+            "max": 3.0120921356147314
+          },
+          "reamostragem": [
+            {
+              "bloco_dias": 1,
+              "validas": 2000,
+              "invalidas": 0,
+              "quantil_025_pct": 0.9314279024884902,
+              "quantil_975_pct": 4.489292806994223
+            },
+            {
+              "bloco_dias": 3,
+              "validas": 2000,
+              "invalidas": 0,
+              "quantil_025_pct": 0.28556895063142174,
+              "quantil_975_pct": 5.993410401285337
+            },
+            {
+              "bloco_dias": 7,
+              "validas": 2000,
+              "invalidas": 0,
+              "quantil_025_pct": 1.8411103206839379,
+              "quantil_975_pct": 6.080723244425441
+            }
+          ],
+          "reducao_energia_reportada_para_zerar_pct": 2.875925193902295,
+          "causa_comprovada": false,
+          "economia_recuperavel_usd": null
+        }
+      ]
+    }
+  }
+}

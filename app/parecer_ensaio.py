@@ -139,6 +139,30 @@ def relatorio_texto(resultado: dict, unidade: str) -> str:
     ]
     for v in p["verificacoes"]:
         linhas.append(f"- {v['onde']}: {v['conferir']} Objetivo: {v['para_que']}")
+    from robustez_ensaio import carregar_auditoria
+
+    auditoria = carregar_auditoria()
+    if auditoria is not None:
+        linhas += [
+            "## Robustez da comparação",
+            (
+                "Auditoria retrospectiva do mesmo conjunto, com modelos alternativos, "
+                "referências alternativas e reamostragem dos dias reais. As faixas não "
+                "são incerteza dos instrumentos, prova de causa ou economia recuperável."
+            ),
+        ]
+        for m in auditoria["unidades"][unidade]["meses"]:
+            for b in m["reamostragem"]:
+                if b["quantil_025_pct"] is not None:
+                    linhas.append(
+                        f"- {m['mes']}, blocos de {b['bloco_dias']} dias: "
+                        f"{num(b['quantil_025_pct'])}% a {num(b['quantil_975_pct'])}%; "
+                        f"{b['validas']}/{auditoria['repeticoes']} repetições válidas."
+                    )
+        linhas.append(
+            "Janeiro também apresenta variação interna; não é referência certificada "
+            "como ideal. Ver detalhes da auditoria na tela Testes com dados públicos."
+        )
     linhas += [
         "## Fontes e integridade",
         f["url"],

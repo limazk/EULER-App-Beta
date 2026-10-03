@@ -4,6 +4,7 @@ import json
 
 import pandas as pd
 import streamlit as st
+from blocos.robustez_publica import renderizar as renderizar_robustez
 from ensaio_horario import DADOS, executar
 from parecer_ensaio import INVESTIGACOES, parecer, relatorio_texto
 
@@ -205,6 +206,7 @@ def renderizar():
     resultado, operador, evidencias = st.tabs(["Resultado", "O que verificar", "Fontes e cálculo"])
     with resultado:
         _resumo(u, p)
+        renderizar_robustez(unidade)
     with operador:
         _operador(p)
     with evidencias:
