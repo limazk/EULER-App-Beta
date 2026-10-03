@@ -3,7 +3,7 @@
 import estado
 import pandas as pd
 import streamlit as st
-from ensaio_publico import DADOS, executar
+from ensaio_publico import DADOS, comparar_custo_publicado, executar
 
 from euler.formato import num
 
@@ -23,6 +23,83 @@ def resultado():
 
 
 r = resultado()
+st.subheader("Quanto isso representa em dinheiro?")
+st.caption(
+    "Caso brasileiro publicado pela Unisanta (2015) · médias de 2010 e 2011 · gás natural. "
+    "Este caso já fazia parte da pesquisa da EULER e agora pode ser conferido aqui."
+)
+f = r["caso_financeiro"]
+st.markdown(
+    "A publicação adota **R\\$ 1,10/kg** nos dois períodos. Assim, conseguimos comparar "
+    "o custo de combustível por tonelada de vapor, sem buscar um preço de outro mercado. "
+    "É um preço histórico da publicação, não uma cotação atual ou uma fatura auditada."
+)
+a, b, c = st.columns(3)
+a.metric("Antes · combustível por t de vapor", f"R$ {num(f['antes_brl_t'])}", border=True)
+b.metric("Depois · combustível por t de vapor", f"R$ {num(f['depois_brl_t'])}", border=True)
+c.metric("Redução calculada por t de vapor", f"{num(f['reducao_pct'])}%", border=True)
+st.success(
+    f"Diferença de R\\$ {num(f['diferenca_brl_t'])} por tonelada de vapor. "
+    "É uma redução calculada a partir das médias publicadas; não é economia gerada pela EULER."
+)
+with st.expander("Ver a conta e o que ela permite concluir"):
+    st.dataframe(
+        pd.DataFrame(
+            [
+                {
+                    "Período": "2010",
+                    "Combustível (kg/h)": 7562,
+                    "Vapor (t/h)": 119.39,
+                    "Consumo (kg/t vapor)": num(f["antes_kg_t"]),
+                    "Combustível (R$/h)": num(f["antes_brl_h"]),
+                },
+                {
+                    "Período": "2011",
+                    "Combustível (kg/h)": 7458,
+                    "Vapor (t/h)": 123.85,
+                    "Consumo (kg/t vapor)": num(f["depois_kg_t"]),
+                    "Combustível (R$/h)": num(f["depois_brl_h"]),
+                },
+            ]
+        ),
+        hide_index=True,
+        width="stretch",
+    )
+    st.markdown(
+        f"**Diferença bruta:** R\\$ {num(f['reducao_bruta_brl_h'])}/h, mas a produção aumentou.\n\n"
+        f"**À mesma produção de 123,85 t/h:** a diferença seria R\\$ "
+        f"{num(f['diferenca_normalizada_brl_h'])}/h se a intensidade anterior permanecesse constante. "
+        "É uma projeção linear para comparação; não é dinheiro recuperado nem referência ajustada por carga.\n\n"
+        "**Conta:** combustível (kg/h) ÷ vapor (t/h) × preço (R\\$/kg). "
+        "Não inclui água, eletricidade, manutenção ou demais custos do vapor."
+    )
+    st.info(
+        "Há uma intervenção relatada (retirada de pré-aquecedor ar/vapor), mas também mudou "
+        "o combustível de partida. Sem registros brutos e incertezas, não isolamos a contribuição "
+        "de cada mudança. A comparação do motor mantém a detectabilidade inconclusiva. "
+        "Não anualizamos médias sem conhecer as horas efetivas."
+    )
+    st.caption(
+        "Auditoria financeira de médias, separada do balanço completo. A publicação calcula outro "
+        "custo por uma equação de entalpia; os números aqui usam somente massa e preço. "
+        "Totais anuais inconsistentes da fonte não foram usados."
+    )
+    st.link_button("Consultar dissertação · tabelas 6, 7, 14 e 15", f["fonte"]["url"])
+with st.expander("Como a comparação muda com outro preço?"):
+    p = st.number_input(
+        "Preço para cenário (R$/kg)",
+        min_value=0.0,
+        value=1.10,
+        step=0.10,
+        key="preco_cenario_publico",
+    )
+    s = comparar_custo_publicado(p)
+    st.metric("Diferença no cenário · por t de vapor", f"R$ {num(s['diferenca_brl_t'])}")
+    st.caption(
+        "Cenário escolhido por você, aplicado às mesmas médias históricas. "
+        "Não substitui o preço publicado nem representa o gasto de uma empresa atual."
+    )
+
 st.subheader("1. Caldeira em três condições de carga")
 st.caption(
     "Médias operacionais publicadas por Ohijeagbon e colaboradores (2026), "

@@ -7,6 +7,7 @@ Nenhum preço, PCI ou intervalo operacional é inventado para fechar balanços.
 
 import json
 from dataclasses import asdict
+from math import isfinite
 from pathlib import Path
 
 import pandas as pd
@@ -20,6 +21,45 @@ from euler.tipos import Grandeza
 from euler.vapor import h_agua_mj_kg, h_liquido_saturado_mj_kg, h_vapor_mj_kg
 
 DADOS = Path(__file__).resolve().parents[1] / "validation/public/ensaio_2026"
+
+
+def comparar_custo_publicado(preco_brl_kg: float | None = None) -> dict:
+    """Audita médias publicadas: kg/t × BRL/kg, sem inventar série ou economia.
+
+    Diferença normalizada = (intensidade anterior - posterior) × vapor posterior
+    × preço. É uma projeção linear à mesma produção, não uma linha de base
+    ajustada por carga. Preço alternativo é cenário explícito do usuário.
+    """
+    fonte = json.loads((DADOS / "unisanta.json").read_text(encoding="utf-8"))
+    preco = fonte["preco_publicado_brl_kg"] if preco_brl_kg is None else preco_brl_kg
+    if not isfinite(preco) or preco < 0:
+        raise ValueError("Informe um preço finito e não negativo em R$/kg.")
+    a, b = fonte["referencia"], fonte["comparacao"]
+    ia = a["combustivel_kg_h"] / (a["vapor_kg_h"] / 1000)
+    ib = b["combustivel_kg_h"] / (b["vapor_kg_h"] / 1000)
+    cmp = comparar(
+        "Custo de combustível por tonelada de vapor",
+        "BRL/t vapor",
+        Grandeza(ia * preco, "BRL/t vapor", "estimado"),
+        Grandeza(ib * preco, "BRL/t vapor", "estimado"),
+    )
+    return {
+        "fonte": fonte,
+        "base_preco": "publicacao_historica" if preco_brl_kg is None else "cenario_usuario",
+        "preco_brl_kg": preco,
+        "antes_kg_t": ia,
+        "depois_kg_t": ib,
+        "antes_brl_t": ia * preco,
+        "depois_brl_t": ib * preco,
+        "diferenca_brl_t": (ia - ib) * preco,
+        "reducao_pct": (1 - ib / ia) * 100,
+        "antes_brl_h": a["combustivel_kg_h"] * preco,
+        "depois_brl_h": b["combustivel_kg_h"] * preco,
+        "reducao_bruta_brl_h": (a["combustivel_kg_h"] - b["combustivel_kg_h"]) * preco,
+        "diferenca_normalizada_brl_h": (ia - ib) * b["vapor_kg_h"] / 1000 * preco,
+        "comparacao": asdict(cmp),
+        "economia_comprovada_brl": None,
+    }
 
 
 def executar() -> dict:
@@ -88,6 +128,7 @@ def executar() -> dict:
     caps = {c.id: c.situacao for c in avaliar(pacote)}
     saude = avaliar_saude(pacote)
     return {
+        "caso_financeiro": comparar_custo_publicado(),
         "fonte_subcritica": fonte,
         "estados": estados,
         "cargas": cargas,

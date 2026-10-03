@@ -1,0 +1,31 @@
+{
+  "titulo": "Carlos Bartolotto Filho, dissertação Unisanta, 2015",
+  "url": "https://unisanta.br/wp-content/uploads/2025/04/Teses-Auditoria-Ambiental_129-2015-Carlos-Bartolotto-Filho.pdf",
+  "paginas_pdf": [
+    56,
+    59,
+    60,
+    63,
+    64
+  ],
+  "referencia": {
+    "ano": 2010,
+    "vapor_kg_h": 119390,
+    "combustivel_kg_h": 7562
+  },
+  "comparacao": {
+    "ano": 2011,
+    "vapor_kg_h": 123850,
+    "combustivel_kg_h": 7458
+  },
+  "preco_publicado_brl_kg": 1.1,
+  "h_vapor_publicada_kcal_kg": 763.26,
+  "h_agua_publicada_kcal_kg": 125.72,
+  "pci_declarado_kcal_kg": 13746,
+  "pressao_declarada_kgf_cm2": 53,
+  "base_da_pressao": null,
+  "incerteza_instrumental": null,
+  "observacao": "Mudança física relatada: remoção de pré-aquecedor ar/vapor. Também mudou o combustível de partida. Não há dados brutos nem controle pareado de carga. Totais anuais e suas unidades são inconsistentes; não utilizados. PCI e entalpias são valores adotados pela fonte, não medições independentes confirmadas.",
+  "combustivel": "gas natural; combustivel de partida mudou entre os periodos",
+  "natureza_preco": "Preco adotado na publicacao, tabelas 14 e 15; historico, nao cotacao atual nem nota fiscal verificada."
+}

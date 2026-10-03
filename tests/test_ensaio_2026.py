@@ -6,7 +6,30 @@ from pathlib import Path
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "app"))
-from ensaio_publico import executar
+from ensaio_publico import comparar_custo_publicado, executar
+
+
+def test_preco_publicado_separa_diferenca_bruta_de_mesma_producao():
+    r = comparar_custo_publicado()
+    assert r["antes_brl_t"] == pytest.approx(69.67250188457996)
+    assert r["depois_brl_t"] == pytest.approx(66.23980621719823)
+    assert r["reducao_bruta_brl_h"] == pytest.approx(114.4)
+    # Mesma produção de 2011: compara intensidades, sem confundir com caixa observado.
+    assert r["diferenca_normalizada_brl_h"] == pytest.approx((7562 * 123850 / 119390 - 7458) * 1.1)
+    assert r["comparacao"]["detectavel"] is None
+    assert r["economia_comprovada_brl"] is None
+
+
+def test_cenario_de_preco_nao_substitui_preco_historico():
+    historico = comparar_custo_publicado()
+    cenario = comparar_custo_publicado(preco_brl_kg=2.2)
+    assert cenario["base_preco"] == "cenario_usuario"
+    assert cenario["fonte"]["preco_publicado_brl_kg"] == 1.1
+    assert cenario["diferenca_brl_t"] == pytest.approx(2 * historico["diferenca_brl_t"])
+    assert cenario["reducao_pct"] == pytest.approx(historico["reducao_pct"])
+    for preco in (-1, float("nan"), float("inf")):
+        with pytest.raises(ValueError):
+            comparar_custo_publicado(preco_brl_kg=preco)
 
 
 @pytest.fixture(scope="module")

@@ -81,6 +81,38 @@ completo, extrato de compras e cálculo financeiro. Testa importação e absten�
 
 ## Reprodução e próximos dados
 
+### Complemento financeiro: médias brasileiras com preço publicado
+
+Retomamos um caso da pesquisa anterior: Carlos Bartolotto Filho, Unisanta (2015),
+[dissertação original](https://unisanta.br/wp-content/uploads/2025/04/Teses-Auditoria-Ambiental_129-2015-Carlos-Bartolotto-Filho.pdf),
+tabelas 6, 7, 14 e 15 (páginas do PDF 56, 59 e 63). `unisanta.json` preserva
+os valores transcritos. Gás natural; preço adotado de R$ 1,10/kg nos dois períodos.
+Não se trata de cotação atual ou nota fiscal auditada.
+
+- 2010: 7.562 kg/h de combustível e 119,39 t/h de vapor → R$ 69,67/t de vapor.
+- 2011: 7.458 kg/h de combustível e 123,85 t/h de vapor → R$ 66,24/t de vapor.
+- Diferença calculada: R$ 3,43/t, redução de 4,93% na intensidade de custo.
+- Diferença bruta de gasto horário: R$ 114,40/h. Não compara igual produção.
+- À produção de 2011, projetando linearmente a intensidade de 2010, a diferença
+  é aproximadamente R$ 425,14/h. Não é linha de base ajustada por carga ou economia medida.
+
+Executamos `euler.deteccao.comparar` com os custos específicos: diferença disponível,
+detectabilidade inconclusiva por ausência de incerteza. As contas de massa/preço são
+auxiliares desta auditoria; não simulamos um histórico para forçar a investigação completa.
+A equação de custo publicada na dissertação usa outra abordagem, por entalpia, e fornece
+outros números; aqui usamos diretamente massa/preço. Excluímos totais anuais inconsistentes.
+A retirada do pré-aquecedor é relatada junto à mudança de combustível de partida:
+não isolamos causalidade. Sem anualização ou economia atribuída à EULER.
+
+A tela também permite escolher outro preço: cenário explicitamente separado do histórico.
+O ensaio valida a aritmética monetária e sua apresentação, não a recuperação futura.
+
+Nova fonte localizada para testes físicos mais completos: [Morrin/UCD, EPA Ireland](https://eparesearch.epa.ie/safer/iso19115/displayISO19115.jsp?isoID=250).
+O catálogo oferece seis ensaios com consumo, temperaturas, vazão, gases e orçamento
+de incerteza. Trata-se de caldeira doméstica de água quente a gás (18 kW), não de vapor
+industrial. Apenas o catálogo foi conferido nesta etapa; nenhum resultado desses arquivos
+é apresentado como teste executado da EULER.
+
 No ambiente do projeto: `python scripts/validar_ensaio_publico.py --saida resultado.json`.
 Com CoolProp instalado, acrescente `--conferir-heos` para recalcular a referência
 independente. Isso não é necessário para usar o aplicativo. Testes:
