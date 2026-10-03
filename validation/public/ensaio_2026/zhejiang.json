@@ -1,0 +1,17 @@
+{
+  "url": "https://doi.org/10.6084/m9.figshare.28868849.v1",
+  "licenca": "CC0",
+  "autores": "Cao et al. (2025); artigo Hu et al., DOI 10.1038/s41597-025-05096-4",
+  "sha256_original": "195b5e6e9b1b7c01613eb00f1f684e61aa237938239454dd7a00d86dd9cfdab0",
+  "linhas": 86400,
+  "inicio": "2022-03-27 14:28:54",
+  "fim": "2022-04-01 14:28:49",
+  "intervalo_segundos": 5,
+  "temperatura_min_c": 517.05,
+  "temperatura_max_c": 550.49,
+  "temperatura_media_c": 537.5211304398148,
+  "fora_faixa_autores": 7037,
+  "ausencias_original": 30,
+  "nota": "Arquivo uncompleted, sem AutoReg. A faixa 530–545 °C é a classificação dos autores, não um alarme da EULER nem prova de desperdício. Unidades/base da pressão e base do O2 não confirmadas no artigo; sinais não usados em cálculos térmicos.",
+  "linhas_importaveis": 7200
+}

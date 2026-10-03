@@ -37,6 +37,11 @@ paginas = {
     ],
     "Referência": [
         st.Page(
+            "paginas/dados_publicos.py",
+            title="Testes com dados públicos",
+            icon=":material/science:",
+        ),
+        st.Page(
             "paginas/calculadora.py", title="Calculadora de referência", icon=":material/calculate:"
         ),
     ],

@@ -1,0 +1,201 @@
+{
+  "url": "https://data.mendeley.com/datasets/wr267xjngz/1",
+  "licenca": "CC BY 4.0",
+  "autores": "Ohijeagbon, Angula, Lasode e Paulus (2026)",
+  "sha256_xlsx": "acb7e2a71aeaa2c0f81b66c55bd7d3ed1d82a16796aa266af048a4a7373ee8f3",
+  "nota": "Médias de três condições estacionárias publicadas pelos autores. Sem datas, duração, preços ou incerteza instrumental. Pressão estática em MPa; base absoluta não explicitada: cálculo térmico condicional a essa interpretação.",
+  "referencia_independente": "CoolProp HEOS::Water (IAPWS-95); valores calculados para P interpretada como absoluta, não medidos na planta.",
+  "cargas": [
+    {
+      "carga_pct": 70.73,
+      "vapor_kg_s": 26.731,
+      "combustivel_kg_s": 3.388,
+      "t_vapor_c": 490,
+      "p_vapor_mpa": 6.6,
+      "t_agua_c": 170,
+      "p_agua_mpa": 6.717,
+      "celulas": {
+        "vapor": "Table4_WaterStream_Circuit!K12",
+        "combustivel": "Table3_Massflow_Temp!H7"
+      }
+    },
+    {
+      "carga_pct": 92.65,
+      "vapor_kg_s": 34.974,
+      "combustivel_kg_s": 4.461,
+      "t_vapor_c": 490,
+      "p_vapor_mpa": 6.6,
+      "t_agua_c": 187,
+      "p_agua_mpa": 6.739,
+      "celulas": {
+        "vapor": "Table4_WaterStream_Circuit!L12",
+        "combustivel": "Table3_Massflow_Temp!I7"
+      }
+    },
+    {
+      "carga_pct": 100.0,
+      "vapor_kg_s": 37.785,
+      "combustivel_kg_s": 4.838,
+      "t_vapor_c": 490,
+      "p_vapor_mpa": 6.6,
+      "t_agua_c": 188,
+      "p_agua_mpa": 6.75,
+      "celulas": {
+        "vapor": "Table4_WaterStream_Circuit!M12",
+        "combustivel": "Table3_Massflow_Temp!J7"
+      }
+    }
+  ],
+  "estados": [
+    {
+      "carga_pct": 70.73,
+      "ponto": 9,
+      "tipo": "agua",
+      "p_mpa": 6.717,
+      "t_c": 170,
+      "h_fonte_kj_kg": 719.04,
+      "h_heos_kj_kg": 722.3478675988994,
+      "celula_h": "Table5_Enthalpy_Entropy_Exergy!M22"
+    },
+    {
+      "carga_pct": 70.73,
+      "ponto": 10,
+      "tipo": "agua",
+      "p_mpa": 6.915,
+      "t_c": 258,
+      "h_fonte_kj_kg": 1131.19,
+      "h_heos_kj_kg": 1124.740952486242,
+      "celula_h": "Table5_Enthalpy_Entropy_Exergy!M23"
+    },
+    {
+      "carga_pct": 70.73,
+      "ponto": 11,
+      "tipo": "liquido_saturado",
+      "p_mpa": 6.83,
+      "t_c": 284.1419,
+      "h_fonte_kj_kg": 1258.559,
+      "h_heos_kj_kg": 1258.8451164017556,
+      "celula_h": "Table5_Enthalpy_Entropy_Exergy!M24"
+    },
+    {
+      "carga_pct": 70.73,
+      "ponto": 12,
+      "tipo": "saturado_seco",
+      "p_mpa": 6.64,
+      "t_c": 282.2551999999999,
+      "h_fonte_kj_kg": 2777.098,
+      "h_heos_kj_kg": 2777.1782621121974,
+      "celula_h": "Table5_Enthalpy_Entropy_Exergy!M25"
+    },
+    {
+      "carga_pct": 70.73,
+      "ponto": 13,
+      "tipo": "superaquecido",
+      "p_mpa": 6.6,
+      "t_c": 490,
+      "h_fonte_kj_kg": 3391.692,
+      "h_heos_kj_kg": 3391.985363737999,
+      "celula_h": "Table5_Enthalpy_Entropy_Exergy!M26"
+    },
+    {
+      "carga_pct": 92.65,
+      "ponto": 9,
+      "tipo": "agua",
+      "p_mpa": 6.739,
+      "t_c": 187,
+      "h_fonte_kj_kg": 793.92,
+      "h_heos_kj_kg": 796.7344495295253,
+      "celula_h": "Table5_Enthalpy_Entropy_Exergy!N22"
+    },
+    {
+      "carga_pct": 92.65,
+      "ponto": 10,
+      "tipo": "agua",
+      "p_mpa": 7.12548,
+      "t_c": 266,
+      "h_fonte_kj_kg": 1165.7,
+      "h_heos_kj_kg": 1164.5004426740059,
+      "celula_h": "Table5_Enthalpy_Entropy_Exergy!N23"
+    },
+    {
+      "carga_pct": 92.65,
+      "ponto": 11,
+      "tipo": "liquido_saturado",
+      "p_mpa": 7.06,
+      "t_c": 286.3807999999999,
+      "h_fonte_kj_kg": 1270.469,
+      "h_heos_kj_kg": 1270.741935465699,
+      "celula_h": "Table5_Enthalpy_Entropy_Exergy!N24"
+    },
+    {
+      "carga_pct": 92.65,
+      "ponto": 12,
+      "tipo": "saturado_seco",
+      "p_mpa": 6.66,
+      "t_c": 282.4538,
+      "h_fonte_kj_kg": 2776.862,
+      "h_heos_kj_kg": 2776.9324878727057,
+      "celula_h": "Table5_Enthalpy_Entropy_Exergy!N25"
+    },
+    {
+      "carga_pct": 92.65,
+      "ponto": 13,
+      "tipo": "superaquecido",
+      "p_mpa": 6.6,
+      "t_c": 490,
+      "h_fonte_kj_kg": 3391.692,
+      "h_heos_kj_kg": 3391.985363737999,
+      "celula_h": "Table5_Enthalpy_Entropy_Exergy!N26"
+    },
+    {
+      "carga_pct": 100.0,
+      "ponto": 9,
+      "tipo": "agua",
+      "p_mpa": 6.75,
+      "t_c": 188,
+      "h_fonte_kj_kg": 798.38,
+      "h_heos_kj_kg": 801.1494399616944,
+      "celula_h": "Table5_Enthalpy_Entropy_Exergy!O22"
+    },
+    {
+      "carga_pct": 100.0,
+      "ponto": 10,
+      "tipo": "agua",
+      "p_mpa": 7.23092,
+      "t_c": 271,
+      "h_fonte_kj_kg": 1177.96,
+      "h_heos_kj_kg": 1189.7946257257745,
+      "celula_h": "Table5_Enthalpy_Entropy_Exergy!O23"
+    },
+    {
+      "carga_pct": 100.0,
+      "ponto": 11,
+      "tipo": "liquido_saturado",
+      "p_mpa": 7.07,
+      "t_c": 286.4725999999999,
+      "h_fonte_kj_kg": 1270.95,
+      "h_heos_kj_kg": 1271.2543115547815,
+      "celula_h": "Table5_Enthalpy_Entropy_Exergy!O24"
+    },
+    {
+      "carga_pct": 100.0,
+      "ponto": 12,
+      "tipo": "saturado_seco",
+      "p_mpa": 6.67,
+      "t_c": 282.5531,
+      "h_fonte_kj_kg": 2776.738,
+      "h_heos_kj_kg": 2776.809290202882,
+      "celula_h": "Table5_Enthalpy_Entropy_Exergy!O25"
+    },
+    {
+      "carga_pct": 100.0,
+      "ponto": 13,
+      "tipo": "superaquecido",
+      "p_mpa": 6.6,
+      "t_c": 490,
+      "h_fonte_kj_kg": 3391.692,
+      "h_heos_kj_kg": 3391.985363737999,
+      "celula_h": "Table5_Enthalpy_Entropy_Exergy!O26"
+    }
+  ]
+}
