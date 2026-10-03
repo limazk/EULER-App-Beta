@@ -8,14 +8,17 @@ from formatacao import COLUNAS_RESUMO, SITUACAO_PERIODO, linhas_por_periodo
 
 from euler.capacidades import avaliar
 from euler.direto import balanco_direto
+from euler.fluxos import balanco_por_vazoes, fluxo_entalpia_vapor
 from euler.formato import num, plural
 from euler.periodos import periodos_entre_estoques, resumir_periodo
+from euler.planta import mapear_planta
+from euler.tipos import AnaliseBloqueada
 
 cabecalho(
     "Dados e limites",
-    "O que dá e o que não dá para concluir com os dados enviados, **e por quê**. "
-    "Quando falta um dado, a análise fica bloqueada: a EULER não completa nada com "
-    "porcentagens inventadas.",
+    "A EULER começa perguntando **o que esta planta tem?** e monta as rotas físicas "
+    "compatíveis com os sinais disponíveis. Quando uma rota não fecha, procura outra forma "
+    "fisicamente válida; o que continuar ausente não vira zero nem hipótese escondida.",
     "Passo 3 de 6",
 )
 
@@ -64,7 +67,109 @@ def _capacidade_completa(c) -> None:
             st.markdown("**Para liberar:**\n" + "\n".join(f"- {o}" for o in c.o_que_fazer))
 
 
+def mapa_adaptativo(pacote) -> None:
+    """Mostra primeiro o que já é possível fazer com a instrumentação existente."""
+    perfil = mapear_planta(pacote)
+    st.markdown("### O que esta planta tem?")
+    st.caption(
+        "O motor escolhe rotas por pergunta física. 'Disponível' quer dizer que os ingredientes "
+        "mínimos existem; cada cálculo ainda confere cobertura, simultaneidade e coerência física."
+    )
+
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("Sinais reconhecidos", len(perfil.sinais), border=True)
+    m2.metric("Rotas com sinais presentes", len(perfil.disponiveis), border=True)
+    m3.metric(
+        "Rotas parciais",
+        sum(r.situacao == "parcial" for r in perfil.rotas),
+        border=True,
+    )
+    m4.metric("Tags ainda sem mapa", len(perfil.nao_mapeados), border=True)
+
+    disponiveis = [r for r in perfil.rotas if r.situacao == "disponivel"]
+    if disponiveis:
+        with cartao("rotas-adaptativas"):
+            st.markdown("**Caminhos candidatos — ainda sujeitos à validação dos dados:**")
+            for rota in disponiveis:
+                st.markdown(
+                    f"- **{rota.nome}** · rota: *{rota.alternativa}*  \n"
+                    f"  {rota.pergunta}  \n"
+                    f"  :gray[Usando: {', '.join(rota.usando) or 'dados observados'}]"
+                )
+
+    diario = pacote.dados("diario")
+    if diario is not None and perfil.rota("entalpia_vapor").situacao == "disponivel":
+        try:
+            fluxo = fluxo_entalpia_vapor(diario)
+            st.markdown("#### Física já extraída do lado do vapor")
+            a, b, c = st.columns(3)
+            a.metric(
+                "Fluxo médio de entalpia do vapor", f"{num(fluxo.media_mw, 1)} MW", border=True
+            )
+            b.metric("Leituras válidas", fluxo.n, border=True)
+            c.metric("Cobertura de leituras", f"{100 * fluxo.cobertura_leituras:.0f}%", border=True)
+            st.caption(fluxo.nota)
+            if fluxo.hipoteses:
+                st.caption("Hipóteses: " + "; ".join(fluxo.hipoteses) + ".")
+        except AnaliseBloqueada as erro:
+            st.info(f"O lado do vapor está parcialmente observável: {erro.motivo}")
+
+    rota_eta = perfil.rota("eficiencia_direta")
+    if (
+        diario is not None
+        and rota_eta.situacao == "disponivel"
+        and rota_eta.alternativa.startswith("historiador")
+    ):
+        try:
+            b = balanco_por_vazoes(diario)
+            st.markdown("#### Balanço disponível pelo historiador")
+            e1, e2, e3 = st.columns(3)
+            e1.metric(
+                "Conversão combustível → vapor (estimativa)",
+                f"{100 * b.eficiencia:.1f}%",
+                border=True,
+            )
+            e2.metric("Cobertura comum", f"{100 * b.cobertura:.0f}%", border=True)
+            e3.metric("Intervalos usados", b.intervalos_usados, border=True)
+            st.caption(b.nota)
+            if b.intervalos_pulados:
+                st.caption(
+                    f"{b.intervalos_pulados} intervalo(s) excluído(s) por lacuna, condição "
+                    "inválida ou mudança de estado. " + "; ".join(b.motivos_exclusao)
+                )
+            if b.eficiencia > 1:
+                st.warning(
+                    "Resultado acima de 100%: conferir base calorífica, fronteira e medições."
+                )
+            if b.hipoteses:
+                st.caption("Hipóteses: " + "; ".join(b.hipoteses) + ".")
+        except AnaliseBloqueada as erro:
+            st.info(f"A rota por vazões existe, mas este recorte ainda não fecha: {erro.motivo}")
+
+    if perfil.nao_mapeados:
+        with st.expander("Tags encontradas que a EULER ainda não sabe interpretar"):
+            st.write(", ".join(perfil.nao_mapeados))
+            st.caption(
+                "Essas colunas continuam preservadas no arquivo original. A EULER não atribui "
+                "unidade ou significado físico sem um mapa explícito."
+            )
+
+    parciais = [r for r in perfil.rotas if r.situacao == "parcial"]
+    if parciais:
+        with st.expander("O menor dado adicional que abre novas rotas"):
+            for rota in parciais:
+                st.markdown(
+                    f"**{rota.nome}** · melhor rota atual: *{rota.alternativa}*  \n"
+                    f"Já temos: {', '.join(rota.usando) or '—'}  \n"
+                    f"Falta: {', '.join(rota.faltam) or '—'}"
+                )
+                if rota.nota:
+                    st.caption(rota.nota)
+
+
 def mostrar(pacote) -> None:
+    mapa_adaptativo(pacote)
+    st.markdown("### Verificações do fluxo estruturado atual")
     caps = avaliar(pacote)
     contagem = {s: sum(c.situacao == s for c in caps) for s in ROTULO}
     m1, m2, m3 = st.columns(3)
