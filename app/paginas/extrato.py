@@ -278,8 +278,10 @@ def mostrar(pacote) -> None:
         st.caption(
             "Cálculo em revisão científica: energia (GJ) = massa (kg) × PCI úmido (MJ/kg) ÷ 1.000. "
             "PCI úmido = (1 − umidade) × PCI seco − 2,442 × umidade, com umidade em fração "
-            "da massa úmida. Referências internas: E11 e E5 (física); D19 e D20 (decisões)."
+            "da massa úmida."
         )
+        with st.expander("Detalhes técnicos · referências do cálculo"):
+            st.caption("Referências internas: E11 e E5 (física); D19 e D20 (decisões).")
 
 
 pacote = estado.exigir_pacote()

@@ -73,3 +73,17 @@ def comparar_consumos(
         "economia_comprovada": None,
         "causa_comprovada": False,
     }
+
+
+def valorizar_energia(delta_gj: float | None, preco_por_gj: float | None) -> float | None:
+    """Diferença energética × preço/GJ, com sinal e sem inferir recuperação.
+
+    A base calorífica do preço deve coincidir com a da energia. Não converte
+    PCS em PCI nem usa GJ como se fossem toneladas de combustível (D83).
+    """
+    if delta_gj is not None and not isfinite(delta_gj):
+        raise ValueError("A diferença de energia precisa ser finita.")
+    _validar(preco_por_gj, "Preço por GJ")
+    if delta_gj is None or preco_por_gj is None:
+        return None
+    return delta_gj * preco_por_gj

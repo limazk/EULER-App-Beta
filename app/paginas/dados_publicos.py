@@ -3,6 +3,7 @@
 import estado
 import pandas as pd
 import streamlit as st
+from blocos.ensaio_horario import renderizar as renderizar_ensaio_horario
 from ensaio_publico import DADOS, comparar_custo_publicado, executar
 
 from euler.economia import comparar_consumos
@@ -24,6 +25,7 @@ def resultado():
     return executar()
 
 
+renderizar_ensaio_horario()
 r = resultado()
 st.subheader("Consumo aumentou: teste real com biomassa")
 st.caption("Diniz · UTFPR, 2014 · indústria de papel · comparação de médias entre seca e chuva.")

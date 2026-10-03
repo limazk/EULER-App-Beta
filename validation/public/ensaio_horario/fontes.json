@@ -1,0 +1,34 @@
+{
+  "instalacao": "Ingredion Incorporated Argo Plant",
+  "facility_id_epa": 54556,
+  "periodo": "2023-01-01 a 2023-03-31",
+  "origem": "EPA CAMPD, arquivado pela Catalyst Cooperative/PUDL",
+  "url": "https://zenodo.org/records/21738530",
+  "arquivo": "epacems-2023.zip / epacems-2023q1.csv",
+  "download": "https://s3.us-west-2.amazonaws.com/pudl.catalyst.coop/zenodo/epacems/10.5281-zenodo.21738530/epacems-2023.zip",
+  "zip_md5": "1419551207d1698b02caff78569d16ea",
+  "recorte_sha256": "53ff6a441b5f2574a34f169b2714a6688bf97b7f53bd44b5169486968fe9eb3b",
+  "linhas_trimestre": 8417520,
+  "linhas_com_vapor": 215095,
+  "linhas_recorte": 8034,
+  "horas_calendario_por_unidade": 2160,
+  "precos_usd_mcf": {
+    "2023-01": 9.62,
+    "2023-02": 8.02,
+    "2023-03": 6.54
+  },
+  "calor_mmbtu_mcf": 1.04,
+  "preco_fonte": "https://www.eia.gov/dnav/ng/hist/n3035il3m.htm",
+  "calor_fonte": "https://www.eia.gov/dnav/ng/NG_CONS_HEAT_DCU_SIL_A.htm",
+  "preco_tipo": "Media industrial regional, Illinois; nao e a fatura nem o contrato da Ingredion.",
+  "calor_tipo": "Media anual de 2023 do gas entregue aos consumidores em Illinois: 1040 Btu/pe cubico; nao e amostra da planta.",
+  "selecao": "Instalacao escolhida por aderencia a alimentos/ingredientes; todas as quatro unidades com vapor do recorte publicadas. Janeiro referencia, fevereiro comparacao, marco repeticao retrospectiva. B10 destacada depois da triagem, nao e validacao prospectiva.",
+  "limitacoes": [
+    "Somente linhas com vapor presente foram extraidas; horarios ausentes nao foram preenchidos.",
+    "Measured e um indicador EPA de origem, nao orcamento de incerteza completo.",
+    "Nao ha P/T de vapor e agua, regime, composicao do gas, eventos ou manutencao neste recorte.",
+    "Gas primario informado para as quatro unidades; B10 conserva Coal no campo Secondary Fuel Type. A reparticao horaria por combustivel nao consta. Valorizacao de B10 e cenario condicionado ao gas.",
+    "Horas completas nao garantem regime estacionario. Modelo estatistico exploratorio, separado do balanco fisico.",
+    "Preco regional e calor regional sao aproximacoes; sem economia recuperavel ou prejuizo comprovado."
+  ]
+}

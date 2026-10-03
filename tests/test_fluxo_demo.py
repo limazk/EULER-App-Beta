@@ -24,8 +24,9 @@ def test_fluxo_completo_do_caso_de_demonstracao():
     next(b for b in at.button if b.label.startswith("Ato 2")).click().run()
     assert not at.exception, at.exception
     # o botão leva à Saúde da caldeira (D65): o consumo das semanas de setembro mudou
-    assert any("Mudou" in m.value for m in at.markdown)
-    assert {m.label: m.value for m in at.metric}["Mudança · 31/08 a 14/09"] == "0,353 t/t"
+    assert any("Mudança detectada" in m.value for m in at.markdown)
+    assert {m.label: m.value for m in at.metric}["Período em destaque"] == "353,2 kg/t de vapor"
+    assert any("31/08 a 14/09" in c.value for c in at.caption)
     assert _rodape_ok(at)
 
     # "Investigar esta mudança" abre a Investigação com os períodos já escolhidos. O AppTest

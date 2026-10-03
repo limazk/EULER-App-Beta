@@ -35,7 +35,7 @@ with st.expander("Como preparar os dados de uma empresa"):
         "1. **Baixe a planilha modelo** e mantenha os nomes das abas, colunas e unidades.\n"
         "2. **Apague as linhas sintéticas de exemplo** de todas as abas. Preencha só os registros reais disponíveis.\n"
         "3. Use uma **caldeira por análise**, com identificação, datas e horários coerentes. "
-        "Nos registros da empresa, declare `origem_dado` como `real`. "
+        "Na coluna de origem dos registros, indique que os dados são reais. "
         "Mantenha estimativas identificadas como tal; não transforme valores desconhecidos em zero.\n"
         "4. Informe a altitude do local e envie a planilha ou selecione todos os CSVs do novo conjunto.\n"
         "5. Clique em **Importar os arquivos enviados**, confira os avisos e abra **Saúde da caldeira** "
@@ -45,6 +45,8 @@ with st.expander("Como preparar os dados de uma empresa"):
         "Se o exportador da fábrica usar nomes ou unidades diferentes, será necessário "
         "mapear os dados antes da análise. Não envie arquivos de clientes ao GitHub."
     )
+    with st.expander("Detalhes técnicos · origem dos registros"):
+        st.markdown("Na planilha, preencha a coluna `origem_dado` com `real` nos registros reais.")
 
 geracao = st.session_state.get("importacao_geracao", 0)
 local, envio = st.columns([1, 2], gap="medium")
