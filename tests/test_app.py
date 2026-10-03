@@ -104,6 +104,33 @@ def test_extrato_com_caso_de_demonstracao():
     assert any("mais barato por tonelada nem sempre" in m.value for m in at.markdown)
     assert any(i.value.startswith("F3 tem o menor preço por tonelada") for i in at.info)
     assert any(c.value == RODAPE_SEGURANCA for c in at.caption)
+    assert [m.label for m in at.metric] == [
+        "Compras registradas",
+        "Custo médio da energia",
+        "Lotes com custo por energia",
+    ]
+    assert any(e.label == "Detalhes por fornecedor" for e in at.expander)
+    assert any("Como ler estes valores" == e.label for e in at.expander)
+    at.radio[0].set_value("Por tonelada · R$/t").run()
+    assert not at.exception, at.exception
+
+
+def test_extrato_sem_amostras_preserva_compras_e_nao_inventa_custo():
+    at = abrir_com_demo("extrato.py")
+    at.session_state["arquivos"] = tuple(
+        (nome, conteudo)
+        for nome, conteudo in at.session_state["arquivos"]
+        if nome != "amostras.csv"
+    )
+    at.run()
+    assert not at.exception, at.exception
+    valores = {m.label: m.value for m in at.metric}
+    assert valores["Compras registradas"] != "—"
+    assert valores["Custo médio da energia"] == "—"
+    assert valores["Lotes com custo por energia"].startswith("0 de")
+    assert any("Ainda não é possível comparar" in i.value for i in at.info)
+    at.radio[0].set_value("Por tonelada · R$/t").run()
+    assert not at.exception, at.exception
 
 
 def test_extrato_sem_dados_orienta_a_importar():

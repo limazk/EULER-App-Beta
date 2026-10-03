@@ -10,10 +10,9 @@ from euler.combustivel import extrato_por_fornecedor, extrato_semanal, frase_ton
 from euler.formato import num, pct, plural
 
 cabecalho(
-    "Extrato de energia por fornecedor",
+    "Extrato por fornecedor",
     "**O fornecedor mais barato por tonelada nem sempre é o mais barato por energia.** "
-    "A caldeira compra energia, não toneladas: quanto mais úmido o cavaco, menos energia "
-    "cada tonelada entrega. Aqui cada lote vira energia (GJ) e custo por energia (R$/GJ).",
+    "Compare o custo do combustível considerando a energia que ele contém.",
     "Passo 5 de 6",
 )
 
@@ -53,17 +52,16 @@ def mostrar(pacote) -> None:
         st.warning("Nenhum recebimento com fornecedor neste período.")
         return
 
-    frase = frase_tonelada_vs_energia(forn)
-    if frase:
-        st.info(md(frase), icon=":material/lightbulb:")
-
     determinados = lotes[lotes["situacao"] == "determinada"]
     com_custo = determinados.dropna(subset=["brl_gj"])
+    precos = lotes["preco_brl"].dropna()
     m1, m2, m3 = st.columns(3)
     m1.metric(
-        "Energia entregue (lotes determinados)",
-        f"{num(determinados['energia_gj'].sum(), 0)} GJ",
+        "Compras registradas",
+        f"R$ {num(precos.sum())}" if len(precos) else "—",
         border=True,
+        help=f"Soma dos preços informados em {len(precos)} de {len(lotes)} lotes. "
+        "Refere-se aos recebimentos selecionados, não ao combustível consumido.",
     )
     m2.metric(
         "Custo médio da energia",
@@ -71,29 +69,74 @@ def mostrar(pacote) -> None:
         if len(com_custo)
         else "—",
         border=True,
+        help="Soma dos preços dividida pela energia dos mesmos lotes. "
+        "Inclui somente lotes com preço e energia calculáveis.",
     )
-    m3.metric("Lotes com energia determinada", f"{len(determinados)} de {len(lotes)}", border=True)
+    m3.metric("Lotes com custo por energia", f"{len(com_custo)} de {len(lotes)}", border=True)
+    st.caption(
+        "R$/GJ = reais por gigajoule de energia no combustível. Quanto menor, menor o custo "
+        "por energia. Não é o custo do vapor produzido."
+    )
+    if len(precos) < len(lotes) or len(com_custo) < len(lotes):
+        st.caption(
+            f"Cobertura parcial: preço informado em {len(precos)} de {len(lotes)} lotes; "
+            f"preço e energia disponíveis em {len(com_custo)} de {len(lotes)}. "
+            "Os valores ausentes não entram nas médias."
+        )
+
+    st.markdown("### Comparar fornecedores")
+    frase = frase_tonelada_vs_energia(forn)
+    if frase:
+        st.info(md(frase), icon=":material/lightbulb:")
 
     escala = graficos.escala_cores(list(combustivel["fornecedor_id"].dropna().unique()))
-    barras = forn.dropna(subset=["brl_t", "brl_gj"]).copy()
-    barras["rotulo_t"] = barras["brl_t"].map(lambda v: f"R$ {num(v)}/t")
-    barras["rotulo_gj"] = barras["brl_gj"].map(lambda v: f"R$ {num(v)}/GJ")
-    c1, c2 = st.columns(2)
-    with c1, cartao("barras-t"):
-        st.altair_chart(
-            graficos.barras_por_fornecedor(
-                barras, "brl_t", "Preço por tonelada", "rotulo_t", escala
-            ),
-            width="stretch",
+    modo = st.radio(
+        "Comparação",
+        ["Por energia · R$/GJ", "Por tonelada · R$/t"],
+        horizontal=True,
+        label_visibility="collapsed",
+    )
+    campo, unidade = ("brl_gj", "GJ") if modo.startswith("Por energia") else ("brl_t", "t")
+    barras = forn.dropna(subset=[campo]).copy()
+    barras["rotulo"] = barras[campo].map(lambda v: f"R$ {num(v)}/{unidade}")
+    if barras.empty:
+        st.info(
+            "Ainda não é possível comparar por este critério. "
+            "Veja os dados pendentes nos detalhes abaixo."
         )
-    with c2, cartao("barras-gj"):
-        st.altair_chart(
-            graficos.barras_por_fornecedor(
-                barras, "brl_gj", "Custo por energia", "rotulo_gj", escala
-            ),
-            width="stretch",
-        )
-    st.caption("Nos dois gráficos, o mais barato fica no topo.")
+    else:
+        with cartao("comparacao-fornecedores"):
+            st.altair_chart(
+                graficos.barras_por_fornecedor(
+                    barras,
+                    campo,
+                    "Custo por energia" if unidade == "GJ" else "Preço por tonelada",
+                    "rotulo",
+                    escala,
+                ),
+                width="stretch",
+            )
+    st.caption(
+        "Menor valor no topo, entre os lotes calculáveis. As médias por tonelada e por "
+        "energia podem usar conjuntos diferentes de lotes. Não é uma recomendação de compra."
+    )
+
+    cobertura = com_custo.groupby("fornecedor_id").size()
+    st.dataframe(
+        pd.DataFrame(
+            {
+                "Fornecedor": forn["fornecedor_id"],
+                "Custo por energia (R$/GJ)": forn["brl_gj"].map(num),
+                "Preço por tonelada (R$/t)": forn["brl_t"].map(num),
+                "Lotes com custo por energia": [
+                    f"{cobertura.get(f, 0)} de {n}"
+                    for f, n in zip(forn["fornecedor_id"], forn["lotes"], strict=True)
+                ],
+            }
+        ),
+        hide_index=True,
+        width="stretch",
+    )
 
     tabela = pd.DataFrame(
         {
@@ -112,70 +155,84 @@ def mostrar(pacote) -> None:
             "Lotes fora da faixa de umidade": forn["alertas_umidade"],
         }
     )
-    # tabela simples: todas as colunas cabem na largura, sem rolagem lateral
-    st.table(tabela, hide_index=True, border="horizontal")
-
-    semanal = extrato_semanal(lotes)
-    if semanal["semana"].nunique() >= 2:
-        st.markdown("#### Umidade do cavaco por semana")
-        with cartao("umidade-semanal"):
-            st.altair_chart(
-                graficos.linhas_semanais(
-                    semanal, "umidade_media", "Umidade média (base úmida)", "%", escala
-                ),
-                width="stretch",
-            )
+    with st.expander("Detalhes por fornecedor"):
+        st.caption(
+            "Energia calculada nos lotes disponíveis; umidade média ponderada pela massa "
+            "desses lotes. Consulte a origem das medições na lista de recebimentos."
+        )
+        st.dataframe(tabela, hide_index=True, width="stretch")
 
     alertas = extrato.alertas_umidade
-    st.markdown(f"#### Umidade fora da faixa histórica · {plural(len(alertas), 'lote', 'lotes')}")
-    st.caption(
-        "Faixa histórica: média ± 3 desvios-padrão dos primeiros 10 lotes medidos de cada "
-        "fornecedor (proposta em revisão). É um sinal para conferir a amostragem e o lote, não "
-        "uma conclusão sobre o fornecedor."
-    )
-    if len(alertas):
-        resumo = []
-        for f, g in alertas.groupby("fornecedor_id"):
-            acima = int((g["alerta_direcao"] == "acima").sum())
-            abaixo = len(g) - acima
-            partes = [f"{acima} acima" if acima else "", f"{abaixo} abaixo" if abaixo else ""]
-            resumo.append(f"- **{f}**: {' e '.join(x for x in partes if x)} da faixa")
-        st.markdown("\n".join(resumo))
-        with st.expander("Ver os lotes"):
+    with st.expander(f"Umidade e alertas · {len(alertas)} lotes sinalizados"):
+        semanal = extrato_semanal(lotes)
+        if semanal["semana"].nunique() >= 2:
+            st.markdown("#### Umidade do cavaco por semana")
+            with cartao("umidade-semanal"):
+                st.altair_chart(
+                    graficos.linhas_semanais(
+                        semanal, "umidade_media", "Umidade média (base úmida)", "%", escala
+                    ),
+                    width="stretch",
+                )
+
+        st.caption(
+            "Faixa histórica: média ± 3 desvios-padrão dos primeiros 10 lotes medidos de cada "
+            "fornecedor (proposta em revisão). É um sinal para conferir a amostragem e o lote, não "
+            "uma conclusão sobre o fornecedor."
+        )
+        if len(alertas):
+            resumo = []
+            for f, g in alertas.groupby("fornecedor_id"):
+                acima = int((g["alerta_direcao"] == "acima").sum())
+                abaixo = len(g) - acima
+                partes = [f"{acima} acima" if acima else "", f"{abaixo} abaixo" if abaixo else ""]
+                resumo.append(f"- **{f}**: {' e '.join(x for x in partes if x)} da faixa")
+            st.markdown("\n".join(resumo))
+            with st.expander("Ver os lotes"):
+                st.dataframe(
+                    pd.DataFrame(
+                        {
+                            "Data": alertas["data"].dt.strftime("%d/%m/%Y %H:%M"),
+                            "Fornecedor": alertas["fornecedor_id"],
+                            "Lote": alertas["lote_id"],
+                            "Umidade": alertas["umidade_bu_frac"].map(pct),
+                            "Situação": alertas["alerta_direcao"],
+                            "Faixa histórica": alertas["faixa_historica"],
+                        }
+                    ),
+                    hide_index=True,
+                    width="stretch",
+                )
+
+        if not len(alertas):
+            st.caption(
+                "Nenhum alerta de umidade nos registros analisados. Isso não certifica a qualidade dos lotes."
+            )
+
+    nao_det = extrato.lotes_nao_determinados
+    with st.expander(f"Energia não calculável · {plural(len(nao_det), 'lote', 'lotes')}"):
+        if len(nao_det):
+            st.caption("A EULER não assume umidade: sem medição, a energia do lote fica em aberto.")
             st.dataframe(
                 pd.DataFrame(
                     {
-                        "Data": alertas["data"].dt.strftime("%d/%m/%Y %H:%M"),
-                        "Fornecedor": alertas["fornecedor_id"],
-                        "Lote": alertas["lote_id"],
-                        "Umidade": alertas["umidade_bu_frac"].map(pct),
-                        "Situação": alertas["alerta_direcao"],
-                        "Faixa histórica": alertas["faixa_historica"],
+                        "Data": nao_det["data"].dt.strftime("%d/%m/%Y %H:%M"),
+                        "Fornecedor": nao_det["fornecedor_id"],
+                        "Lote": nao_det["lote_id"],
+                        "Massa (t)": nao_det["massa_kg"].map(
+                            lambda v: num(v / 1000 if pd.notna(v) else None, 1)
+                        ),
+                        "Motivo": nao_det["motivo"],
                     }
                 ),
                 hide_index=True,
                 width="stretch",
             )
 
-    nao_det = extrato.lotes_nao_determinados
-    st.markdown(f"#### Energia não determinada · {plural(len(nao_det), 'lote', 'lotes')}")
-    if len(nao_det):
-        st.caption("A EULER não assume umidade: sem medição, a energia do lote fica em aberto.")
-        st.dataframe(
-            pd.DataFrame(
-                {
-                    "Data": nao_det["data"].dt.strftime("%d/%m/%Y %H:%M"),
-                    "Fornecedor": nao_det["fornecedor_id"],
-                    "Lote": nao_det["lote_id"],
-                    "Massa (t)": nao_det["massa_kg"].map(
-                        lambda v: num(v / 1000 if pd.notna(v) else None, 1)
-                    ),
-                    "Motivo": nao_det["motivo"],
-                }
-            ),
-            hide_index=True,
-            width="stretch",
-        )
+        else:
+            st.caption(
+                "Todos os lotes têm energia calculável. Preços ausentes ainda podem impedir a comparação de custos."
+            )
 
     with st.expander("Todos os lotes do período"):
         st.dataframe(
@@ -202,18 +259,26 @@ def mostrar(pacote) -> None:
             width="stretch",
         )
 
-    st.caption(
-        "Cálculo em revisão científica: energia do lote = massa × PCI úmido; "
-        "PCI úmido = (1 − umidade) × PCI seco − 2,442 × umidade; R$/GJ = preço do lote ÷ energia. "
-        "Umidade: **medido** por lote. PCI seco: **medido** na amostra do lote ou **assumido** da "
-        "amostra mais próxima do mesmo fornecedor."
-    )
-    with st.expander("Detalhes técnicos do extrato"):
+    with st.expander("Como ler estes valores"):
         st.markdown(
-            "- Energia por lote e R$/GJ: item E11 de `docs/fisica/fisica_para_revisao.md` (PCI úmido: "
-            "E5).\n"
-            "- Faixa histórica de umidade: proposta D20 de `docs/gestao/decisoes.md`.\n"
-            "- PCI seco da amostra mais próxima do mesmo fornecedor: proposta D19."
+            "- **Compras registradas:** soma dos preços dos recebimentos no período. "
+            "Pode ser parcial se houver preços ausentes.\n"
+            "- **Energia do combustível:** calculada pela massa e pelo poder calorífico "
+            "inferior (PCI), considerando a umidade. Não é a energia efetivamente "
+            "transferida ao vapor.\n"
+            "- **Custo médio por energia:** valor dos lotes dividido pela energia desses "
+            "mesmos lotes; não é uma média simples dos preços unitários.\n"
+            "- **Origem dos valores:** massa medida ou estimada; umidade medida por lote; "
+            "PCI seco medido no lote ou assumido da amostra mais próxima do mesmo fornecedor. "
+            "Sem base suficiente, o valor fica em aberto.\n"
+            "- **Decisão de compra:** considere também a cobertura dos dados, a origem do PCI, "
+            "o frete incluído ou não no preço, o contrato e a compatibilidade do combustível. "
+            "Uma diferença de R$/GJ não comprova economia recuperável."
+        )
+        st.caption(
+            "Cálculo em revisão científica: energia (GJ) = massa (kg) × PCI úmido (MJ/kg) ÷ 1.000. "
+            "PCI úmido = (1 − umidade) × PCI seco − 2,442 × umidade, com umidade em fração "
+            "da massa úmida. Referências internas: E11 e E5 (física); D19 e D20 (decisões)."
         )
 
 
