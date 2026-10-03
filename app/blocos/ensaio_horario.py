@@ -19,10 +19,10 @@ def renderizar():
     unidade = st.selectbox("Caldeira do conjunto público", ["B10", "B08", "B07", "B06"])
     u = r["unidades"][unidade]
     meses = u["comparacoes"]
-    a, b, c = st.columns(3)
+    a, b = st.columns(2)
     a.metric("Fevereiro: diferença por carga", f"{num(meses[0]['delta_pct'])}%", border=True)
     b.metric("Março: diferença por carga", f"{num(meses[1]['delta_pct'])}%", border=True)
-    c.metric(
+    st.metric(
         "Diferença valorizada · 2 meses",
         f"US$ {num(sum(m['valor_referencia_usd'] for m in meses))}",
         border=True,
