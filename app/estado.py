@@ -38,6 +38,40 @@ def definir_arquivos(arquivos: dict[str, bytes], rotulo: str, sinteticos: bool =
     st.session_state["rotulo_dados"] = rotulo
     st.session_state["dados_sinteticos"] = sinteticos
     esquecer_resultados()
+    for chave in list(st.session_state):
+        if chave in ("periodos_escolhidos", "periodo_ref", "periodo_comp") or chave.startswith(
+            "fin_recuperacao_"
+        ):
+            st.session_state.pop(chave, None)
+
+
+def limpar_dados() -> None:
+    """Esvazia só esta sessão. Não apaga arquivos do PC nem de outras sessões.
+
+    O contador recria os controles de envio e altitude para não recuperar entradas antigas.
+    Caches internos não são uma exclusão segura: reinicie o app para encerrar sua memória.
+    """
+    for chave in list(st.session_state):
+        if chave in (
+            "arquivos",
+            "rotulo_dados",
+            "dados_sinteticos",
+            "altitude_m",
+            "investigacao",
+            "relatorio_gerado",
+            "periodos_escolhidos",
+            "periodo_ref",
+            "periodo_comp",
+            "saude_incerteza",
+        ) or chave.startswith(("fin_recuperacao_", "envio_", "altitude_envio_")):
+            st.session_state.pop(chave, None)
+    st.session_state["importacao_geracao"] = st.session_state.get("importacao_geracao", 0) + 1
+
+
+def importar_novos(arquivos: dict[str, bytes], altitude: float | None) -> None:
+    """Substitui o conjunto inteiro e usa somente a altitude informada para o novo local."""
+    definir_arquivos(arquivos, f"{len(arquivos)} arquivo(s) enviado(s)", sinteticos=False)
+    st.session_state["altitude_m"] = altitude
 
 
 def dados_sinteticos() -> bool:

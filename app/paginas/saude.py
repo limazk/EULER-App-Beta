@@ -6,25 +6,18 @@ eventos registrados e um selo (mudou, estável ou não dá para dizer). Os núme
 """
 
 import estado
-import graficos
 import pandas as pd
 import streamlit as st
 from componentes import cabecalho, cartao, proximo_passo
-from formatacao import (
-    COR_SAUDE,
-    SELO_SAUDE,
-    SITUACAO_SAUDE,
-    texto_consumo,
-    variacao_referencia,
-)
+from formatacao import variacao_referencia
+from saude_visual import ROTULOS, consumo_kg, explicacao, grafico, indicadores
 
 from euler.formato import num
 from euler.saude import avaliar_saude
 
 cabecalho(
     "Saúde da caldeira",
-    "Quanto combustível a caldeira gastou para cada tonelada de vapor, período a período, com "
-    "os eventos registrados. Se o consumo mudou, um clique leva direto à investigação.",
+    "O consumo mudou? Veja o que merece atenção e por onde começar.",
     "Passo 2 de 6",
 )
 
@@ -33,17 +26,6 @@ cabecalho(
 def _saude(assinatura: str, _pacote):
     """Guardada pela assinatura dos dados: voltar a esta tela não recalcula."""
     return avaliar_saude(_pacote)
-
-
-def _sem_fuso(t: pd.Timestamp) -> pd.Timestamp:
-    return t.tz_localize(None)
-
-
-def _icone_selo(s) -> str:
-    if s.selo != "mudou":
-        return ":material/check_circle:" if s.selo == "estavel" else ":material/help:"
-    sobe = s.comparacao_mudanca is not None and (s.comparacao_mudanca.delta or 0) > 0
-    return ":material/trending_up:" if sobe else ":material/trending_down:"
 
 
 def investigar(s) -> None:
@@ -57,83 +39,6 @@ def investigar(s) -> None:
     for chave in ("periodo_ref", "periodo_comp"):
         st.session_state.pop(chave, None)
     st.switch_page("paginas/investigacao.py")
-
-
-def _numeros(s) -> None:
-    if s.consumo_referencia is None:
-        return
-    p = s.periodos
-    a, b = s.referencia
-    c1, c2 = st.columns(2)
-    c1.metric(
-        f"Referência · {p[a].inicio:%d/%m} a {p[b].fim:%d/%m}",
-        f"{num(s.consumo_referencia.valor, 3)} t/t",
-        border=True,
-    )
-    if s.mudanca is not None and s.comparacao_mudanca is not None:
-        cmp = s.comparacao_mudanca
-        a, b = s.mudanca
-        c2.metric(
-            f"Mudança · {p[a].inicio:%d/%m} a {p[b].fim:%d/%m}",
-            f"{num(cmp.comparacao, 3)} t/t",
-            f"{100 * cmp.delta / cmp.referencia:+.1f}%".replace(".", ","),
-            delta_color="inverse",
-            border=True,
-        )
-
-
-def _grafico(s) -> None:
-    linhas = []
-    for p in s.periodos:
-        u = None if p.consumo is None else p.consumo.incerteza
-        valor = None if p.consumo is None else p.consumo.valor
-        linhas.append(
-            {
-                "inicio": _sem_fuso(p.inicio),
-                "fim": _sem_fuso(p.fim),
-                "meio": _sem_fuso(p.inicio + (p.fim - p.inicio) / 2),
-                "valor": valor,
-                "baixo": None if u is None else valor - u,
-                "alto": None if u is None else valor + u,
-                "periodo": f"{p.inicio:%d/%m} a {p.fim:%d/%m}",
-                "texto": texto_consumo(p),
-                "situacao": SITUACAO_SAUDE[p.estado],
-            }
-        )
-    df = pd.DataFrame(linhas).astype({"valor": float, "baixo": float, "alto": float})
-    if df["valor"].isna().all():
-        st.info("Nenhum período tem o consumo calculado; os motivos estão na tabela abaixo.")
-        return
-    faixas = []
-    if s.referencia is not None:
-        a, b = s.referencia
-        faixas.append((df["inicio"][a], df["fim"][b], "Referência", graficos.FAIXA_REFERENCIA))
-    if s.mudanca is not None:
-        a, b = s.mudanca
-        faixas.append((df["inicio"][a], df["fim"][b], "Mudança", graficos.FAIXA_COMPARACAO))
-    eventos = pd.DataFrame(
-        [
-            {
-                "instante": _sem_fuso(e["instante"]),
-                "dia": f"{e['instante']:%d/%m}",
-                "n": str(i),
-                "tipo": e["tipo"],
-                "descricao": e["descricao"],
-            }
-            for i, e in enumerate(s.eventos, start=1)
-        ],
-        columns=["instante", "dia", "n", "tipo", "descricao"],
-    )
-    # eventos do mesmo dia ficam no mesmo lugar do eixo: um rótulo só ("3 · 4")
-    eventos["numero"] = eventos.groupby("dia")["n"].transform(" · ".join)
-    referencia = None if s.consumo_referencia is None else s.consumo_referencia.valor
-    st.altair_chart(graficos.consumo_por_periodo(df, faixas, eventos, referencia), width="stretch")
-    st.caption(
-        "Traço azul: consumo médio de cada período (combustível queimado ÷ vapor produzido), "
-        "origem **estimado** a partir das medições; traço vertical: incerteza (k = 2). Linha "
-        "pontilhada: a referência. Linhas tracejadas numeradas: eventos registrados. Período "
-        "sem traço: não dá para calcular (motivo na tabela)."
-    )
 
 
 def _eventos(s) -> None:
@@ -152,11 +57,14 @@ def _tabela(s) -> None:
     linhas = [
         {
             "Período": f"{p.inicio:%d/%m} a {p.fim:%d/%m}",
-            "Consumo (t/t)": texto_consumo(p),
+            "Consumo (kg/t de vapor)": consumo_kg(p),
             "Em relação à referência": variacao_referencia(p),
-            "Situação": (
-                f":{COR_SAUDE.get(p.estado, 'gray')}-badge[{SITUACAO_SAUDE[p.estado]}]"
-                + ("" if p.consumo is not None or not p.motivo else f" {p.motivo}")
+            "Situação": ROTULOS[p.estado],
+            "Limite da análise": p.motivo
+            or (
+                "Incerteza insuficiente ou comparação condicional"
+                if p.estado == "nao_da_para_dizer" and p.consumo is not None
+                else "—"
             ),
         }
         for p in s.periodos
@@ -214,38 +122,59 @@ def _comparacao_por_carga(s) -> None:
 
 def mostrar(pacote) -> None:
     s = _saude(estado.assinatura(), pacote)
-    cor, rotulo = SELO_SAUDE[s.selo]
+    titulo, resumo = explicacao(s)
+    cor = {"mudou": "orange", "estavel": "blue"}.get(s.selo, "gray")
     with cartao("saude-selo"):
-        st.markdown(f"#### :{cor}-badge[{_icone_selo(s)} {rotulo}]")
-        st.markdown(f"**{s.frase}**")
-        _numeros(s)
-        if s.mudanca is not None:
-            if st.button(
-                "Investigar esta mudança",
-                type="primary",
-                icon=":material/troubleshoot:",
-                key="investigar_mudanca",
-            ):
-                investigar(s)
-        else:
+        st.markdown(f":{cor}-badge[CONSUMO DE COMBUSTÍVEL]")
+        st.markdown(f"## {titulo}")
+        st.write(resumo)
+        if s.periodos:
+            indicadores(s)
+        with st.container(horizontal=True, gap="medium"):
+            if s.mudanca is not None:
+                if st.button(
+                    "Investigar esta mudança",
+                    type="primary",
+                    icon=":material/troubleshoot:",
+                    key="investigar_mudanca",
+                ):
+                    investigar(s)
+            else:
+                st.page_link(
+                    "paginas/limites.py",
+                    label="Ver o que os dados permitem",
+                    icon=":material/rule:",
+                )
             st.page_link(
-                "paginas/investigacao.py",
-                label="Escolher os períodos na Investigação",
-                icon=":material/troubleshoot:",
+                "paginas/financeiro.py", label="Ver impacto financeiro", icon=":material/payments:"
             )
+    st.caption("Este painel acompanha consumo; não avalia a segurança da caldeira.")
     if s.periodos:
-        _grafico(s)
-        st.markdown("#### Eventos registrados")
+        grafico(s)
+        with st.expander("Ver dados de cada período · valores e limites"):
+            _tabela(s)
+            st.caption(
+                "Consumo = combustível queimado ÷ vapor produzido. "
+                "Valores estimados a partir das medições; ± indica incerteza expandida (k = 2)."
+            )
+    with st.expander(f"Eventos registrados · {len(s.eventos)}"):
         _eventos(s)
-        st.markdown("#### Período a período")
-        _tabela(s)
+        st.caption("Proximidade no tempo não comprova que um evento causou a mudança.")
+    if s.periodos:
         _comparacao_por_carga(s)
-    st.caption(
-        "Mudou = a diferença para a referência é maior que a incerteza das medições; estável = "
-        "fica dentro dela; não dá para dizer = falta o consumo do período ou a incerteza. "
-        "Referência: a primeira metade dos períodos (a mesma escolha inicial da Investigação). "
-        "O selo diz se o consumo mudou, não por quê: a causa é o que a investigação examina."
-    )
+    with st.expander("Como interpretar esta análise"):
+        st.markdown(
+            "- **Mudança detectada:** diferença maior que a incerteza declarada. Pode ser aumento ou redução.\n"
+            "- **Sem mudança detectável:** os dados não distinguem a diferença da incerteza; não é prova de eficiência.\n"
+            "- **Sem conclusão:** faltam medições ou incertezas, ou a comparação depende de condições adicionais.\n"
+            "- **Referência:** primeira metade do histórico entre medições de estoque. "
+            "É uma comparação histórica, não uma meta de eficiência ideal.\n"
+            "- **Contexto:** carga, umidade e condições do vapor podem alterar o consumo. "
+            "A relação kg/t, sozinha, não isola esses efeitos nem comprova desperdício."
+        )
+        st.page_link(
+            "paginas/limites.py", label="Consultar dados e limites", icon=":material/rule:"
+        )
 
 
 pacote = estado.exigir_pacote()

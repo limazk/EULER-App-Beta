@@ -31,7 +31,7 @@ ESTILO = f"""<style>
   --euler-lateral: #171717;
   --euler-texto: #ECECEC;
   --euler-suave: #A3A3A3;
-  --euler-fraco: #7C7C7C;
+  --euler-fraco: #A3A3A3;
   --euler-linha: #363636;
   --euler-ref: {COR_REFERENCIA};
   --euler-ref-texto: #C7D5EA;
@@ -42,6 +42,20 @@ ESTILO = f"""<style>
 }}
 header[data-testid="stHeader"] {{ background: transparent; }}
 .stMainBlockContainer {{ max-width: 1200px; padding-top: 2.4rem; padding-bottom: 3rem; }}
+/* Hierarquia compacta; informações complementares ficam em expansores. */
+.stMainBlockContainer h2 {{ font-size: 1.35rem; letter-spacing: -.015em; }}
+[data-testid="stMetricValue"] {{ font-variant-numeric: tabular-nums; }}
+.st-key-cartao-saude-selo {{ padding: 1.5rem; border-left: 3px solid var(--euler-ref-texto); }}
+.st-key-cartao-saude-selo [data-testid="stMetric"] {{ background: transparent; }}
+.st-key-cartao-saude-selo [data-testid="stMetricValue"] {{ font-size: 1.55rem; }}
+[data-testid="stExpander"] details {{ background: transparent; }}
+a:focus-visible, button:focus-visible, input:focus-visible {{
+  outline: 2px solid var(--euler-ref-texto); outline-offset: 3px; }}
+@media(max-width:640px) {{
+  .stMainBlockContainer {{ padding: 1.25rem 1rem 2rem; }}
+  .st-key-cartao-saude-selo {{ padding: 1rem; }}
+  .st-key-euler-abertura {{ padding: 1.25rem !important; }}
+}}
 [data-testid="stSidebarContent"] [data-testid="stCaptionContainer"] {{ color: var(--euler-fraco); }}
 
 /* Botões: o principal é claro com texto escuro (o Streamlit pintaria o texto de branco) */

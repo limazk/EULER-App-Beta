@@ -52,8 +52,12 @@ if not st.session_state.get("arquivos"):
 elif estado.dados_sinteticos():
     situacao_dados = "**dados sintéticos** em uso"
 else:
-    situacao_dados = "dados enviados em uso (não sintéticos)"
+    situacao_dados = "dados enviados em uso · origem conforme arquivos"
 st.sidebar.caption(f"EULER · protótipo v{euler.__version__} · {situacao_dados}")
+if st.session_state.get("arquivos"):
+    st.sidebar.page_link(
+        "paginas/importar.py", label="Trocar ou limpar dados", icon=":material/folder_open:"
+    )
 if os.environ.get("EULER_BUILD_LABEL"):
     st.sidebar.caption(os.environ["EULER_BUILD_LABEL"])
     with st.sidebar.expander("Detalhes técnicos da instalação"):

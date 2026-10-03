@@ -44,9 +44,10 @@ def qualidade(pacote) -> None:
         )
         atencao = avisos[avisos["Gravidade"].isin(["Erro", "Atenção"])]
         if len(atencao):
-            st.markdown(
-                "\n".join(f"- {linha.Tabela}: {linha.Aviso}" for linha in atencao.itertuples())
-            )
+            with st.expander("Ver avisos que podem afetar a análise"):
+                st.markdown(
+                    "\n".join(f"- {linha.Tabela}: {linha.Aviso}" for linha in atencao.itertuples())
+                )
         st.page_link(
             "paginas/importar.py",
             label="Ver todos os avisos em Importar dados",

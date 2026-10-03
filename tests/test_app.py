@@ -179,7 +179,7 @@ def test_relatorio_nao_usa_investigacao_de_dados_anteriores():
 def test_relatorio_avisa_quando_a_altitude_mudou_depois_da_investigacao():
     at = abrir_com_demo("investigacao.py")
     at.switch_page("paginas/importar.py").run()
-    at.number_input[0].set_value(500.0).run()
+    at.session_state["altitude_m"] = 500.0  # mudança explícita do cadastro em uso
     at.switch_page("paginas/relatorio.py").run()
     assert not at.exception
     assert any("dados mudaram" in w.value for w in at.warning)
@@ -346,7 +346,7 @@ def test_investigacao_guardada_nao_serve_para_outra_altitude():
     at = abrir_com_demo("investigacao.py")
     com_1000_m = energia_por_kg(at)
     at.switch_page("paginas/importar.py").run()
-    at.number_input[0].set_value(0.0).run()
+    at.session_state["altitude_m"] = 0.0  # mudança explícita do cadastro em uso
     at.switch_page("paginas/investigacao.py").run()
     assert not at.exception, at.exception
     assert energia_por_kg(at) != com_1000_m

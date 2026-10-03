@@ -321,7 +321,8 @@ def mostrar(pacote) -> None:
         if j["o_que_mudou"]["custo_vapor"]:
             st.markdown(md(j["o_que_mudou"]["custo_vapor"]["frase"]))
         _grafico(pacote, ref, comp)
-        _indicadores(j)
+        with st.expander("Ver todos os indicadores e suas incertezas"):
+            _indicadores(j)
 
     with aba2:
         st.markdown(f"**Conclusão:** {md(j['conclusao']['texto'])}")
