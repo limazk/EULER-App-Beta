@@ -66,7 +66,7 @@ Uma linha por leitura do operador (ou do sistema) na caldeira.
 | `t_gases_eco_saida_c` | °C | não | Temperatura dos gases na saída do economizador. |  | 30 a 600 |
 | `dp_gases_mbar` | mbar | não | Diferença de pressão no trecho de gases associado à análise de transferência. |  | 0 a 500 |
 | `titulo_vapor` | fração | não | Alias de titulo_vapor_frac; normalizado com aviso. Se ambos forem informados, precisam coincidir. |  | 0 a 1 |
-| `p_agua_referencia_bar_man` | bar manométrico | não | Pressão da água no mesmo ponto da temperatura t_agua_alim_c, usada como referência na energia da purga. |  | 0 a 250 |
+| `p_agua_referencia_bar_man` | bar manométrico | não | Pressão da água no mesmo ponto da temperatura t_agua_alim_c, usada na purga e no balanço por vazões do historiador. |  | 0 a 250 |
 | `vazao_vapor_t_h` | t/h | não | Vazão instantânea de vapor. Permite rota por historiador sem depender do totalizador. |  | 0 a 5.000 |
 | `vazao_combustivel_kg_h` | kg/h | não | Vazão mássica instantânea de combustível na mesma base do PCI informado. |  | 0 a 10.000.000 |
 | `pci_combustivel_mj_kg` | MJ/kg como recebido | não | PCI correspondente ao combustível na condição/base em que a vazão mássica é medida. |  | 0,10 a 60 |

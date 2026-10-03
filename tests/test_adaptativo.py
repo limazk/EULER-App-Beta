@@ -23,6 +23,8 @@ def _diario(**extras) -> pd.DataFrame:
         "origem_dado": ["real", "real", "real"],
     }
     base.update(extras)
+    if "t_agua_alim_c" in base:
+        base["p_agua_referencia_bar_man"] = [1.0, 1.0, 1.0]
     return pd.DataFrame(base)
 
 

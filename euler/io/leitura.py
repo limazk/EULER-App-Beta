@@ -385,6 +385,29 @@ def normalizar(
     nomes_contrato = [c.nome for c in tabela.colunas]
     nomes_contrato_set = set(nomes_contrato)
 
+    # Dois nomes para a mesma grandeza exigem resolução explícita, não prioridade silenciosa.
+    grupos: dict[str, list[str]] = {}
+    for coluna in entrada.columns:
+        canonico = ALIASES_COLUNAS.get(coluna, coluna)
+        if canonico in nomes_contrato_set:
+            grupos.setdefault(canonico, []).append(coluna)
+    for canonico, colunas in grupos.items():
+        if len(colunas) > 1:
+            avisos.append(
+                Aviso(
+                    tabela.nome,
+                    None,
+                    canonico,
+                    "aliases_ambiguos",
+                    f"Mais de uma coluna representa {canonico}: {', '.join(colunas)}. "
+                    "Confirme qual usar e envie uma única coluna; o original foi preservado.",
+                    "erro",
+                )
+            )
+    if avisos:
+        vazio = pd.DataFrame(columns=["linha", *nomes_contrato])
+        return Importacao(tabela.nome, original, vazio, avisos)
+
     renomear = {}
     for alias, canonico in ALIASES_COLUNAS.items():
         if alias not in entrada.columns or canonico in entrada.columns:

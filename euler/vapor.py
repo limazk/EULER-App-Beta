@@ -4,6 +4,8 @@ Unidades: pressão em bar absoluto, temperatura em °C, entalpia em MJ/kg.
 A biblioteca `iapws` trabalha em MPa, K e kJ/kg; a conversão fica só aqui.
 """
 
+from math import isfinite
+
 from iapws import IAPWS97
 
 from euler.tipos import AnaliseBloqueada
@@ -46,7 +48,7 @@ def p_absoluta_bar(p_man_bar: float, p_atm_bar: float) -> float:
     ou leitura impossível).
     """
     p_abs = p_man_bar + p_atm_bar
-    if p_abs <= 0:
+    if not all(isfinite(x) for x in (p_man_bar, p_atm_bar, p_abs)) or p_abs <= 0:
         raise AnaliseBloqueada(
             f"Pressão manométrica de {p_man_bar:g} bar resulta em pressão absoluta "
             "não positiva. Confira a leitura e a unidade."
@@ -102,12 +104,15 @@ def h_vapor_mj_kg(
             falta=["temperatura do vapor"],
         )
     t_sat = t_sat_c(p_bar_abs)
-    if t_vapor_c <= t_sat:
+    if not isfinite(t_vapor_c) or t_vapor_c <= t_sat:
         raise AnaliseBloqueada(
             f"Temperatura do vapor ({t_vapor_c:g} °C) não está acima da saturação "
             f"({t_sat:.1f} °C a {p_bar_abs:g} bar abs): não é vapor superaquecido."
         )
-    return IAPWS97(P=p_mpa, T=t_vapor_c + 273.15).h / 1000
+    try:
+        return IAPWS97(P=p_mpa, T=t_vapor_c + 273.15).h / 1000
+    except (NotImplementedError, ValueError) as erro:
+        raise AnaliseBloqueada("Condição do vapor fora do domínio IF97 suportado.") from erro
 
 
 def h_agua_mj_kg(p_bar_abs: float, t_c: float) -> float:
@@ -117,7 +122,7 @@ def h_agua_mj_kg(p_bar_abs: float, t_c: float) -> float:
     Bloqueia se a água não estiver líquida nessa pressão.
     """
     t_sat = t_sat_c(p_bar_abs)
-    if t_c >= t_sat:
+    if not isfinite(t_c) or t_c >= t_sat:
         raise AnaliseBloqueada(
             f"Água a {t_c:g} °C não está líquida a {p_bar_abs:g} bar abs "
             f"(saturação {t_sat:.1f} °C). Confira a temperatura da água de alimentação."

@@ -16,7 +16,7 @@ from math import isfinite
 import pandas as pd
 
 from euler.tipos import AnaliseBloqueada
-from euler.vapor import delta_h_mj_kg, h_vapor_mj_kg, t_sat_c
+from euler.vapor import h_agua_mj_kg, h_vapor_mj_kg, t_sat_c
 
 
 @dataclass(frozen=True)
@@ -43,9 +43,10 @@ class BalancoFluxos:
     intervalos_pulados: int
     hipoteses: tuple[str, ...]
     nota: str
+    motivos_exclusao: tuple[str, ...] = ()
 
 
-def _estado_linha(row) -> tuple[str, dict, str]:
+def _estado_linha(row, assumir_saturado_seco: bool = False) -> tuple[str, dict, str]:
     estado = None
     if hasattr(row, "estado_vapor") and not pd.isna(row.estado_vapor):
         estado = str(row.estado_vapor)
@@ -60,6 +61,8 @@ def _estado_linha(row) -> tuple[str, dict, str]:
     if estado == "saturado_seco":
         return estado, {}, "registrado"
 
+    if estado not in (None, ""):
+        raise AnaliseBloqueada("Estado do vapor desconhecido; confira o registro.")
     # Sem rótulo, P + T identifica superaquecimento quando está claramente acima da saturação.
     if hasattr(row, "t_vapor_c") and not pd.isna(row.t_vapor_c):
         tsat = t_sat_c(float(row.p_vapor_bar_abs))
@@ -70,17 +73,21 @@ def _estado_linha(row) -> tuple[str, dict, str]:
             ["estado do vapor ou título quando aplicável"],
         )
 
-    # Compatibilidade com a fronteira histórica: x=1 é hipótese explícita, nunca medição.
-    return "saturado_seco", {}, "assumido_x_1"
+    if assumir_saturado_seco:
+        return "saturado_seco", {}, "assumido_x_1"
+    raise AnaliseBloqueada("Estado do vapor ausente: informe P/T ou estado e título aplicável.")
 
 
-def fluxo_entalpia_vapor(diario: pd.DataFrame) -> FluxoEntalpiaVapor:
+def fluxo_entalpia_vapor(
+    diario: pd.DataFrame, *, assumir_saturado_seco: bool = False
+) -> FluxoEntalpiaVapor:
     """Fluxo de entalpia no ponto do vapor, sem fingir que isso é o duty da caldeira."""
     obrig = {"vazao_vapor_t_h", "p_vapor_bar_abs"}
     faltam = obrig - set(diario.columns)
     if faltam:
         raise AnaliseBloqueada("Faltam dados para o fluxo de entalpia do vapor.", sorted(faltam))
 
+    _uma_caldeira(diario)
     valores = []
     origens = set()
     for row in diario.itertuples(index=False):
@@ -89,9 +96,12 @@ def fluxo_entalpia_vapor(diario: pd.DataFrame) -> FluxoEntalpiaVapor:
                 continue
             if pd.isna(row.p_vapor_bar_abs):
                 continue
-            estado, kwargs, origem = _estado_linha(row)
+            estado, kwargs, origem = _estado_linha(row, assumir_saturado_seco)
             h = h_vapor_mj_kg(float(row.p_vapor_bar_abs), estado, **kwargs)
-            valores.append(float(row.vazao_vapor_t_h) * 1000 / 3600 * h)
+            valor = float(row.vazao_vapor_t_h) * 1000 / 3600 * h
+            if not isfinite(valor) or valor <= 0:
+                continue
+            valores.append(valor)
             origens.add(origem)
         except (AnaliseBloqueada, ValueError, TypeError):
             continue
@@ -112,21 +122,27 @@ def fluxo_entalpia_vapor(diario: pd.DataFrame) -> FluxoEntalpiaVapor:
         maximo_mw=float(serie.max()),
         hipoteses=tuple(hipoteses),
         nota=(
-            "Fluxo de entalpia no ponto de vapor pela IF97. Sem a condição da água de entrada, "
+            "Média aritmética das leituras válidas do fluxo de entalpia pela IF97; não é média "
+            "ponderada pelo tempo. Sem a condição da água de entrada, "
             "não representa energia útil nem eficiência da caldeira."
         ),
     )
 
 
-def _potencia_vapor_mw(row) -> tuple[float, str]:
-    estado, kwargs, origem = _estado_linha(row)
-    dh = delta_h_mj_kg(
-        float(row.p_vapor_bar_abs),
-        estado,
-        float(row.t_agua_alim_c),
-        **kwargs,
+def _uma_caldeira(diario: pd.DataFrame) -> None:
+    if "caldeira_id" in diario and diario["caldeira_id"].nunique(dropna=False) != 1:
+        raise AnaliseBloqueada("Selecione os registros de uma única caldeira por análise.")
+
+
+def _potencia_vapor_mw(row, assumir_saturado_seco: bool) -> tuple[float, str, str]:
+    estado, kwargs, origem = _estado_linha(row, assumir_saturado_seco)
+    dh = h_vapor_mj_kg(float(row.p_vapor_bar_abs), estado, **kwargs) - h_agua_mj_kg(
+        float(row.p_agua_referencia_bar_abs), float(row.t_agua_alim_c)
     )
-    return float(row.vazao_vapor_t_h) * 1000 / 3600 * dh, origem
+    q = float(row.vazao_vapor_t_h) * 1000 / 3600 * dh
+    if not isfinite(q) or q <= 0:
+        raise AnaliseBloqueada("Potência do vapor precisa ser positiva e finita.")
+    return q, origem, estado
 
 
 def _potencia_combustivel_mw(row) -> float:
@@ -153,26 +169,38 @@ def balanco_por_vazoes(
     *,
     max_gap_factor: float = 3.0,
     cobertura_minima: float = 0.5,
+    assumir_saturado_seco: bool = False,
 ) -> BalancoFluxos:
     """Integra potência útil do vapor e potência do combustível pelo trapézio.
 
-    Não interpola tags ausentes. Intervalos maiores que max_gap_factor × passo mediano são
-    pulados. A eficiência usa somente intervalos em que os dois lados existem simultaneamente.
+    Não interpola tags ausentes. Lacunas maiores que max_gap_factor × quartil inferior dos
+    passos são puladas. Usa intervalos comuns, explicitamente estáveis e sem troca de estado.
+    A pressão da água pertence ao mesmo ponto de sua temperatura; não é herdada do vapor.
     """
     obrig = {
         "instante_observado",
         "vazao_vapor_t_h",
         "p_vapor_bar_abs",
         "t_agua_alim_c",
+        "p_agua_referencia_bar_abs",
+        "regime",
     }
     faltam = obrig - set(diario.columns)
     if faltam:
         raise AnaliseBloqueada("Faltam colunas para o balanço por vazões.", sorted(faltam))
 
+    if not isfinite(max_gap_factor) or max_gap_factor <= 0:
+        raise ValueError("Fator de lacuna precisa ser positivo e finito.")
+    if not isfinite(cobertura_minima) or not 0 < cobertura_minima <= 1:
+        raise ValueError("Cobertura mínima precisa estar entre zero (exclusivo) e um.")
+    _uma_caldeira(diario)
     d = diario.copy()
-    if "regime" in d:
-        d = d[d["regime"].fillna("estavel") != "parada"]
-    d = d.sort_values("instante_observado").drop_duplicates("instante_observado")
+    d["instante_observado"] = pd.to_datetime(d["instante_observado"], errors="coerce", utc=True)
+    if d["instante_observado"].isna().any():
+        raise AnaliseBloqueada("Instantes inválidos: confira os registros antes de integrar.")
+    if d["instante_observado"].duplicated().any():
+        raise AnaliseBloqueada("Instantes duplicados: resolva a duplicidade antes de integrar.")
+    d = d.sort_values("instante_observado")
     if len(d) < 2:
         raise AnaliseBloqueada("São necessárias ao menos duas leituras no tempo.")
 
@@ -190,25 +218,39 @@ def balanco_por_vazoes(
     qf = []
     validos = []
     origens = set()
+    estados = []
+    motivos: dict[str, int] = {}
     for row in d.itertuples(index=False):
         try:
+            if pd.isna(row.regime) or row.regime != "estavel":
+                raise AnaliseBloqueada("Balanço estacionário exige regime explicitamente estável.")
             if pd.isna(row.vazao_vapor_t_h) or float(row.vazao_vapor_t_h) <= 0:
                 raise AnaliseBloqueada("Vazão de vapor ausente ou não positiva.")
             if pd.isna(row.p_vapor_bar_abs) or pd.isna(row.t_agua_alim_c):
                 raise AnaliseBloqueada("Condição do vapor/água ausente.")
-            vapor_mw, origem = _potencia_vapor_mw(row)
+            vapor_mw, origem, estado = _potencia_vapor_mw(row, assumir_saturado_seco)
+            combustivel_mw = _potencia_combustivel_mw(row)
             qv.append(vapor_mw)
-            qf.append(_potencia_combustivel_mw(row))
+            qf.append(combustivel_mw)
             validos.append(True)
+            estados.append(estado)
             origens.add(origem)
-        except (AnaliseBloqueada, ValueError, TypeError):
+        except (AnaliseBloqueada, ValueError, TypeError) as erro:
             qv.append(float("nan"))
             qf.append(float("nan"))
             validos.append(False)
+            estados.append(None)
+            motivo = (
+                erro.motivo
+                if isinstance(erro, AnaliseBloqueada)
+                else "Medição inválida ou ausente."
+            )
+            motivos[motivo] = motivos.get(motivo, 0) + 1
 
     d["qv_mw"] = qv
     d["qf_mw"] = qf
     d["valido_balanco"] = validos
+    d["estado_calculado"] = estados
 
     ev = ef = 0.0
     horas = 0.0
@@ -216,7 +258,12 @@ def balanco_por_vazoes(
     rows = list(d.itertuples(index=False))
     for a, b in pairwise(rows):
         dt_h = (b.instante_observado - a.instante_observado).total_seconds() / 3600
-        if dt_h <= 0 or dt_h > limite_gap or not (a.valido_balanco and b.valido_balanco):
+        if (
+            dt_h <= 0
+            or dt_h > limite_gap
+            or not (a.valido_balanco and b.valido_balanco)
+            or a.estado_calculado != b.estado_calculado
+        ):
             pulados += 1
             continue
         # MW × h × 3,6 = GJ
@@ -244,6 +291,8 @@ def balanco_por_vazoes(
         hipoteses.append("estado superaquecido inferido porque T > Tsat + 1 °C")
     if "assumido_x_1" in origens:
         hipoteses.append("sem estado/T do vapor em parte das leituras: x = 1 assumido")
+    if eta > 1:
+        hipoteses.append("razão acima de 100%: verificar base calorífica, fronteira e medições")
     return BalancoFluxos(
         energia_vapor_gj=ev,
         energia_combustivel_gj=ef,
@@ -255,7 +304,10 @@ def balanco_por_vazoes(
         intervalos_pulados=pulados,
         hipoteses=tuple(hipoteses),
         nota=(
-            "Integração trapezoidal nos intervalos comuns observados; lacunas grandes não são "
-            "interpoladas. A rota ainda não possui orçamento de incerteza instrumental completo."
+            "Estimativa nos intervalos comuns explicitamente estáveis, com interpolação linear "
+            "entre extremos válidos. Não atravessa paradas, transientes ou lacunas grandes e "
+            "não representa os trechos excluídos. A origem/base da potência de combustível "
+            "fornecida deve ser confirmada. Sem orçamento de incerteza instrumental completo."
         ),
+        motivos_exclusao=tuple(f"{n} leitura(s): {m}" for m, n in motivos.items()),
     )

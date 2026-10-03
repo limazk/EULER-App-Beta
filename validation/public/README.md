@@ -36,3 +36,14 @@ Também foi localizado o dataset público **31.5 MW Wonji sugar factory steam dr
 ## Regra
 
 Dados reais públicos podem provar compatibilidade, revelar lacunas e falsificar hipóteses do motor. Eles não substituem o primeiro caso industrial autorizado da EULER.
+
+## Snapshot Wonji preservado para auditoria
+
+O arquivo `wonji_bagasse_snapshot.json` e seus dois testes foram preservados do PR #3,
+sem alterar as tolerâncias. A diferença da entalpia publicada do vapor em relação à IF97
+continua registrada (cerca de 2,1%); o teste verifica a persistência dessa discrepância,
+não comprova concordância nem valida a eficiência. A vazão de bagaço derivada de uma razão
+vapor/bagaço não é tratada como medida. A base absoluta/manométrica da pressão transcrita
+precisa ser confirmada no documento original antes de uso como referência quantitativa.
+Na auditoria atual, a página institucional foi acessível, mas o PDF original não respondeu;
+portanto a transcrição não foi conferida novamente.

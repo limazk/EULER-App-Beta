@@ -408,7 +408,7 @@ DIARIO = Tabela(
             "numero",
             "bar manométrico",
             False,
-            "Pressão da água no mesmo ponto da temperatura t_agua_alim_c, usada como referência na energia da purga.",
+            "Pressão da água no mesmo ponto da temperatura t_agua_alim_c, usada na purga e no balanço por vazões do historiador.",
             "",
             faixa=(0, 250),
         ),

@@ -78,7 +78,7 @@ def mapa_adaptativo(pacote) -> None:
 
     m1, m2, m3, m4 = st.columns(4)
     m1.metric("Sinais reconhecidos", len(perfil.sinais), border=True)
-    m2.metric("Rotas disponíveis", len(perfil.disponiveis), border=True)
+    m2.metric("Rotas com sinais presentes", len(perfil.disponiveis), border=True)
     m3.metric(
         "Rotas parciais",
         sum(r.situacao == "parcial" for r in perfil.rotas),
@@ -89,7 +89,7 @@ def mapa_adaptativo(pacote) -> None:
     disponiveis = [r for r in perfil.rotas if r.situacao == "disponivel"]
     if disponiveis:
         with cartao("rotas-adaptativas"):
-            st.markdown("**Já dá para trabalhar com:**")
+            st.markdown("**Caminhos candidatos — ainda sujeitos à validação dos dados:**")
             for rota in disponiveis:
                 st.markdown(
                     f"- **{rota.nome}** · rota: *{rota.alternativa}*  \n"
@@ -102,11 +102,12 @@ def mapa_adaptativo(pacote) -> None:
         try:
             fluxo = fluxo_entalpia_vapor(diario)
             st.markdown("#### Física já extraída do lado do vapor")
-            a, b = st.columns(2)
+            a, b, c = st.columns(3)
             a.metric(
                 "Fluxo médio de entalpia do vapor", f"{num(fluxo.media_mw, 1)} MW", border=True
             )
             b.metric("Leituras válidas", fluxo.n, border=True)
+            c.metric("Cobertura de leituras", f"{100 * fluxo.cobertura_leituras:.0f}%", border=True)
             st.caption(fluxo.nota)
             if fluxo.hipoteses:
                 st.caption("Hipóteses: " + "; ".join(fluxo.hipoteses) + ".")
@@ -123,10 +124,23 @@ def mapa_adaptativo(pacote) -> None:
             b = balanco_por_vazoes(diario)
             st.markdown("#### Balanço disponível pelo historiador")
             e1, e2, e3 = st.columns(3)
-            e1.metric("Eficiência combustível → vapor", f"{100 * b.eficiencia:.1f}%", border=True)
+            e1.metric(
+                "Conversão combustível → vapor (estimativa)",
+                f"{100 * b.eficiencia:.1f}%",
+                border=True,
+            )
             e2.metric("Cobertura comum", f"{100 * b.cobertura:.0f}%", border=True)
             e3.metric("Intervalos usados", b.intervalos_usados, border=True)
             st.caption(b.nota)
+            if b.intervalos_pulados:
+                st.caption(
+                    f"{b.intervalos_pulados} intervalo(s) excluído(s) por lacuna, condição "
+                    "inválida ou mudança de estado. " + "; ".join(b.motivos_exclusao)
+                )
+            if b.eficiencia > 1:
+                st.warning(
+                    "Resultado acima de 100%: conferir base calorífica, fronteira e medições."
+                )
             if b.hipoteses:
                 st.caption("Hipóteses: " + "; ".join(b.hipoteses) + ".")
         except AnaliseBloqueada as erro:

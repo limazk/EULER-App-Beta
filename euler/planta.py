@@ -83,6 +83,8 @@ ROTULOS = {
     "S": "enxofre",
     "massa_purga_kg": "massa purgada",
     "p_purga_bar_abs": "pressão absoluta da purga",
+    "p_agua_referencia_bar_abs": "pressão da água de referência",
+    "regime": "regime operacional registrado",
     "vazao_agua_alim_t_h": "vazão de água de alimentação",
     "p_agua_eco_bar_abs": "pressão da água no economizador",
     "t_agua_eco_entrada_c": "temperatura da água na entrada do economizador",
@@ -188,7 +190,9 @@ def mapear_planta(pacote: Pacote) -> PerfilPlanta:
     if imp_diario is not None:
         conhecidas = {c.nome for c in TABELAS["diario"].colunas} | set(ALIASES_COLUNAS) | {"linha"}
         nao_mapeados = tuple(
-            c for c in imp_diario.original.columns if c not in conhecidas and not str(c).startswith("_")
+            c
+            for c in imp_diario.original.columns
+            if c not in conhecidas and not str(c).startswith("_")
         )
 
     obs = set(sinais)
@@ -259,6 +263,8 @@ def mapear_planta(pacote: Pacote) -> PerfilPlanta:
                         "vazao_vapor_t_h",
                         "p_vapor_bar_abs",
                         "t_agua_alim_c",
+                        "p_agua_referencia_bar_abs",
+                        "regime",
                         "vazao_combustivel_kg_h",
                         "pci_combustivel_mj_kg",
                     ),
@@ -269,6 +275,8 @@ def mapear_planta(pacote: Pacote) -> PerfilPlanta:
                         "vazao_vapor_t_h",
                         "p_vapor_bar_abs",
                         "t_agua_alim_c",
+                        "p_agua_referencia_bar_abs",
+                        "regime",
                         "potencia_combustivel_mw",
                     ),
                 ),
@@ -317,7 +325,12 @@ def mapear_planta(pacote: Pacote) -> PerfilPlanta:
             (
                 (
                     "massa medida",
-                    ("massa_purga_kg", "p_purga_bar_abs", "t_agua_alim_c"),
+                    (
+                        "massa_purga_kg",
+                        "p_purga_bar_abs",
+                        "p_agua_referencia_bar_abs",
+                        "t_agua_alim_c",
+                    ),
                 ),
             ),
             "Número/duração de abertura não viram massa sem caracterização da válvula.",
