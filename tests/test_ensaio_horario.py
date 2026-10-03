@@ -72,3 +72,46 @@ def test_tela_executa_serie_e_preserva_limites():
     assert not at.exception
     assert any("Registros horários reais" in h.value for h in at.subheader)
     assert any("referência regional" in c.value for c in at.caption)
+    assert [t.label for t in at.tabs] == ["Resultado", "O que verificar", "Fontes e cálculo"]
+    at.selectbox[0].select("B08").run()
+    assert not at.exception
+    assert any("Sem aumento nos períodos" in m.value for m in at.markdown)
+    assert any("não sustenta" in m.value for m in at.info)
+
+
+def test_parecer_separa_desvio_de_causa_e_nao_recomenda_perda_em_reducao():
+    from copy import deepcopy
+
+    from parecer_ensaio import parecer
+
+    r = executar()
+    p = parecer(r["unidades"]["B10"])
+    assert p["status"] == "investigar"
+    assert p["horas"] == 994
+    assert p["fora_faixa"] == 398
+    assert p["perda_confirmada"] is None
+    assert p["economia_recuperavel"] is None
+    assert not p["intervencao_indicada"]
+    assert p["sensibilidade_consistente"]
+    assert parecer(r["unidades"]["B08"])["status"] == "sem_aumento"
+    misto = deepcopy(r["unidades"]["B10"])
+    misto["comparacoes"][1]["delta_gj"] = -1
+    assert parecer(misto)["status"] == "variavel"
+    divergente = deepcopy(r["unidades"]["B10"])
+    divergente["comparacoes"][0]["sensibilidade"][0]["delta_gj"] = -1
+    assert not parecer(divergente)["sensibilidade_consistente"]
+    assert "método" in parecer(divergente)["conclusao"]
+
+
+def test_exportacao_contem_origem_calculo_limites_e_unidade_selecionada():
+    from parecer_ensaio import relatorio_texto
+
+    r = executar()
+    texto = relatorio_texto(r, "B10")
+    assert "B10" in texto
+    assert "85.006,85" in texto
+    assert r["fonte"]["recorte_sha256"] in texto
+    assert r["fonte"]["preco_fonte"] in texto
+    assert "carvão" in texto
+    assert "não apurada" in texto
+    assert "B08" in relatorio_texto(r, "B08")
