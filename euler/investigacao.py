@@ -54,6 +54,7 @@ from euler.incerteza import (
 )
 from euler.indireto import ResultadoPerdaGases, perda_gases
 from euler.io import Pacote
+from euler.oportunidades import priorizar
 from euler.periodos import ResumoPeriodo, resumir_periodo
 from euler.tipos import AnaliseBloqueada, Grandeza
 from euler.vapor import P_ATM_NIVEL_DO_MAR_BAR
@@ -603,6 +604,15 @@ def _complemento(
     return " Explicação compatível com os dados; não é causa comprovada."
 
 
+def _u_efeito(efeito: float | None, c: Comparacao) -> float | None:
+    """U (k = 2) do efeito no consumo pela incerteza da mudança do indicador, em primeira
+    ordem e com erros independentes: |efeito / Δindicador| × U(Δindicador). Não inclui a
+    incerteza do modelo nem das demais entradas (D90)."""
+    if efeito is None or not c.disponivel or not c.delta or c.incerteza_delta is None:
+        return None
+    return abs(efeito / c.delta) * c.incerteza_delta
+
+
 def _hipotese(
     id_: str,
     titulo: str,
@@ -615,6 +625,7 @@ def _hipotese(
     efeito_perda_pp: float | None = None,
     efeito_consumo_pct: float | None = None,
     faixa_consumo_pct: tuple[float, float] | None = None,
+    incerteza_consumo_pct_k2: float | None = None,
 ) -> dict:
     assert status in STATUS
     return {
@@ -629,6 +640,8 @@ def _hipotese(
             "consumo_pct_faixa_patio": None
             if faixa_consumo_pct is None
             else [_simples(x) for x in faixa_consumo_pct],
+            # U (k = 2) do efeito, só pela incerteza da mudança do indicador (D90)
+            "consumo_pct_incerteza_k2": incerteza_consumo_pct_k2,
         },
         "evidencia": evidencia,
         "medicoes": list(medicoes),
@@ -864,6 +877,7 @@ def investigar(
             ("temperatura dos gases",),
             ef_tg,
             por_perda(ef_tg),
+            incerteza_consumo_pct_k2=_u_efeito(por_perda(ef_tg), c_tg),
         )
     )
     st, av = avaliacoes["excesso_ar"]
@@ -894,6 +908,7 @@ def investigar(
             ("O₂ nos gases",),
             ef_o2,
             por_perda(ef_o2),
+            incerteza_consumo_pct_k2=_u_efeito(por_perda(ef_o2), c_o2),
         )
     )
     st, av = avaliacoes["umidade_combustivel"]
@@ -943,6 +958,7 @@ def investigar(
             ef_w_perda,
             ef_w,
             faixa_w,
+            incerteza_consumo_pct_k2=_u_efeito(ef_w, c_w),
         )
     )
     st, av = avaliacoes["condicao_vapor"]
@@ -984,6 +1000,7 @@ def investigar(
             ("pressão do vapor", "temperatura da água de alimentação"),
             None,
             ef_dh,
+            incerteza_consumo_pct_k2=_u_efeito(ef_dh, c_dh),
         )
     )
 
@@ -1104,6 +1121,9 @@ def investigar(
                 porque += (
                     f" O CO subiu ({num(c_co.referencia, 0)} → {num(c_co.comparacao, 0)} ppm)."
                 )
+    u_residuo_consumo = None
+    if st_res == "possivel" and residuo and por_perda(residuo) is not None:
+        u_residuo_consumo = abs(por_perda(residuo) / residuo) * 2 * u_ind
     hipoteses.append(
         _hipotese(
             "perdas_nao_medidas",
@@ -1118,6 +1138,7 @@ def investigar(
             ("balanço direto", "perda nos gases", "purgas"),
             residuo,
             por_perda(residuo) if st_res == "possivel" else None,
+            incerteza_consumo_pct_k2=u_residuo_consumo,
         )
     )
     hipoteses[-1]["orcamento_residuo"] = None if orc_res is None else orc_res.json()
@@ -1661,6 +1682,9 @@ def investigar(
         diagnosticar_investigacao,
         fontes_pacote,
     )
+
+    # D90: prioridade de investigação, sobre as hipóteses e a conta já calculadas
+    resultado["oportunidades"] = priorizar(resultado)
 
     # D88: a referência é avaliada com a série por período entre medições de estoque,
     # usando o consumo específico da referência que o próprio motor calculou

@@ -8,19 +8,11 @@ import streamlit as st
 from componentes import cabecalho, md
 from financeiro import nao_negativo
 
-from euler.capacidades import avaliar
 from euler.formato import num
-from euler.investigacao import investigar
-from euler.periodos import periodos_entre_estoques
 
 
 def dinheiro(v):
     return "Não calculado" if v is None else f"R$ {num(v, 2)}"
-
-
-@st.cache_data(show_spinner="Preparando o resumo financeiro…", max_entries=32)
-def analisar(assinatura, ref, comp, _pacote):
-    return investigar(_pacote, ref, comp)
 
 
 def cartao(rotulo, valor, legenda, classe=""):
@@ -92,6 +84,11 @@ def explicar(j):
         if c["evitavel"]["verificacao"]:
             st.markdown(md(f"**Próxima verificação:** {c['evitavel']['verificacao']}"))
             st.caption(j["proxima_verificacao"]["porque"])
+        st.page_link(
+            "paginas/oportunidades.py",
+            label="Ver as oportunidades em ordem de prioridade",
+            icon=":material/flag:",
+        )
 
     st.markdown("### Por que a conta mudou em relação à referência")
     v = c["variacao"]
@@ -167,23 +164,7 @@ def explicar(j):
 
 
 def mostrar(pacote):
-    j, _ = estado.investigacao_atual()
-    if j is None:
-        caps = {c.id: c for c in avaliar(pacote)}
-        periodos = periodos_entre_estoques(pacote)
-        if caps["comparacao"].habilitada and len(periodos) >= 2:
-            n = len(periodos)
-            meio = max(1, n // 2)
-            escolha = st.session_state.get("periodos_escolhidos")
-            if escolha and escolha["assinatura"] == estado.assinatura():
-                a, b = escolha["ref"], escolha["comp"]
-            else:
-                a, b = (0, meio - 1), (meio, min(n - 1, meio + 1))
-            if max(*a, *b) < n and (a[1] < b[0] or b[1] < a[0]):
-                ref = (periodos[a[0]][0], periodos[a[1]][1])
-                comp = (periodos[b[0]][0], periodos[b[1]][1])
-                j = analisar(estado.assinatura(), ref, comp, pacote)
-                estado.guardar_investigacao(j)
+    j = estado.investigacao_ou_padrao(pacote)
 
     if j:
         p = j["periodos"]

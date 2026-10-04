@@ -124,6 +124,43 @@ def investigacao_atual() -> tuple[dict | None, str]:
     return guardada["json"], ""
 
 
+@st.cache_data(show_spinner="Preparando a análise…", max_entries=32)
+def _analisar(assinatura_dados, ref, comp, _pacote):
+    from euler.investigacao import investigar
+
+    return investigar(_pacote, ref, comp)
+
+
+def investigacao_ou_padrao(pacote: Pacote) -> dict | None:
+    """Investigação guardada destes dados; senão, a comparação padrão (ou a escolhida na tela
+    Investigação): primeira metade dos períodos entre estoques contra os dois seguintes.
+    None quando a comparação não está habilitada."""
+    from euler.capacidades import avaliar
+    from euler.periodos import periodos_entre_estoques
+
+    j, _ = investigacao_atual()
+    if j is not None:
+        return j
+    caps = {c.id: c for c in avaliar(pacote)}
+    periodos = periodos_entre_estoques(pacote)
+    if not caps["comparacao"].habilitada or len(periodos) < 2:
+        return None
+    n = len(periodos)
+    meio = max(1, n // 2)
+    escolha = st.session_state.get("periodos_escolhidos")
+    if escolha and escolha["assinatura"] == assinatura():
+        a, b = escolha["ref"], escolha["comp"]
+    else:
+        a, b = (0, meio - 1), (meio, min(n - 1, meio + 1))
+    if max(*a, *b) >= n or not (a[1] < b[0] or b[1] < a[0]):
+        return None
+    ref = (periodos[a[0]][0], periodos[a[1]][1])
+    comp = (periodos[b[0]][0], periodos[b[1]][1])
+    j = _analisar(assinatura(), ref, comp, pacote)
+    guardar_investigacao(j)
+    return j
+
+
 ALTITUDE_DEMO_M = 1000.0
 
 
