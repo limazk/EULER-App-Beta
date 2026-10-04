@@ -11,8 +11,9 @@ cd softwer-euler
 
 A branch padrão contém a versão integrada. Siga a [instalação](../../README.md#rodar-o-software)
 e use um ambiente `.venv` próprio. Não é necessário ter Codex ou Claude Code para rodar o produto.
-Para atualizar uma cópia sem mudanças locais, use `git pull --ff-only`; preserve eventuais
-alterações próprias antes de atualizar.
+Existe uma única versão: a branch padrão. Trabalhe nela ou em branches curtas que voltam para
+ela; não mantenha versões paralelas. O `ABRIR-EULER.cmd` atualiza a cópia local sozinho, só por
+avanço rápido (D91); manualmente, use `git pull --ff-only` e preserve alterações próprias antes.
 
 ## O que está implementado
 

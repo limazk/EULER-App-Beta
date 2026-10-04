@@ -44,8 +44,9 @@ Abra **http://localhost:8501** e escolha **Ato 1 · a EULER conclui** para perco
 completo, ou **Ato 2** para ver como o software informa que faltam dados.
 
 Na instalação Windows já preparada, use [ABRIR-EULER.cmd](ABRIR-EULER.cmd). O inicializador
-evita servidores duplicados e reconhece mudanças no código instalado; não baixa atualizações
-do GitHub automaticamente.
+evita servidores duplicados e, a cada abertura, traz a versão principal do GitHub quando isso
+é seguro: só avança, nunca descarta alteração local não salva nem commits próprios. A barra
+lateral mostra se a versão foi atualizada ou por que não foi (D91).
 
 ## Mapa do repositório
 

@@ -17,5 +17,6 @@ As ferramentas visuais e de PDF exigem o extra `prints` e Chromium pelo Playwrig
 o vídeo em MP4 depende também de FFmpeg. Consulte o início de cada script para as opções.
 
 `abrir_local.py` é o inicializador Windows usado por `ABRIR-EULER.cmd`. Identifica o servidor,
-evita duplicatas e mantém registros em `.euler-local/`. Não baixa atualizações do GitHub.
+evita duplicatas e mantém registros em `.euler-local/`. Ao abrir, traz a versão principal do
+GitHub só por avanço rápido e só sem risco para alterações locais (D91).
 `previa_modelo.html` é o modelo da prévia gerada.

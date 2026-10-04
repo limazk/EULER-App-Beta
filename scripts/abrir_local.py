@@ -1,7 +1,10 @@
 """Inicializador Windows: uma instalação, identidade do servidor e atualização local.
 
-Não baixa nem substitui código. Uma mudança nos arquivos instalados reinicia somente
-o servidor criado por este inicializador, identificado por PID, criação e executável.
+Ao abrir, traz a versão principal publicada no GitHub, mas só por avanço rápido e só
+quando nada local pode ser perdido (D91). Sem rede, sem git ou com alteração local não
+salva, abre a versão instalada e mostra o motivo. Uma mudança nos arquivos instalados
+reinicia somente o servidor criado por este inicializador, identificado por PID,
+criação e executável.
 """
 
 from __future__ import annotations
@@ -62,6 +65,81 @@ def build_label() -> str:
         ).strip()
     except (OSError, subprocess.SubprocessError):
         return "local"
+
+
+def git(args: list[str], root: Path = ROOT, timeout: int = 30) -> subprocess.CompletedProcess:
+    return subprocess.run(
+        ["git", *args],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+        creationflags=HIDDEN,
+        check=False,
+        env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},  # nunca esperar senha no terminal
+    )
+
+
+def update_from_remote(root: Path = ROOT, remote: str = "origin") -> str:
+    """Atualiza a instalação para a versão principal do GitHub, sem nunca descartar nada.
+
+    Só avança (fast-forward) quando: é um repositório git; não há alteração não salva em
+    arquivo versionado; e os commits locais já estão na versão principal. Se a pasta
+    estiver numa branch antiga cujos commits já estão na principal, passa para a
+    principal. Qualquer outra situação (sem rede, divergência, arquivos que seriam
+    sobrescritos) mantém a versão instalada. Devolve uma frase para a barra lateral.
+    """
+    try:
+        if git(["rev-parse", "--is-inside-work-tree"], root).returncode != 0:
+            return "Versão instalada (pasta sem git: atualização automática indisponível)."
+        if git(["status", "--porcelain", "--untracked-files=no"], root).stdout.strip():
+            return (
+                "Versão instalada: há alterações locais não salvas, então a atualização "
+                "automática não foi aplicada."
+            )
+        ref = git(["ls-remote", "--symref", remote, "HEAD"], root)
+        principal = next(
+            (
+                linha.split()[1].removeprefix("refs/heads/")
+                for linha in ref.stdout.splitlines()
+                if linha.startswith("ref:")
+            ),
+            None,
+        )
+        if ref.returncode != 0 or not principal:
+            return "Versão instalada (sem conexão com o GitHub agora)."
+        if git(["fetch", "--quiet", remote, principal], root).returncode != 0:
+            return "Versão instalada (sem conexão com o GitHub agora)."
+        alvo = f"{remote}/{principal}"
+        antes = git(["rev-parse", "--short", "HEAD"], root).stdout.strip()
+        atual = git(["rev-parse", "--abbrev-ref", "HEAD"], root).stdout.strip()
+        if atual != principal:
+            # só troca de branch quando todos os commits locais já estão na principal
+            if git(["merge-base", "--is-ancestor", "HEAD", alvo], root).returncode != 0:
+                return (
+                    f"Versão instalada: a pasta está na branch {atual}, com commits que não "
+                    "estão na versão principal; nada foi alterado."
+                )
+            existe = git(["rev-parse", "--verify", "--quiet", principal], root).returncode == 0
+            if existe and git(["merge-base", "--is-ancestor", principal, alvo], root).returncode:
+                return (
+                    f"Versão instalada: a branch local {principal} tem commits próprios; "
+                    "nada foi alterado."
+                )
+            troca = ["checkout", principal] if existe else ["checkout", "-b", principal, alvo]
+            if git(troca, root).returncode != 0:
+                return "Versão instalada: a troca para a versão principal não foi possível."
+        if git(["merge", "--ff-only", "--quiet", alvo], root).returncode != 0:
+            return (
+                "Versão instalada: a versão local tem commits próprios que divergem da "
+                "principal; nada foi alterado."
+            )
+        depois = git(["rev-parse", "--short", "HEAD"], root).stdout.strip()
+        if depois == antes:
+            return f"Versão principal em dia ({depois})."
+        return f"Versão principal ({depois}), atualizada a partir de {antes}."
+    except (OSError, subprocess.SubprocessError):
+        return "Versão instalada (atualização automática indisponível neste computador)."
 
 
 def process_identity(pid: int) -> dict | None:
@@ -223,6 +301,7 @@ def serve() -> None:
 
 def launch(open_browser: bool = True) -> dict:
     with startup_lock():
+        situacao = update_from_remote()
         signature = fingerprint()
         state_file = STATE / "server.json"
         try:
@@ -246,7 +325,7 @@ def launch(open_browser: bool = True) -> dict:
             )
         env = os.environ.copy()
         env["EULER_BUILD_ID"] = build_label() + " · " + signature[:8]
-        env["EULER_BUILD_LABEL"] = "Atualização integrada · motor físico e verificações"
+        env["EULER_BUILD_LABEL"] = situacao
         with (
             (STATE / "server.out.log").open("a") as out,
             (STATE / "server.err.log").open("a") as err,
