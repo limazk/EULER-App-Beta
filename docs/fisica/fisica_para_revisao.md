@@ -159,3 +159,19 @@ As funções a seguir ampliam a investigação; as hipóteses continuam pendente
 - **Compatibilidade (D76):** o alias `titulo_vapor` é aceito com aviso; `titulo_vapor_frac` e a origem `registrado` são preservados. Valores conflitantes bloqueiam a importação.
 
 Revisão humana: avaliar eventual método explícito de estimativa para dados parciais e critérios documentais de equivalência entre pontos. Nenhuma dessas alternativas foi presumida aprovada nesta correção.
+
+## E16 · Explicação da conta de combustível (D89, `euler/conta.py`)
+
+Para o período analisado (índice sem marca) contra a referência (índice `ref`), com massa queimada `m` (t, E9), vapor `V` (t), preço médio ponderado dos recebimentos `p` (R$/t) e consumo por tonelada da referência `k_ref = m_ref / V_ref`:
+
+- `e0 = k_ref × V` (produção de vapor do período, mesma intensidade da referência)
+- `e1 = e0 × exp(ef_dh / 100)`, com `ef_dh = 100 ln(Δh / Δh_ref)` (energia por kg de vapor), só quando calculada nos dois períodos
+- `e2 = e1 × exp(ef_w / 100)`, com `ef_w = −100 ln(PCI_u / PCI_u,ref)` + efeito da umidade na perda nos gases (o mesmo da hipótese de umidade), só com umidade e PCI medidos nos dois períodos
+- desvio não explicado `= m − e2` (alvo da investigação; não é desperdício recuperável)
+
+Variação da conta, com fechamento exato: `m·p − m_ref·p_ref = m_ref (p − p_ref) + p [(e0 − m_ref) + (e1 − e0) + (e2 − e1) + (m − e2)]`. Convenção: o preço é avaliado na quantidade da referência e as quantidades ao preço do período, de modo que o desvio em reais é `(observado − esperado ajustado) × preço do período`.
+
+Faixa do desvio: `± U × V`, com `U` = incerteza expandida (k = 2) da diferença de consumo específico, erros de instrumento independentes. Não inclui a incerteza dos ajustes nem do preço. Hipótese central: a mesma eficiência da referência; carga e regime não são ajustados (o baseline por carga, D73, é candidato para isso).
+
+Perguntas: (1) a convenção de decomposição e a ordem produção → condição do vapor → qualidade são adequadas? (2) aplicar o ajuste de qualidade sempre que umidade e PCI forem medidos, mesmo quando a mudança de umidade não é detectável, é aceitável? (3) a incerteza dos ajustes deve ser propagada antes de chamar o desvio de "estabelecido"?
+Revisor: ☐ ☐ ☐ ☐ · Observações:

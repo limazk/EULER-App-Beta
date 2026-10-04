@@ -39,6 +39,7 @@ from math import exp, isnan, log, sqrt
 import pandas as pd
 
 from euler import __version__
+from euler.conta import explicar_conta
 from euler.deteccao import Comparacao, comparar
 from euler.direto import MEDICOES_DIRETO, BalancoDireto, balanco_direto
 from euler.economia import valorizar_diferenca
@@ -1478,6 +1479,38 @@ def investigar(
             ),
         }
 
+    # ------------------------------------------------ explicação da conta (D89)
+    def motivo_bloqueio(chave: str, padrao: str) -> str:
+        b = [r.bloqueios[chave].motivo for r in (ref, comp) if chave in r.bloqueios]
+        return b[0].rstrip(".") if b else padrao
+
+    conta = (
+        explicar_conta(
+            combustivel_ref_t=ref.combustivel_kg.valor / 1000,
+            vapor_ref_t=ref.vapor_t.valor,
+            combustivel_t=comp.combustivel_kg.valor / 1000,
+            vapor_t=comp.vapor_t.valor,
+            preco_ref_brl_t=ref.preco_brl_t,
+            preco_brl_t=comp.preco_brl_t,
+            preco_min_brl_t=comp.preco_brl_t_min,
+            preco_max_brl_t=comp.preco_brl_t_max,
+            preco_ref_brl_gj=ref.preco_brl_gj,
+            preco_brl_gj=comp.preco_brl_gj,
+            horas_ref=ref.horas,
+            horas=comp.horas,
+            incerteza_consumo_t_t=c_cons.incerteza_delta,
+            efeito_condicao_vapor_pct=ef_dh,
+            efeito_qualidade_pct=ef_w,
+            cenarios_qualidade_pct=faixa_w,
+            motivo_qualidade=motivo_bloqueio(
+                "mistura", "umidade e PCI medidos não disponíveis nos dois períodos"
+            ),
+            verificacao=prox["acao"],
+        )
+        if c_cons.disponivel
+        else {"disponivel": False, "motivo": frase_consumo}
+    )
+
     # ------------------------------------------------ sensibilidade ao critério D29
     sensibilidade = []
     for fator in ALTERNATIVAS_D29:
@@ -1608,6 +1641,7 @@ def investigar(
             "resumo": {"frases": resumo, "texto": " ".join(resumo)},
             "valor_em_jogo": valor_em_jogo,
             "valor_em_jogo_motivo": motivo_valor,
+            "explicacao_conta": conta,
             "criterios": {
                 "relevancia_d29": criterio_relevancia,
                 "efeito_minimo_relevante_consumo_pct": lim,

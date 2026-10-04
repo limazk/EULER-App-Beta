@@ -232,6 +232,8 @@ class ResumoPeriodo:
     composicao: dict[str, float] | None = None
     composicao_origem: str | None = None
     preco_brl_t: float | None = None
+    preco_brl_t_min: float | None = None
+    preco_brl_t_max: float | None = None
     preco_brl_gj: float | None = None
     lotes: int = 0
     lotes_sem_umidade: int = 0
@@ -719,6 +721,12 @@ def _mistura(pacote: Pacote, r: ResumoPeriodo) -> None:
             "Nenhum recebimento com massa conhecida neste período.", ["recebimentos pesados"]
         )
         return
+    # preço por tonelada só depende de massa e valor do lote: não espera umidade nem PCI (D89)
+    com_preco = lotes.dropna(subset=["preco_brl"])
+    if len(com_preco):
+        r.preco_brl_t = float(com_preco["preco_brl"].sum() / (com_preco["massa_kg"].sum() / 1000))
+        r.preco_brl_t_min = float(com_preco["preco_brl_t"].min())
+        r.preco_brl_t_max = float(com_preco["preco_brl_t"].max())
     medidos = lotes.dropna(subset=["umidade_bu_frac"])
     r.lotes_sem_umidade = int(len(e.lotes) - len(e.lotes.dropna(subset=["umidade_bu_frac"])))
     r.fracao_massa_sem_umidade = float(1 - medidos["massa_kg"].sum() / lotes["massa_kg"].sum())
@@ -843,9 +851,6 @@ def _mistura(pacote: Pacote, r: ResumoPeriodo) -> None:
     r.umidade_queimada = _cenarios(todos, "umidade_bu_frac", r, w)
     if r.combustivel_kg is not None and r.estoque_inicial_kg is not None:
         r.fracao_estoque = (r.estoque_inicial_kg + r.estoque_final_kg) / r.combustivel_kg.valor
-    com_preco = lotes.dropna(subset=["preco_brl"])
-    if len(com_preco):
-        r.preco_brl_t = float(com_preco["preco_brl"].sum() / (com_preco["massa_kg"].sum() / 1000))
     det_preco = det.dropna(subset=["brl_gj"])
     if len(det_preco):
         r.preco_brl_gj = float(det_preco["preco_brl"].sum() / det_preco["energia_gj"].sum())

@@ -1,4 +1,4 @@
-"""Painel financeiro: compras, consumo valorizado e cenário de recuperação."""
+"""Painel financeiro: explicação da conta de combustível (D89) e compras registradas."""
 
 from html import escape
 
@@ -6,7 +6,7 @@ import estado
 import pandas as pd
 import streamlit as st
 from componentes import cabecalho, md
-from financeiro import nao_negativo, resumo_financeiro, simular_recuperacao
+from financeiro import nao_negativo
 
 from euler.capacidades import avaliar
 from euler.formato import num
@@ -28,6 +28,142 @@ def cartao(rotulo, valor, legenda, classe=""):
         f'<div class="fin-card {classe}"><div class="fin-label">{escape(rotulo)}</div>'
         f'<div class="fin-value">{escape(valor)}</div><p>{escape(legenda)}</p></div>'
     )
+
+
+ESTADOS = {
+    "acima": ("Acima do esperado", "fin-alert"),
+    "abaixo": ("Abaixo do esperado", "fin-total"),
+    "nao_estabelecido": ("Não ficou bem estabelecido", ""),
+    "sem_faixa": ("Faixa não determinada", ""),
+}
+
+
+def dinheiro_sinal(v):
+    return "—" if v is None else ("−" if v < 0 else "") + f"R$ {num(abs(v), 0)}"
+
+
+def toneladas(v):
+    return "—" if v is None else ("−" if v < 0 else "") + f"{num(abs(v), 1)} t"
+
+
+def explicar(j):
+    """Explicação da conta (D89): o motor já calculou; a tela só apresenta."""
+    c = j["explicacao_conta"]
+    d, e = c["desvio"], c["esperado"]
+    dias = {
+        k: (pd.Timestamp(x["fim"]) - pd.Timestamp(x["inicio"])).total_seconds() / 86400
+        for k, x in j["periodos"].items()
+    }
+    rotulo, classe = ESTADOS[d["estado"]]
+    st.markdown(md(f"#### {d['frase']}"))
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        cartao(
+            "Combustível consumido",
+            dinheiro_sinal(c["consumido"]["custo_brl"]),
+            f"{toneladas(c['consumido']['combustivel_t'])} queimadas no período, ao preço médio "
+            "dos recebimentos.",
+            "fin-total",
+        )
+    with c2:
+        cartao(
+            "Esperado nas mesmas condições",
+            dinheiro_sinal(e["custo_brl"]),
+            f"{toneladas(e['combustivel_t'])}: consumo por tonelada de vapor da referência, "
+            "ajustado por: " + ", ".join(e["ajustado_por"]) + ".",
+        )
+    with c3:
+        faixa = d["faixa_brl"]
+        cartao(
+            f"Desvio ainda não explicado · {rotulo.lower()}",
+            dinheiro_sinal(d["custo_brl"]),
+            f"{toneladas(d['combustivel_t'])} ({num(d['pct_do_esperado'], 1)}% do esperado)"
+            + (
+                f". Faixa das medições: {dinheiro_sinal(faixa[0])} a {dinheiro_sinal(faixa[1])}."
+                if faixa
+                else ". Faixa não determinada."
+            ),
+            classe,
+        )
+    with st.container(border=True):
+        st.markdown("**Parcela evitável: não apurada**")
+        motivo = c["evitavel"]["motivo"].removeprefix("Parcela evitável não apurada: ")
+        st.caption(motivo[:1].upper() + motivo[1:])
+        if c["evitavel"]["verificacao"]:
+            st.markdown(md(f"**Próxima verificação:** {c['evitavel']['verificacao']}"))
+            st.caption(j["proxima_verificacao"]["porque"])
+
+    st.markdown("### Por que a conta mudou em relação à referência")
+    v = c["variacao"]
+    if v["disponivel"]:
+        st.caption(
+            md(
+                f"Conta da referência ({num(dias['referencia'], 0)} dias) "
+                f"{dinheiro_sinal(v['custo_referencia_brl'])} → conta do período "
+                f"({num(dias['comparacao'], 0)} dias) {dinheiro_sinal(v['custo_brl'])}: variação "
+                f"de {dinheiro_sinal(v['variacao_brl'])}. As parcelas somam exatamente a variação."
+            )
+        )
+    else:
+        st.caption(v["motivo"])
+    st.dataframe(
+        pd.DataFrame(
+            [
+                {
+                    "Parcela": x["titulo"],
+                    "Pergunta": x["pergunta"],
+                    "Combustível": toneladas(x["combustivel_t"])
+                    if x["separado"] or x["id"] == "preco"
+                    else "no desvio",
+                    "Valor": dinheiro_sinal(x["custo_brl"])
+                    if x["custo_brl"] is not None
+                    else ("no desvio" if not x["separado"] else "—"),
+                }
+                for x in v["componentes"]
+            ]
+        ),
+        hide_index=True,
+        width="stretch",
+    )
+    vj = j.get("valor_em_jogo")
+    if vj and v["disponivel"]:
+        b = {x["id"]: x["custo_brl"] for x in v["componentes"]}
+        st.caption(
+            md(
+                f"Na Investigação, o valor em jogo é {dinheiro_sinal(vj['valor_brl'])}: consumo "
+                "acima da referência para o mesmo vapor. Aqui ele se divide em condição do vapor "
+                f"({dinheiro_sinal(b['condicao_vapor'])}), qualidade do combustível "
+                f"({dinheiro_sinal(b['qualidade'])}) e desvio não explicado "
+                f"({dinheiro_sinal(b['nao_explicado'])})."
+            )
+        )
+    with st.expander("Premissas, faixas e cenários"):
+        for x in v["componentes"]:
+            st.markdown(md(f"**{x['titulo']}:** {x['base']}"))
+        for x in e["nao_ajustado"]:
+            st.write(x)
+        if d["cenarios_preco_brl"]:
+            a, b = d["cenarios_preco_brl"]
+            st.markdown(
+                md(
+                    "Cenários de preço (menor e maior preço por tonelada dos lotes do período): "
+                    f"desvio de {dinheiro_sinal(a)} a {dinheiro_sinal(b)}."
+                )
+            )
+        if d["cenarios_qualidade_brl"]:
+            a, b = d["cenarios_qualidade_brl"]
+            st.markdown(
+                md(
+                    "Cenários do pátio (combustível queimado = recebido ou o mais antigo do "
+                    f"estoque): desvio de {dinheiro_sinal(a)} a {dinheiro_sinal(b)}."
+                )
+            )
+        for x in c["premissas"]:
+            st.caption(md(x))
+        st.caption(
+            "Economia comprovada: ainda não apurada. Depende de intervenção registrada e "
+            "comparação posterior com a referência ajustada."
+        )
 
 
 def mostrar(pacote):
@@ -64,115 +200,10 @@ def mostrar(pacote):
         icon=":material/tune:",
     )
 
-    if j:
-        r = resumo_financeiro(j)
-        valor = r["diferenca_brl"]
-        c1, c2 = st.columns([1, 1])
-        with c1:
-            cartao(
-                "Combustível consumido · estimativa",
-                dinheiro(r["consumido_brl"]),
-                "Consumo do período valorizado ao preço médio dos recebimentos.",
-                "fin-total",
-            )
-        with c2:
-            cartao(
-                "Acima da referência · estimativa",
-                dinheiro(valor),
-                "Diferença de consumo em reais. Parcela recuperável ainda não determinada.",
-                "fin-alert",
-            )
-        if valor is None:
-            st.info(j["valor_em_jogo_motivo"])
-        else:
-            v = j["valor_em_jogo"]
-            st.caption(
-                f"{num(v['combustivel_extra_t'], 1)} t de combustível acima da referência. "
-                + (
-                    f"Incerteza do valor: ± {dinheiro(v['incerteza_brl'])}. "
-                    if v["incerteza_brl"] is not None
-                    else "Incerteza financeira incompleta. "
-                )
-                + "Causa e recuperação precisam de verificação."
-            )
-        left, right = st.columns([1.15, 1])
-        with left, st.container(border=True):
-            st.markdown("#### Para produzir a mesma quantidade")
-            if r["referencia_brl"] is not None and r["consumido_brl"] > 0:
-                for label, value, color in [
-                    ("Ao consumo da referência", r["referencia_brl"], "#7f9ab4"),
-                    ("Ao consumo observado", r["consumido_brl"], "#f4ba79"),
-                ]:
-                    width = 100 * value / r["consumido_brl"]
-                    st.html(
-                        f'<div class="fin-bar-label"><span>{label}</span>'
-                        f'<b>{dinheiro(value)}</b></div><div class="fin-track">'
-                        f'<div style="width:{width}%;background:{color}"></div></div>'
-                    )
-                st.caption(
-                    "Mesmo volume de vapor e mesmo preço do combustível. "
-                    "Comparação descritiva; não isola carga, qualidade ou outras causas."
-                )
-            else:
-                st.caption(
-                    "A comparação em reais aparece quando há dados suficientes "
-                    "e aumento de consumo detectável."
-                )
-            custo = j["o_que_mudou"].get("custo_vapor")
-            if custo:
-                st.markdown(
-                    md(
-                        f"**Combustível por tonelada de vapor:** "
-                        f"{dinheiro(custo['referencia'])} → {dinheiro(custo['comparacao'])}"
-                    )
-                )
-                st.caption("Estimativa em R$/t de vapor; não inclui os demais custos da operação.")
-        with right, st.container(border=True):
-            st.markdown("#### E se recuperarmos parte dessa diferença?")
-            if valor is not None and valor > 0:
-                st.caption("SIMULAÇÃO · escolha sua hipótese; não é uma previsão da EULER.")
-                percentual = st.slider(
-                    "Parcela da diferença que seria recuperada",
-                    0,
-                    100,
-                    0,
-                    step=5,
-                    format="%d%%",
-                    key=f"fin_recuperacao_{estado.assinatura()}_{p['comparacao']['inicio']}_"
-                    f"{p['comparacao']['fim']}_{p['referencia']['inicio']}_{p['referencia']['fim']}",
-                )
-                resultado = simular_recuperacao(valor, percentual)
-                cartao(
-                    "Economia no cenário · mesmo período",
-                    dinheiro(resultado),
-                    f"Se {percentual}% da diferença for recuperada, mantendo produção e preço.",
-                    "fin-scenario",
-                )
-            else:
-                st.caption(
-                    "O simulador fica disponível quando o motor determina "
-                    "uma diferença positiva em reais."
-                )
-            st.markdown("**Economia comprovada: ainda não apurada.**")
-            st.caption("Depende de intervenção registrada e comparação posterior equivalente.")
-
-        with st.container(border=True):
-            st.markdown("#### Próxima verificação para avançar")
-            st.write(j["proxima_verificacao"]["acao"])
-            st.caption(j["proxima_verificacao"]["porque"])
-        with st.expander("De onde vêm os valores"):
-            st.write(
-                "Consumo valorizado = toneladas consumidas × preço médio dos recebimentos. "
-                "Esse preço é uma aproximação do custo do combustível queimado, "
-                "não uma apuração contábil dos estoques. A diferença vem do motor "
-                "de investigação; não somamos possíveis causas nem projetamos um ano."
-            )
-            if j["valor_em_jogo"]:
-                st.write(j["valor_em_jogo"]["base"])
-            st.caption(
-                "A incerteza exibida vem do motor e não inclui incerteza do preço. "
-                "Custos de intervenção não estão descontados do cenário."
-            )
+    if j and (j.get("explicacao_conta") or {}).get("disponivel"):
+        explicar(j)
+    elif j:
+        st.info((j.get("explicacao_conta") or {}).get("motivo") or j["o_que_mudou"]["frase"])
     else:
         st.info(
             "O consumo ainda não pode ser comparado em reais. "
@@ -233,12 +264,6 @@ st.html("""<style>
 .fin-total {background:linear-gradient(130deg,#283944,#20272c);border-color:#45545f}
 .fin-alert {background:linear-gradient(130deg,#3b3023,#292725);border-color:#705431}
 .fin-alert .fin-value {color:#ffd39b}
-.fin-scenario {background:#20312c;border-color:#3c6254;min-height:0}
-.fin-scenario .fin-value {color:#9be5c2;font-size:2rem}
-.fin-bar-label {display:flex;justify-content:space-between;gap:14px;font-size:.86rem;
- color:#d2d7dc;margin:17px 0 9px;flex-wrap:wrap}
-.fin-track {background:#33383b;border-radius:6px;height:21px;overflow:hidden}
-.fin-track div {height:100%;border-radius:6px}
 @media(max-width:640px){.fin-card{padding:20px;min-height:0}.fin-value{font-size:2rem}}
 </style>""")
 pacote = estado.exigir_pacote()
