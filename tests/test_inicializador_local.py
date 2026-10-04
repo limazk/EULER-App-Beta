@@ -143,3 +143,14 @@ def test_sem_git_ou_sem_conexao_abre_a_versao_instalada(repos, tmp_path):
     antes = (usuario / "app.py").read_text(encoding="utf-8")
     assert "sem conexão" in launcher.update_from_remote(usuario)
     assert (usuario / "app.py").read_text(encoding="utf-8") == antes
+
+
+def test_subpasta_nao_atualiza_o_repositorio_pai(repos):
+    usuario, publicar = repos
+    publicar("versao = 2\n")
+    subpasta = usuario / "pasta-sem-repositorio-proprio"
+    subpasta.mkdir()
+    antes = _git(usuario, "rev-parse", "HEAD")
+    assert "sem git" in launcher.update_from_remote(subpasta)
+    assert _git(usuario, "rev-parse", "HEAD") == antes
+    assert (usuario / "app.py").read_text(encoding="utf-8") == "versao = 1\n"

@@ -1,5 +1,6 @@
 """Tela Importar dados: envio dos arquivos e lista de avisos de qualidade (T03, T05)."""
 
+import armazenamento as arm
 import estado
 import streamlit as st
 from componentes import cabecalho, cartao, proximo_passo
@@ -28,7 +29,13 @@ if st.session_state.get("arquivos"):
             icon=":material/restart_alt:",
             on_click=estado.limpar_dados,
         )
-        st.caption("Limpa a análise desta sessão; seus arquivos no computador permanecem intactos.")
+        st.caption("Limpa esta sessão. Arquivos e versões salvas no banco permanecem intactos.")
+
+st.page_link(
+    "paginas/plantas.py",
+    label="Reabrir dados salvos ou cadastrar uma planta",
+    icon=":material/database:",
+)
 
 with st.expander("Como preparar os dados de uma empresa"):
     st.markdown(
@@ -83,6 +90,25 @@ with envio, cartao("arquivos"):
         label_visibility="collapsed",
         key=f"envio_{geracao}",
     )
+    ctx = arm.contexto()
+    salvar_no_banco = False
+    autor_importacao, motivo_importacao = "", ""
+    if ctx:
+        salvar_no_banco = st.checkbox(
+            f"Salvar nova versão em {ctx['planta_nome']}", value=True, key="salvar_importacao_banco"
+        )
+        if salvar_no_banco:
+            autor_importacao = st.text_input(
+                "Responsável pela importação", value=ctx.get("autor", "")
+            )
+            motivo_importacao = st.text_input(
+                "Motivo da nova versão", placeholder="Ex.: novo período ou correção de origem"
+            )
+            st.caption(
+                "Envie o conjunto completo. As versões anteriores serão preservadas; não há união automática de linhas."
+            )
+    else:
+        st.caption("A importação fica na sessão até você salvá-la em Plantas e histórico.")
     with st.container(horizontal=True, gap="small"):
         if st.button("Importar os arquivos enviados", type="primary", disabled=not enviados):
             if len({f.name for f in enviados}) != len(enviados):
@@ -90,9 +116,17 @@ with envio, cartao("arquivos"):
                     "Há arquivos com o mesmo nome. Renomeie antes de importar para não perder registros."
                 )
             else:
-                estado.importar_novos({f.name: f.getvalue() for f in enviados}, altitude)
-                st.success("Arquivos importados. O conjunto anterior foi substituído.")
-                st.rerun()
+                try:
+                    arquivos = {f.name: f.getvalue() for f in enviados}
+                    if salvar_no_banco:
+                        arm.importar_na_planta(
+                            arquivos, altitude, autor=autor_importacao, motivo=motivo_importacao
+                        )
+                    else:
+                        estado.importar_novos(arquivos, altitude)
+                    st.rerun()
+                except arm.ERROS as exc:
+                    st.error(f"Importação não concluída: {exc}. Os dados ativos foram preservados.")
         st.download_button(
             "Baixar a planilha modelo (.xlsx)",
             ARQUIVO_PLANILHA.read_bytes(),

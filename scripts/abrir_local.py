@@ -90,7 +90,9 @@ def update_from_remote(root: Path = ROOT, remote: str = "origin") -> str:
     sobrescritos) mantém a versão instalada. Devolve uma frase para a barra lateral.
     """
     try:
-        if git(["rev-parse", "--is-inside-work-tree"], root).returncode != 0:
+        topo = git(["rev-parse", "--show-toplevel"], root)
+        # Git procura também em diretórios ancestrais; só atualizamos a instalação pedida.
+        if topo.returncode != 0 or Path(topo.stdout.strip()).resolve() != root.resolve():
             return "Versão instalada (pasta sem git: atualização automática indisponível)."
         if git(["status", "--porcelain", "--untracked-files=no"], root).stdout.strip():
             return (

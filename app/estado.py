@@ -34,6 +34,8 @@ def ler_pasta(pasta: Path) -> dict[str, bytes]:
 
 def definir_arquivos(arquivos: dict[str, bytes], rotulo: str, sinteticos: bool = False) -> None:
     """Troca os dados da sessão. `sinteticos`: exemplos do próprio projeto (marcados como tal)."""
+    for chave in ("persistencia", "persistencia_erro", "persistencia_aviso", "saude_incerteza"):
+        st.session_state.pop(chave, None)
     st.session_state["arquivos"] = tuple(sorted(arquivos.items()))
     st.session_state["rotulo_dados"] = rotulo
     st.session_state["dados_sinteticos"] = sinteticos
@@ -63,6 +65,9 @@ def limpar_dados() -> None:
             "periodo_ref",
             "periodo_comp",
             "saude_incerteza",
+            "persistencia",
+            "persistencia_erro",
+            "persistencia_aviso",
         ) or chave.startswith(("fin_recuperacao_", "envio_", "altitude_envio_")):
             st.session_state.pop(chave, None)
     st.session_state["importacao_geracao"] = st.session_state.get("importacao_geracao", 0) + 1
@@ -91,10 +96,12 @@ def assinatura() -> str | None:
     if not arquivos:
         return None
     h = hashlib.sha256(repr(st.session_state.get("altitude_m")).encode())
+    ctx = st.session_state.get("persistencia", {})
+    h.update(repr((ctx.get("planta_id"), ctx.get("importacao_id"))).encode())
     # Uma edição no motor também invalida os resultados guardados da sessão.
     for caminho in sorted((RAIZ / "euler").rglob("*.py")):
         h.update(caminho.relative_to(RAIZ).as_posix().encode())
-        h.update(caminho.read_bytes())
+        h.update(caminho.read_bytes().replace(b"\r\n", b"\n"))
     for nome, dados in arquivos:
         h.update(nome.encode())
         h.update(dados)
@@ -109,6 +116,9 @@ def esquecer_resultados() -> None:
 
 def guardar_investigacao(j: dict) -> None:
     st.session_state["investigacao"] = {"assinatura": assinatura(), "json": j}
+    from armazenamento import guardar_analise
+
+    guardar_analise(j)
 
 
 def investigacao_atual() -> tuple[dict | None, str]:

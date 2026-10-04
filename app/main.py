@@ -34,6 +34,7 @@ paginas = {
         st.Page("paginas/relatorio.py", title="6. Relatório", icon=":material/description:"),
     ],
     "Gestão": [
+        st.Page("paginas/plantas.py", title="Plantas e histórico", icon=":material/database:"),
         st.Page("paginas/financeiro.py", title="Financeiro", icon=":material/payments:"),
         st.Page("paginas/oportunidades.py", title="Oportunidades", icon=":material/flag:"),
     ],
@@ -61,6 +62,17 @@ elif estado.dados_sinteticos():
 else:
     situacao_dados = "dados enviados em uso · origem conforme arquivos"
 st.sidebar.caption(f"EULER · protótipo v{euler.__version__} · {situacao_dados}")
+if st.session_state.get("arquivos"):
+    import armazenamento
+
+    st.sidebar.caption(armazenamento.situacao())
+    st.sidebar.page_link(
+        "paginas/plantas.py", label="Salvar ou reabrir dados", icon=":material/database:"
+    )
+if st.session_state.get("persistencia_erro"):
+    st.warning(st.session_state["persistencia_erro"])
+if st.session_state.get("persistencia_aviso"):
+    st.info(st.session_state["persistencia_aviso"])
 if st.session_state.get("arquivos"):
     st.sidebar.page_link(
         "paginas/importar.py", label="Trocar ou limpar dados", icon=":material/folder_open:"

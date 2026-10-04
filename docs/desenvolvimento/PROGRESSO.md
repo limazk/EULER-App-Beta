@@ -268,3 +268,13 @@ Pedido do Adryan: manter só uma versão do software, sempre atualizada (D91).
 
 - **Branches antigas conferidas, prontas para apagar.** Das 13, 7 não tinham nada fora da principal; as outras 6 tinham sido mescladas por PR com squash (#1, #2, #10), substituídas (#3 pelo #11, com o #9) ou integradas sem PR (`round2-reconciled`: todas as funções presentes na principal). Os dois únicos arquivos "ausentes" eram documentos movidos para `docs/historico/`. O histórico segue nos PRs do GitHub. A remoção foi bloqueada pela permissão do ambiente desta sessão: fica para o Adryan fazer em GitHub → Branches (ou autorizar a sessão).
 - **Inicializador se atualiza.** `ABRIR-EULER.cmd` busca a versão principal a cada abertura, só por avanço rápido, e nunca descarta trabalho local (alteração não salva, commits próprios). A barra lateral mostra "Versão principal em dia", "atualizada a partir de…" ou o motivo de não ter atualizado. 5 testes novos com repositórios git reais (atualiza; preserva edição local; preserva commit divergente; troca de branch antiga integrada; sem git ou sem rede).
+
+
+## Persistência local — 04/10/2026
+
+- Integrada a principal do Claude até `e522b03` antes das alterações. Não havia banco publicado.
+- SQLite por planta fora do Git, importações originais imutáveis, revisões com autoria/motivo, integridade, transações e backup/restauração.
+- Nova página **Plantas e histórico**; importação como nova versão na planta ativa; investigações e períodos arquivados automaticamente depois de salvar o conjunto.
+- Sessões novas reabrem os dados. Trocar planta, altitude ou motor impede reutilizar resultado incompatível. Carregar exemplos e limpar dados desvincula a sessão sem apagar o banco.
+- Entrega, uso, API, validação e limites: [persistencia_local_2026-10-04.md](persistencia_local_2026-10-04.md).
+- Ainda faltam perfis de colunas, diferenças por célula, conciliação incremental, referência aprovada independente, entidades de intervenção/fechamento e autenticação multiempresa. Nenhuma equação ou golden foi alterado.

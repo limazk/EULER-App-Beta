@@ -7,6 +7,11 @@ dist/
 .pytest_cache/
 .ruff_cache/
 .euler-local/
+# Bancos e exportações locais nunca pertencem ao repositório.
+*.sqlite
+*.sqlite-*
+euler_backup_*.json
+euler_analises_*.json
 demo/video/*.webm
 demo/video/_gravando/
 demo/previa/
