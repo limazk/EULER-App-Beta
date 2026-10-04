@@ -23,6 +23,7 @@ aplicar_estilo()
 paginas = {
     "": [st.Page("paginas/inicio.py", title="Início", icon=":material/home:", default=True)],
     "Investigar": [
+        st.Page("paginas/diagnostico.py", title="Diagnóstico EULER", icon=":material/fact_check:"),
         st.Page("paginas/importar.py", title="1. Importar dados", icon=":material/upload_file:"),
         st.Page("paginas/saude.py", title="2. Saúde da caldeira", icon=":material/monitor_heart:"),
         st.Page("paginas/limites.py", title="3. Dados e limites", icon=":material/rule:"),

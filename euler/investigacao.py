@@ -379,7 +379,9 @@ def _resumo(
         h for h in hipoteses if h["status"] == "descartada" and h["id"] != "perdas_nao_medidas"
     ]
     descartado = (
-        f"; descartado: {_lista(_curto(h['titulo']) for h in descartadas)}" if descartadas else ""
+        f"; enfraquecido nestes dados: {_lista(_curto(h['titulo']) for h in descartadas)}"
+        if descartadas
+        else ""
     )
     if not abstem and sustentadas:
         frases.append(
@@ -505,12 +507,12 @@ def _texto_mudanca(
     variacao = f"{f(c.referencia)} → {f(c.comparacao)}"
     if c.detectabilidade == "nao" and c.faltam:
         return (
-            f"{inicio} ficou estável ({variacao}): a diferença cabe até na parte conhecida da "
+            f"{inicio} não teve mudança detectável ({variacao}): a diferença cabe até na parte conhecida da "
             f"incerteza (falta cadastrar a {_lista(c.faltam)})."
         )
     if c.detectabilidade == "nao":
         return (
-            f"{inicio} ficou estável ({variacao}): a diferença está dentro da incerteza "
+            f"{inicio} não teve mudança detectável ({variacao}): a diferença está dentro da incerteza "
             f"(±{fu(c.incerteza_delta_correlacionada)})."
         )
     if c.detectabilidade == "condicional" and c.faltam:
@@ -1411,7 +1413,7 @@ def investigar(
         prox = {
             "acao": "Manter os registros e repetir a comparação com mais semanas de dados.",
             "separa": [],
-            "porque": "Com mais dados, a incerteza diminui e mudanças menores ficam visíveis.",
+            "porque": "Mais leituras podem esclarecer a variabilidade; deriva e erros sistemáticos exigem verificar os instrumentos e não desaparecem pela repetição.",
         }
     if opostas:
         prox["porque"] += " Verifique também: " + " ".join(h["verificacao"] for h in opostas)
@@ -1501,6 +1503,7 @@ def investigar(
                 "metodo": b.metodo_energia_util,
                 **(_grandeza_json(b.energia_util_gj) or {}),
             },
+            "energia_combustivel": _grandeza_json(b.energia_combustivel_gj),
             "combustivel_kg": _grandeza_json(r.combustivel_kg),
             "fracao_estoque": r.fracao_estoque,
             "umidade_recebida": _grandeza_json(r.umidade_mistura),
@@ -1569,7 +1572,7 @@ def investigar(
     caldeira = (
         None if diario is None or diario.empty else str(diario["caldeira_id"].dropna().iloc[0])
     )
-    return _limpar(
+    resultado = _limpar(
         {
             "versao_euler": __version__,
             "formato": "investigacao/0.2 (proposta D28, revisada na Fase R)",
@@ -1614,3 +1617,9 @@ def investigar(
             },
         }
     )
+    from euler.evidencia_operacional import diagnosticar_investigacao, fontes_pacote
+
+    resultado["diagnostico_evidencias"] = diagnosticar_investigacao(
+        resultado, fontes_pacote(pacote)
+    )
+    return resultado

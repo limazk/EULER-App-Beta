@@ -5,6 +5,7 @@ import json
 import pandas as pd
 import streamlit as st
 from blocos.robustez_publica import renderizar as renderizar_robustez
+from diagnostico_publico import diagnosticos
 from ensaio_horario import DADOS, executar
 from parecer_ensaio import INVESTIGACOES, parecer, relatorio_texto
 
@@ -199,14 +200,18 @@ def renderizar():
     )
     unidade = st.selectbox("Caldeira do conjunto público", ["B10", "B08", "B07", "B06"])
     u = r["unidades"][unidade]
-    p = parecer(u)
+    ds = diagnosticos(r, unidade)
+    p = parecer(u, ds)
     with st.container(border=True):
         st.markdown(f"### {unidade} · {p['titulo']}")
         st.write(p["conclusao"])
+        st.page_link(
+            "paginas/diagnostico.py", label="Abrir Diagnóstico EULER", icon=":material/fact_check:"
+        )
     resultado, operador, evidencias = st.tabs(["Resultado", "O que verificar", "Fontes e cálculo"])
     with resultado:
         _resumo(u, p)
-        renderizar_robustez(unidade)
+        renderizar_robustez(unidade, ds)
     with operador:
         _operador(p)
     with evidencias:

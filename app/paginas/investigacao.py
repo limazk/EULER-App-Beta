@@ -251,7 +251,7 @@ def _numeros_principais(j) -> None:
         )
         partes = [
             plural(contagem["possivel"] + contagem["nao_avaliavel"], "em aberto", "em aberto"),
-            plural(contagem["descartada"], "descartada", "descartadas"),
+            plural(contagem["descartada"], "enfraquecida", "enfraquecidas"),
         ]
         if contagem["oposta"]:
             partes.append(
@@ -276,6 +276,10 @@ def mostrar(pacote) -> None:
 
     j = _investigar(estado.assinatura(), ref, comp, pacote)
     estado.guardar_investigacao(j)
+    from blocos.diagnostico import renderizar as renderizar_diagnostico
+
+    renderizar_diagnostico(j["diagnostico_evidencias"], completo=False)
+    st.page_link("paginas/diagnostico.py", label="Ver diagnóstico completo e rastreabilidade")
 
     # ---------------------------------------------------------------- resultado em resumo
     secao("Resultado")
@@ -340,7 +344,7 @@ def mostrar(pacote) -> None:
         )
         descartadas = [h for h in hips if h["status"] == "descartada"]
         if descartadas:
-            with st.expander(f"O que foi descartado e por quê ({len(descartadas)})"):
+            with st.expander(f"Hipóteses enfraquecidas e por quê ({len(descartadas)})"):
                 _hipoteses(descartadas, "")
 
     with aba3:

@@ -9,7 +9,7 @@ from robustez_ensaio import carregar_auditoria
 from euler.formato import num
 
 
-def renderizar(unidade: str):
+def renderizar(unidade: str, diagnosticos: list[dict]):
     r = carregar_auditoria()
     st.markdown("**O resultado resiste a outras formas de comparar?**")
     if r is None:
@@ -18,30 +18,12 @@ def renderizar(unidade: str):
         )
         return
     u = r["unidades"][unidade]
-    for col, m in zip(st.columns(2), u["meses"], strict=True):
-        faixas = m["reamostragem"]
-        completas = all(b["validas"] == r["repeticoes"] for b in faixas)
-        positivo = completas and all(b["quantil_025_pct"] > 0 for b in faixas)
-        negativo = completas and all(b["quantil_975_pct"] < 0 for b in faixas)
-        titulo = (
-            "Aumento persiste nas faixas testadas"
-            if positivo
-            else ("Redução persiste nas faixas testadas" if negativo else "Sinal menos conclusivo")
-        )
+    for col, m, d in zip(st.columns(2), u["meses"], diagnosticos, strict=True):
+        evid = d["dimensoes"]["robustez_estatistica"]
+        titulo = evid["conclusao"]
         with col.container(border=True):
             st.markdown(f"**{'Fevereiro' if m['mes'].endswith('02') else 'Março'} · {titulo}**")
-            st.write(
-                "Repetimos a comparação reutilizando blocos dos dias observados. "
-                + (
-                    "As três faixas ficaram acima de zero."
-                    if positivo
-                    else "As três faixas ficaram abaixo de zero."
-                    if negativo
-                    else "Parte das repetições não permite cálculo; não há faixa completa."
-                    if not completas
-                    else "Uma ou mais faixas incluem zero: o aumento não persiste em todas elas."
-                )
-            )
+            st.write(" ".join(evid["motivos"]))
     st.caption(
         "2.000 repetições por tamanho de bloco: 1, 3 e 7 dias. Faixas de sensibilidade, "
         "não probabilidade de causa nem incerteza dos instrumentos. Estudo retrospectivo."

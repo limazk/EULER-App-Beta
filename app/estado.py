@@ -91,6 +91,10 @@ def assinatura() -> str | None:
     if not arquivos:
         return None
     h = hashlib.sha256(repr(st.session_state.get("altitude_m")).encode())
+    # Uma edição no motor também invalida os resultados guardados da sessão.
+    for caminho in sorted((RAIZ / "euler").rglob("*.py")):
+        h.update(caminho.relative_to(RAIZ).as_posix().encode())
+        h.update(caminho.read_bytes())
     for nome, dados in arquivos:
         h.update(nome.encode())
         h.update(dados)

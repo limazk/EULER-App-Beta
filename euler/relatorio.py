@@ -39,7 +39,7 @@ ROTULO_STATUS = {
     "sustentada": "Explicação compatível com os dados (não comprovada)",
     "oposta": "Mudou no sentido contrário (compensou parte da mudança)",
     "possivel": "Continua possível",
-    "descartada": "Descartada pelos dados",
+    "descartada": "Enfraquecida nestes dados",
     "nao_avaliavel": "Não dá para avaliar com os dados atuais",
 }
 
@@ -116,7 +116,7 @@ def _valor(v: float | None, unidade: str) -> str:
 ROTULO_DETECCAO = {
     "sim": "sim",
     "condicional": "só se o erro do mesmo instrumento se repetir",
-    "nao": "não (variação normal)",
+    "nao": "não (diferença dentro da incerteza)",
     None: "sem incerteza para dizer",
 }
 """Os quatro estados da detecção (D37, A3); 'condicional' e 'sem incerteza' são diferentes."""
@@ -219,7 +219,7 @@ def gerar_html(investigacao: dict, gerado_em: datetime | None = None) -> str:
     )
     if descartadas:
         bloco2 += (
-            "<p><strong>Também verificamos e descartamos:</strong></p><ul>"
+            "<p><strong>Hipóteses enfraquecidas nestes dados:</strong></p><ul>"
             + "".join(
                 f"<li><strong>{_e(h['titulo'])}.</strong> {_e(h['porque'])}</li>"
                 for h in descartadas
@@ -255,6 +255,19 @@ def gerar_html(investigacao: dict, gerado_em: datetime | None = None) -> str:
     )
     classe = "abstencao" if conclusao["abstencao"] else "ok"
     caldeira = j.get("caldeira_id") or "caldeira"
+    evidencia_html = ""
+    if d := j.get("diagnostico_evidencias"):
+        from euler.evidencias import ROTULOS
+
+        itens = "".join(
+            f"<li><strong>{_e(ROTULOS[k])}: {_e(v['nivel'])}</strong>. {_e(' '.join(v['motivos']))}</li>"
+            for k, v in d["dimensoes"].items()
+        )
+        evidencia_html = (
+            f"<section><h2>Diagnóstico da evidência</h2><p>{_e(d['conclusao'])}</p>"
+            f"<ul>{itens}</ul><p>Causa confirmada: não. Economia verificada: não apurada.</p>"
+            f"<p>{_e(d['analise_id'])}<br>SHA-256: {_e(d['resultado_sha256'])}</p></section>"
+        )
     return f"""<!doctype html>
 <html lang="pt-BR">
 <head>
@@ -275,6 +288,7 @@ def gerar_html(investigacao: dict, gerado_em: datetime | None = None) -> str:
 </header>
 <p class="pergunta">{_e(PERGUNTA_CENTRAL)}</p>
 <div class="conclusao {classe}">{resumo}</div>
+{evidencia_html}
 {secoes}
 <footer>
   <p><strong>{_e(RODAPE_SEGURANCA)}</strong></p>

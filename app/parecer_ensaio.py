@@ -39,7 +39,7 @@ INVESTIGACOES = [
 ]
 
 
-def parecer(unidade: dict) -> dict:
+def parecer(unidade: dict, diagnosticos: list[dict] | None = None) -> dict:
     """Resume sinais e cobertura; consistência descritiva não confirma detectabilidade.
 
     Valores em GJ e USD, restritos às horas comparáveis do ensaio. Nenhum limiar
@@ -73,6 +73,16 @@ def parecer(unidade: dict) -> dict:
         conclusao = (
             "Não há aumento persistente nos dois meses. Examine cada período e sua cobertura."
         )
+    if diagnosticos:
+        conclusao = " ".join(f"{d['periodo']}: {d['conclusao']}" for d in diagnosticos)
+        if not sensivel and positivos == len(meses):
+            conclusao += " Há dependência do método na comparação por faixas."
+        if any(
+            d["dimensoes"]["robustez_estatistica"].get("sinal") == "aumento" for d in diagnosticos
+        ):
+            status, titulo = "investigar", "Investigar aumento: evidência varia por período"
+        elif positivos:
+            status, titulo = "variavel", "Desvio observado; evidência ainda limitada"
     return {
         "status": status,
         "titulo": titulo,
@@ -86,13 +96,19 @@ def parecer(unidade: dict) -> dict:
         "economia_recuperavel": None,
         "intervencao_indicada": False,
         "verificacoes": VERIFICACOES,
+        "diagnosticos": diagnosticos or [],
     }
 
 
 def relatorio_texto(resultado: dict, unidade: str) -> str:
     """Memória legível e exportável: mesmos números, fontes e limites da tela."""
     u, f = resultado["unidades"][unidade], resultado["fonte"]
-    p = parecer(u)
+    from diagnostico_publico import diagnosticos
+
+    from euler.relatorio_evidencias import texto_diagnostico
+
+    ds = diagnosticos(resultado, unidade)
+    p = parecer(u, ds)
     linhas = [
         f"# EULER — ensaio público · {unidade}",
         f"{f['instalacao']} · janeiro a março de 2023 · análise retrospectiva exploratória",
@@ -170,4 +186,5 @@ def relatorio_texto(resultado: dict, unidade: str) -> str:
         f["calor_fonte"],
         f"SHA-256 do recorte: {f['recorte_sha256']}",
     ]
+    linhas += [texto_diagnostico(d) for d in ds]
     return "\n\n".join(linhas)

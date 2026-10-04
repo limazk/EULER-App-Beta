@@ -16,7 +16,7 @@ STATUS = {
     "sustentada": ("Compatível com os dados (não comprovada)", "blue", ":material/check_circle:"),
     "oposta": ("Mudou no sentido contrário (compensou parte)", "violet", ":material/swap_vert:"),
     "possivel": ("Continua possível", "orange", ":material/help:"),
-    "descartada": ("Descartada pelos dados", "gray", ":material/cancel:"),
+    "descartada": ("Enfraquecida nestes dados", "gray", ":material/cancel:"),
     "nao_avaliavel": ("Não dá para avaliar", "gray", ":material/block:"),
 }
 
@@ -41,7 +41,7 @@ def partes_do_selo(c) -> tuple[str, str, str] | None:
     if c["detectabilidade"] == "condicional":
         return cor, curto, texto
     if c["detectabilidade"] == "nao":
-        return cor, curto, "variação normal"
+        return cor, curto, "diferença dentro da incerteza"
     return cor, curto, ""
 
 
