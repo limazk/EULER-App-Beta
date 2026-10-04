@@ -99,6 +99,8 @@ def explicar_conta(
     incerteza dos ajustes. Estado "acima"/"abaixo" só quando a faixa exclui zero em todos
     os cenários do pátio; senão "nao_estabelecido". Sem U: "sem_faixa".
     """
+    # entradas guardadas no resultado: permitem recalcular com outra política de preço (D93)
+    entradas = {k: list(v) if isinstance(v, tuple) else v for k, v in locals().items()}
     m_r, v_r = _f(combustivel_ref_t), _f(vapor_ref_t)
     m, v = _f(combustivel_t), _f(vapor_t)
     p_r, p = _nao_negativo(preco_ref_brl_t), _nao_negativo(preco_brl_t)
@@ -109,6 +111,7 @@ def explicar_conta(
                 "Combustível queimado ou vapor não conhecidos nos dois períodos: o consumo "
                 "esperado não pode ser calculado."
             ),
+            "entradas": entradas,
         }
     k_r = m_r / v_r
     e0 = k_r * v
@@ -219,6 +222,7 @@ def explicar_conta(
     return {
         "disponivel": True,
         "motivo": None,
+        "entradas": entradas,
         "moeda": "BRL",
         "consumido": {"combustivel_t": m, "preco_brl_t": p, "custo_brl": custo(m)},
         "esperado": {
