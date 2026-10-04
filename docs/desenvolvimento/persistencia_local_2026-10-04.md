@@ -1,5 +1,8 @@
 # Persistência local — entrega e passagem para o Claude
 
+> Registro histórico da primeira entrega. Para a conciliação com `6e5dad9` e o banco
+> único atual, consulte [Banco unificado](unificacao_banco_2026-10-04.md).
+
 Data: 04/10/2026. Base integrada: `e522b03`, na branch principal `claude/new-session-xytynj`.
 
 ## O que foi encontrado

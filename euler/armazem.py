@@ -28,7 +28,6 @@ import csv
 import hashlib
 import io
 import json
-import os
 import re
 import sqlite3
 import unicodedata
@@ -45,13 +44,15 @@ from euler.io.esquemas import TABELAS
 from euler.io.leitura import Aviso
 from euler.io.pacote import fontes_de_arquivos, importar_pacote
 
-ESQUEMA_VERSAO = 1
+ESQUEMA_VERSAO = 2
 RAIZ_CODIGO = Path(__file__).resolve().parents[1]
 
 
 def raiz_padrao() -> Path:
-    """Pasta dos dados: EULER_DADOS ou ~/EULER-dados (fora do repositório)."""
-    return Path(os.environ.get("EULER_DADOS") or Path.home() / "EULER-dados")
+    """Mesma raiz da biblioteca de arquivos e análises."""
+    from euler.persistencia import raiz_padrao as raiz_unica
+
+    return raiz_unica()
 
 
 CLASSES = {
@@ -199,6 +200,8 @@ def criar_planta(
     e não podem ficar dentro da pasta do código (repositório)."""
     if classe not in CLASSES:
         raise ErroArmazem(f"Classe de dados desconhecida: {classe}.")
+    from euler.persistencia import Repositorio
+
     raiz = Path(raiz or raiz_padrao())
     if classe == "cliente_autorizado":
         if not (autorizacao or "").strip():
@@ -210,41 +213,34 @@ def criar_planta(
             )
     base = _slug(nome)
     planta_id, n = base, 2
-    while _arquivo_planta(raiz, planta_id).exists():
+    repo = Repositorio(raiz)
+    while repo._caminho(planta_id).exists():
         planta_id, n = f"{base}-{n}", n + 1
-    arquivo = _arquivo_planta(raiz, planta_id)
-    arquivo.parent.mkdir(parents=True, exist_ok=True)
-    a = Armazem(arquivo)
+    repo._criar(nome, classe=classe, autorizacao=autorizacao, planta_id=planta_id, pasta=True)
+    a = repo.armazem(planta_id)
     with a._transacao() as cur:
-        for chave, valor in {
-            "planta_id": planta_id,
-            "nome": nome,
-            "classe": classe,
-            "autorizacao": autorizacao or "",
-            "criada_em": agora_iso(),
-            "revisao": "0",
-        }.items():
-            cur.execute("INSERT INTO meta VALUES (?, ?)", (chave, valor))
         a._evento(cur, None, "planta", planta_id, "criada", autor, {"classe": classe})
     return a
 
 
 def listar_plantas(raiz: Path | None = None) -> list[dict]:
-    raiz = Path(raiz or raiz_padrao())
+    from euler.persistencia import Repositorio
+
+    repo = Repositorio(raiz)
     plantas = []
-    for arquivo in sorted(raiz.glob("*/euler.sqlite")):
+    for planta in repo.listar_plantas():
+        a = repo.armazem(planta["id"])
         try:
-            plantas.append({**Armazem(arquivo).info, "arquivo": str(arquivo)})
-        except (sqlite3.Error, ErroArmazem):
-            continue
+            plantas.append({**a.info, "arquivo": str(a.arquivo)})
+        finally:
+            a.fechar()
     return plantas
 
 
 def abrir_planta(planta_id: str, raiz: Path | None = None) -> Armazem:
-    arquivo = _arquivo_planta(Path(raiz or raiz_padrao()), planta_id)
-    if not arquivo.exists():
-        raise ErroArmazem(f"Planta não encontrada: {planta_id}.")
-    return Armazem(arquivo)
+    from euler.persistencia import Repositorio
+
+    return Repositorio(raiz).armazem(planta_id)
 
 
 def restaurar_copia(
@@ -252,18 +248,28 @@ def restaurar_copia(
 ) -> Armazem:
     """Restaura uma cópia de segurança. Se a planta existe, só substitui com
     `substituir=True`, e antes guarda uma cópia da versão atual."""
+    from euler.persistencia import Repositorio, _planta_id
+
     origem = Armazem(Path(arquivo), somente_leitura=True)
     info = origem.info
     origem.fechar()
     raiz = Path(raiz or raiz_padrao())
-    destino = _arquivo_planta(raiz, info["planta_id"])
+    repo = Repositorio(raiz)
+    _planta_id(info["planta_id"])
+    destino = repo._caminho(info["planta_id"])
+    if not destino.exists():
+        destino = _arquivo_planta(repo.raiz, info["planta_id"])
     if destino.exists():
         if not substituir:
             raise ErroArmazem(
                 f"A planta {info['planta_id']} já existe. Confirme a substituição; a versão "
                 "atual será guardada como cópia antes."
             )
-        Armazem(destino).copia_seguranca(destino.parent / "copias")
+        existente = Armazem(destino)
+        try:
+            existente.copia_seguranca(destino.parent / "copias")
+        finally:
+            existente.fechar()
     destino.parent.mkdir(parents=True, exist_ok=True)
     src = sqlite3.connect(str(arquivo))
     dst = sqlite3.connect(str(destino))
@@ -395,6 +401,10 @@ class Previa:
     linhas: list[LinhaPrevia]
     avisos: list[Aviso]
     tabelas_bloqueadas: dict[str, list[str]]
+    planta_id: str
+    revisao: int
+    originais: dict[str, bytes]
+    config_sha: str
 
     def contagem(self) -> dict[str, dict[str, int]]:
         out: dict[str, dict[str, int]] = {}
@@ -422,17 +432,22 @@ class Armazem:
     """Arquivo de uma planta. Todas as operações são transacionais."""
 
     def __init__(self, arquivo: Path, somente_leitura: bool = False):
-        self.arquivo = Path(arquivo)
-        uri = f"file:{self.arquivo}?mode=ro" if somente_leitura else str(self.arquivo)
-        self.con = sqlite3.connect(uri, uri=somente_leitura)
+        from euler.persistencia import preparar_banco
+
+        self.arquivo = Path(arquivo).resolve()
+        uri = self.arquivo.as_uri() + ("?mode=ro" if somente_leitura else "?mode=rw")
+        self.con = sqlite3.connect(uri, uri=True, timeout=30)
         self.con.row_factory = sqlite3.Row
-        if not somente_leitura:
-            self.con.executescript(ESQUEMA)
+        try:
+            self.con.execute("PRAGMA foreign_keys=ON")
             versao = self.con.execute("PRAGMA user_version").fetchone()[0]
-            if versao == 0:
-                self.con.execute(f"PRAGMA user_version = {ESQUEMA_VERSAO}")
-            elif versao > ESQUEMA_VERSAO:
+            if versao not in (1, ESQUEMA_VERSAO):
                 raise ErroArmazem("Arquivo de uma versão mais nova da EULER.")
+            if not somente_leitura:
+                preparar_banco(self.con, self.arquivo)
+        except BaseException:
+            self.con.close()
+            raise
 
     def fechar(self) -> None:
         self.con.close()
@@ -498,7 +513,9 @@ class Armazem:
     ) -> dict:
         if self.con.execute("SELECT 1 FROM equipamento WHERE id=?", (equip_id,)).fetchone():
             raise ErroArmazem(f"Equipamento já existe: {equip_id}.")
-        cfg = {**CONFIG_PADRAO, **(config or {})}
+        if not (equip_id or "").strip() or not (nome or "").strip():
+            raise ErroArmazem("Informe identificação e nome do equipamento.")
+        cfg = self._validar_config({**CONFIG_PADRAO, **(config or {})})
         with self._transacao() as cur:
             cur.execute(
                 "INSERT INTO equipamento VALUES (?,?,?,?,?)",
@@ -527,8 +544,9 @@ class Armazem:
             raise ErroArmazem(f"Configuração desconhecida: {', '.join(sorted(desconhecidas))}.")
         if "politica_custo" in mudancas and mudancas["politica_custo"] not in POLITICAS_CUSTO:
             raise ErroArmazem("Política de custo desconhecida.")
-        novo = {**atual, **mudancas}
+        novo = self._validar_config({**atual, **mudancas})
         with self._transacao() as cur:
+            self._nova_revisao(cur)
             cur.execute("UPDATE equipamento SET config=? WHERE id=?", (jdump(novo), equip_id))
             self._evento(
                 cur,
@@ -540,6 +558,17 @@ class Armazem:
                 {"antes": {k: atual.get(k) for k in mudancas}, "depois": mudancas},
             )
         return self.equipamento(equip_id)
+
+    @staticmethod
+    def _validar_config(cfg):
+        if set(cfg) != set(CONFIG_PADRAO) or cfg["politica_custo"] not in POLITICAS_CUSTO:
+            raise ErroArmazem("Configuração desconhecida.")
+        if cfg["altitude_m"] is not None and not _finito(cfg["altitude_m"]):
+            raise ErroArmazem("Altitude deve ser finita ou ausente.")
+        for campo in ("dias_para_desatualizado", "periodos_minimos_pos_intervencao"):
+            if type(cfg[campo]) is not int or cfg[campo] < 1:
+                raise ErroArmazem(f"{campo} deve ser um inteiro positivo.")
+        return cfg
 
     # ------------------------------------------------ perfis de importação
     def salvar_perfil(self, equip_id: str, fonte: str, mapeamento: dict[str, str]) -> None:
@@ -668,6 +697,11 @@ class Armazem:
         conteudo = {**json.loads(atuais[chave]["conteudo"]), **mudancas}
         if chave_natural(tabela, conteudo) != chave:
             raise ErroArmazem("A correção mudaria a identidade do registro; registre um novo.")
+        motivo_rejeicao = self._motivo_rejeicao(
+            tabela, conteudo, self.equipamento(equip_id), self.info["classe"]
+        )
+        if motivo_rejeicao:
+            raise ErroArmazem(motivo_rejeicao)
         with self._transacao() as cur:
             rev = self._nova_revisao(cur)
             self._nova_versao(
@@ -700,6 +734,8 @@ class Armazem:
         """
         equip = self.equipamento(equip_id)
         classe = self.info["classe"]
+        if classe not in CLASSES:
+            raise ErroArmazem("Classifique a origem da planta antes de importar registros.")
         mapa = (
             mapeamento
             if mapeamento is not None
@@ -712,7 +748,12 @@ class Armazem:
             for nome, conteudo in arquivos.items()
         }
         fontes, avisos = fontes_de_arquivos(convertidos)
-        pacote = importar_pacote(fontes)  # sem p_atm: colunas derivadas não são gravadas
+        from euler.vapor import p_atm_por_altitude_bar
+
+        altitude = equip["config"].get("altitude_m")
+        pacote = importar_pacote(
+            fontes, p_atm_bar=None if altitude is None else p_atm_por_altitude_bar(altitude)
+        )  # colunas derivadas continuam excluídas de canonico; altitude é rastreada na prévia
         linhas: list[LinhaPrevia] = []
         bloqueadas: dict[str, list[str]] = {}
         for tabela, imp in pacote.importacoes.items():
@@ -805,6 +846,10 @@ class Armazem:
             linhas,
             avisos,
             bloqueadas,
+            self.info["planta_id"],
+            self.revisao,
+            dict(arquivos),
+            sha(equip),
         )
 
     @staticmethod
@@ -858,6 +903,7 @@ class Armazem:
         modo: str = "incremental",
         motivo: str | None = None,
         salvar_perfil: bool = False,
+        importacao_id: str | None = None,
     ) -> dict:
         """Grava a prévia. Incremental: novas entram, iguais são ignoradas, conflitos ficam
         pendentes. Correção: conflitos viram nova versão, com motivo e autor obrigatórios."""
@@ -867,11 +913,36 @@ class Armazem:
             raise ErroArmazem("Informe quem está importando.")
         if modo == "correcao" and not (motivo or "").strip():
             raise ErroArmazem("Importação de correção exige motivo.")
-        if salvar_perfil and previa.fonte and previa.mapeamento:
-            self.salvar_perfil(previa.equipamento_id, previa.fonte, previa.mapeamento)
+        from euler.persistencia import Repositorio
+
         resumo = {"contagem": previa.contagem(), "tabelas_bloqueadas": previa.tabelas_bloqueadas}
         e = previa.equipamento_id
         with self._transacao() as cur:
+            if previa.planta_id != self.info["planta_id"]:
+                raise ErroArmazem("A prévia pertence a outra planta.")
+            equip = self.equipamento(e)
+            if previa.revisao != self.revisao or previa.config_sha != sha(equip):
+                raise ErroArmazem("Os dados mudaram. Prepare uma nova prévia antes de confirmar.")
+            if previa.arquivos != {
+                n: hashlib.sha256(b).hexdigest() for n, b in previa.originais.items()
+            }:
+                raise ErroArmazem("Os arquivos da prévia foram alterados.")
+            # Uma classe incompatível não pode nem arquivar um lote na planta errada.
+            origem = ORIGEM_DA_CLASSE[self.info["classe"]]
+            Repositorio._validar_origens(
+                previa.originais, self.info["classe"], self.info["classe"] == "sintetico"
+            )
+            if any(x.conteudo.get("origem_dado") not in (None, origem) for x in previa.linhas):
+                raise ErroArmazem("A origem do lote é diferente da classe da planta.")
+            importacao_id = Repositorio.preservar_lote(
+                self.con,
+                previa.originais,
+                altitude=equip["config"].get("altitude_m"),
+                sinteticos=self.info["classe"] == "sintetico",
+                autor=autor,
+                motivo=motivo,
+                importacao_id=importacao_id,
+            )
             rev = self._nova_revisao(cur)
             cur.execute(
                 "INSERT INTO lote (revisao, equipamento_id, recebido_em, autor, fonte, modo, motivo, "
@@ -889,6 +960,14 @@ class Armazem:
                 ),
             )
             lote_id = cur.lastrowid
+            cur.execute("INSERT INTO vinculo_lote VALUES (?,?)", (lote_id, importacao_id))
+            if salvar_perfil and previa.fonte and previa.mapeamento:
+                cur.execute(
+                    "INSERT INTO perfil (equipamento_id,fonte,mapeamento,criado_em,atualizado_em) "
+                    "VALUES (?,?,?,?,?) ON CONFLICT(equipamento_id,fonte) DO UPDATE SET "
+                    "mapeamento=excluded.mapeamento, atualizado_em=excluded.atualizado_em",
+                    (e, previa.fonte, jdump(previa.mapeamento), agora_iso(), agora_iso()),
+                )
             pendentes = corrigidas = novas = 0
             for x in previa.linhas:
                 if x.situacao == "nova":
@@ -925,7 +1004,7 @@ class Armazem:
             resumo.update(novas=novas, corrigidas=corrigidas, conflitos_pendentes=pendentes)
             cur.execute("UPDATE lote SET resumo=? WHERE id=?", (jdump(resumo), lote_id))
             self._evento(cur, e, "lote", lote_id, "importado", autor, resumo)
-        return {"lote_id": lote_id, "revisao": rev, **resumo}
+        return {"lote_id": lote_id, "importacao_id": importacao_id, "revisao": rev, **resumo}
 
     def conflitos(self, equip_id: str, situacao: str = "pendente") -> list[dict]:
         out = []
@@ -1085,6 +1164,8 @@ class Armazem:
 
     def exportar(self) -> dict:
         """Exportação completa e legível (JSON) para auditoria ou migração."""
+        import base64
+
         tabelas = [
             r["name"]
             for r in self.con.execute(
@@ -1095,7 +1176,15 @@ class Armazem:
             "formato": "euler-planta/1",
             "planta": self.info,
             "tabelas": {
-                t: [dict(r) for r in self.con.execute(f"SELECT * FROM {t} ORDER BY rowid")]
+                t: [
+                    {
+                        k: {"base64": base64.b64encode(v).decode("ascii")}
+                        if isinstance(v, bytes)
+                        else v
+                        for k, v in dict(r).items()
+                    }
+                    for r in self.con.execute(f'SELECT * FROM "{t}" ORDER BY rowid')
+                ]
                 for t in tabelas
             },
         }

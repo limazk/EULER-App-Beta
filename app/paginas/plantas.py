@@ -7,6 +7,8 @@ import estado
 import streamlit as st
 from componentes import cabecalho
 
+from euler.armazem import CLASSES
+
 cabecalho(
     "Plantas e histórico",
     "Guarde os dados no computador e retome a análise em outra sessão.",
@@ -26,8 +28,13 @@ def mostrar():
     )
     with st.expander("Cadastrar uma planta"), st.form("nova_planta"):
         nome = st.text_input("Nome da planta", max_chars=160)
+        classe = st.selectbox("Origem dos dados da planta", list(CLASSES), format_func=CLASSES.get)
+        autorizacao = st.text_input(
+            "Autorização para dados de cliente",
+            help="Obrigatória para cliente: quem autorizou e quando.",
+        )
         if st.form_submit_button("Criar planta"):
-            planta = repo.criar_planta(nome)
+            planta = repo.criar_planta(nome, classe=classe, autorizacao=autorizacao)
             st.session_state["biblioteca_planta"] = planta["id"]
             st.success("Planta criada. Selecione os dados que deseja salvar nela.")
 
@@ -40,6 +47,21 @@ def mostrar():
             format_func=lambda pid: f"{plantas[pid]['nome']} · {pid[:8]}",
         )
         planta = plantas[escolhido]
+        st.caption("Origem: " + CLASSES.get(planta.get("classe"), "Ainda não classificada"))
+        if planta.get("classe") == "nao_classificado":
+            with st.expander("Classificar biblioteca anterior"), st.form("classificar_planta"):
+                classe = st.selectbox(
+                    "Classe dos arquivos já salvos", list(CLASSES), format_func=CLASSES.get
+                )
+                autorizacao = st.text_input("Registro da autorização, se forem dados de cliente")
+                if st.form_submit_button("Confirmar classe"):
+                    repo.classificar_planta(escolhido, classe, autorizacao)
+                    st.rerun()
+        st.page_link(
+            "paginas/acompanhamento.py",
+            label="Equipamentos e acompanhamento",
+            icon=":material/history:",
+        )
         st.caption(
             "Selecionar uma planta não troca os dados ativos. Use Abrir versão para carregá-los."
         )

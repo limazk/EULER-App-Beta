@@ -35,6 +35,7 @@ paginas = {
     ],
     "Gestão": [
         st.Page("paginas/plantas.py", title="Plantas e histórico", icon=":material/database:"),
+        st.Page("paginas/acompanhamento.py", title="Acompanhamento", icon=":material/history:"),
         st.Page("paginas/financeiro.py", title="Financeiro", icon=":material/payments:"),
         st.Page("paginas/oportunidades.py", title="Oportunidades", icon=":material/flag:"),
     ],

@@ -16,7 +16,7 @@ em planta. A EULER indica verificações e não emite comandos para a caldeira.
 | Instalar e desenvolver | [Guia dos desenvolvedores](docs/desenvolvimento/README.md) |
 | Conhecer as telas | [Passeio pela demonstração](docs/demonstracao/PASSEIO_PELAS_TELAS.md) |
 | Preparar arquivos para importar | [Modelos de dados](templates/README.md) |
-| Salvar plantas, versões e análises | [Persistência local e backup](docs/desenvolvimento/persistencia_local_2026-10-04.md) |
+| Salvar plantas, versões e acompanhamento | [Banco unificado e backup](docs/desenvolvimento/unificacao_banco_2026-10-04.md) |
 | Revisar os cálculos | [Documentação científica](docs/fisica/README.md) |
 | Entender a evidência e os limites | [Diagnóstico e avaliação da referência](docs/desenvolvimento/evolucao_evidencias_2026-10-04.md) |
 | Encontrar um documento | [Índice da documentação](docs/README.md) |

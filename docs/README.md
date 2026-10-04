@@ -13,7 +13,7 @@
 ## Desenvolvimento
 
 - [Guia dos desenvolvedores](desenvolvimento/README.md): instalação, arquitetura e verificações.
-- [Persistência local](desenvolvimento/persistencia_local_2026-10-04.md): plantas, versões, análises, backup e passagem para o Claude.
+- [Banco unificado](desenvolvimento/unificacao_banco_2026-10-04.md): plantas, registros, fechamentos, backup e passagem para o Claude.
 - [Progresso](desenvolvimento/PROGRESSO.md): registro cronológico das entregas.
 - [Backlog](desenvolvimento/backlog_agentes.md): tarefas e critérios de aceite.
 - [Conferência da especificação](desenvolvimento/conferencia_especificacao.md).

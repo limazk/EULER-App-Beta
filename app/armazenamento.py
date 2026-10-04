@@ -118,18 +118,38 @@ def importar_na_planta(
     ctx = contexto()
     if not ctx:
         raise ValueError("Abra uma planta salva antes de importar uma nova versão nela.")
-    salvo = repositorio().salvar_importacao(
+    repo = repositorio()
+    planta = next(p for p in repo.listar_plantas() if p["id"] == ctx["planta_id"])
+    salvo = repo.salvar_importacao(
         ctx["planta_id"],
         arquivos,
         altitude=altitude,
         rotulo=f"{len(arquivos)} arquivo(s) enviado(s)",
-        sinteticos=False,
+        sinteticos=planta["classe"] == "sintetico",
         autor=autor,
         motivo=motivo,
         anterior_id=ctx["importacao_id"],
     )
     abrir_importacao({"id": ctx["planta_id"], "nome": ctx["planta_nome"]}, salvo["id"], autor)
     return salvo
+
+
+def abrir_serie(planta, armazem, equip_id, *, autor):
+    """Materializa uma revisão canônica para o motor; mantém os arquivos originais intactos."""
+    arquivos = armazem.arquivos(equip_id)
+    if not arquivos:
+        raise ValueError("Confirme os registros do equipamento antes de analisar a série.")
+    revisao = armazem.revisao
+    salvo = repositorio().salvar_importacao(
+        planta["id"],
+        arquivos,
+        altitude=armazem.equipamento(equip_id)["config"]["altitude_m"],
+        rotulo=f"Série consolidada · {equip_id} · revisão {revisao}",
+        sinteticos=armazem.info["classe"] == "sintetico",
+        autor=autor,
+        motivo=f"Materialização dos registros normalizados de {equip_id}, revisão {revisao}; originais preservados nos lotes.",
+    )
+    abrir_importacao(planta, salvo["id"], autor)
 
 
 def guardar_analise(j: dict) -> None:

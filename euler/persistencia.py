@@ -21,29 +21,141 @@ from datetime import UTC, datetime
 from pathlib import Path
 from uuid import UUID, uuid4
 
-VERSAO = 1
+VERSAO = 2
 MAX_ARQUIVOS_BYTES = 50 * 1024 * 1024
 MAX_BACKUP_BYTES = 128 * 1024 * 1024
 _REPO = Path(__file__).resolve().parents[1]
 _ESQUEMA = """
-CREATE TABLE planta (id TEXT PRIMARY KEY, nome TEXT NOT NULL, criado_em TEXT NOT NULL);
-CREATE TABLE importacoes (
+CREATE TABLE IF NOT EXISTS planta (id TEXT PRIMARY KEY, nome TEXT NOT NULL, criado_em TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS importacoes (
  id TEXT PRIMARY KEY, criado_em TEXT NOT NULL, rotulo TEXT NOT NULL,
  autor TEXT NOT NULL, motivo TEXT NOT NULL, anterior_id TEXT REFERENCES importacoes(id),
  altitude REAL, sinteticos INTEGER NOT NULL CHECK(sinteticos IN (0,1)),
  sha256 TEXT NOT NULL, dedup_chave TEXT NOT NULL UNIQUE, metadados_sha256 TEXT NOT NULL
 );
-CREATE TABLE arquivos (
+CREATE TABLE IF NOT EXISTS arquivos (
  importacao_id TEXT NOT NULL REFERENCES importacoes(id), nome TEXT NOT NULL,
  conteudo BLOB NOT NULL, sha256 TEXT NOT NULL, PRIMARY KEY(importacao_id, nome)
 );
-CREATE TABLE analises (
+CREATE TABLE IF NOT EXISTS analises (
  id TEXT PRIMARY KEY, importacao_id TEXT NOT NULL REFERENCES importacoes(id),
  criado_em TEXT NOT NULL, assinatura TEXT NOT NULL, resultado TEXT NOT NULL,
  sha256 TEXT NOT NULL, UNIQUE(importacao_id, assinatura, sha256)
 );
-PRAGMA user_version=1;
+CREATE TABLE IF NOT EXISTS vinculo_lote (
+ lote_id INTEGER PRIMARY KEY REFERENCES lote(id),
+ importacao_id TEXT NOT NULL REFERENCES importacoes(id)
+);
 """
+TABELAS_OPERACIONAIS = (
+    "meta",
+    "equipamento",
+    "evento",
+    "perfil",
+    "lote",
+    "registro",
+    "conflito",
+    "preco",
+    "referencia",
+    "fechamento",
+    "investigacao",
+    "inv_evento",
+    "intervencao",
+    "avaliacao",
+    "custo_servico",
+    "vinculo_lote",
+)
+
+
+def raiz_padrao() -> Path:
+    """Uma raiz compartilhada. Reconhece instalação anterior sem copiar bancos."""
+    configurada = os.environ.get("EULER_DADOS_DIR") or os.environ.get("EULER_DADOS")
+    if configurada:
+        return Path(configurada).expanduser()
+    padrao = Path.home() / "EULER-dados"
+    legada = (
+        Path(os.environ.get("LOCALAPPDATA", Path.home() / ".local" / "share")) / "EULER" / "dados"
+    )
+
+    def tem_bancos(pasta):
+        return any(pasta.glob("*.sqlite")) or any(pasta.glob("*/euler.sqlite"))
+
+    if tem_bancos(legada):
+        if tem_bancos(padrao):
+            raise ValueError(
+                "Há bibliotecas nas duas pastas antigas. Defina EULER_DADOS com a pasta a utilizar; nenhum banco foi movido."
+            )
+        return legada
+    return padrao
+
+
+def _planta_id(valor):
+    if (
+        not isinstance(valor, str)
+        or not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", valor)
+        or len(valor) > 100
+    ):
+        raise ValueError("Identificador de planta inválido.")
+    return valor
+
+
+def _classe(classe, autorizacao):
+    if classe not in {"nao_classificado", "sintetico", "publico", "cliente_autorizado"}:
+        raise ValueError("Classe de dados desconhecida.")
+    if classe == "cliente_autorizado":
+        return _texto(autorizacao, "registro da autorização", 2000)
+    return autorizacao or ""
+
+
+def _esquemas(con):
+    # Import local evita dependência circular: Armazem delega a infraestrutura daqui.
+    from euler.armazem import ESQUEMA
+
+    for instrucao in (ESQUEMA + _ESQUEMA).split(";"):
+        if instrucao.strip():
+            con.execute(instrucao)
+
+
+def preparar_banco(con, caminho):
+    """Migra os dois esquemas v1 no mesmo arquivo, com cópia recuperável anterior."""
+    versao = con.execute("PRAGMA user_version").fetchone()[0]
+    if versao == VERSAO:
+        return
+    if versao != 1:
+        raise ValueError("Versão do banco não suportada; não foi alterado.")
+    tabelas = {r[0] for r in con.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    if not ({"planta", "importacoes", "arquivos", "analises"} <= tabelas or "meta" in tabelas):
+        raise ValueError("Esquema legado não reconhecido; banco não foi alterado.")
+    backup = Path(str(caminho) + ".v1.bak")
+    if not backup.exists():
+        with sqlite3.connect(backup) as copia:
+            con.backup(copia)
+    con.execute("BEGIN IMMEDIATE")
+    try:
+        _esquemas(con)
+        planta = con.execute("SELECT * FROM planta").fetchone()
+        meta = dict(con.execute("SELECT chave,valor FROM meta").fetchall())
+        if planta is None:
+            _planta_id(meta["planta_id"])
+            con.execute(
+                "INSERT INTO planta VALUES (?,?,?)",
+                (meta["planta_id"], meta["nome"], meta["criada_em"]),
+            )
+        else:
+            for chave, valor in {
+                "planta_id": planta[0],
+                "nome": planta[1],
+                "criada_em": planta[2],
+                "classe": "nao_classificado",
+                "autorizacao": "",
+                "revisao": "0",
+            }.items():
+                con.execute("INSERT OR IGNORE INTO meta VALUES (?,?)", (chave, valor))
+        con.execute(f"PRAGMA user_version={VERSAO}")
+        con.commit()
+    except BaseException:
+        con.rollback()
+        raise
 
 
 def _json(valor):
@@ -134,21 +246,31 @@ class Repositorio:
     """Repositório transacional local. Nenhum arquivo de cliente fica no Git."""
 
     def __init__(self, raiz: Path | None = None):
-        padrao = (
-            Path(os.environ.get("LOCALAPPDATA", Path.home() / ".local" / "share"))
-            / "EULER"
-            / "dados"
-        )
-        self.raiz = Path(raiz or os.environ.get("EULER_DADOS_DIR") or padrao).expanduser().resolve()
+        self.raiz = Path(raiz or raiz_padrao()).expanduser().resolve()
         if self.raiz.is_relative_to(_REPO):
             raise ValueError("Escolha uma pasta de dados fora do repositório da EULER.")
         self.raiz.mkdir(parents=True, exist_ok=True)
 
     def _caminho(self, planta_id):
-        caminho = self.raiz / f"{_id(planta_id)}.sqlite"
-        if caminho.is_symlink() or caminho.resolve().parent != self.raiz:
-            raise ValueError("Caminho da planta inválido.")
-        return caminho
+        planta_id = _planta_id(planta_id)
+        caminhos = [self.raiz / f"{planta_id}.sqlite", self.raiz / planta_id / "euler.sqlite"]
+        for caminho in caminhos:
+            if caminho.is_symlink() or not caminho.resolve().is_relative_to(self.raiz):
+                raise ValueError("Caminho da planta inválido.")
+        presentes = [p for p in caminhos if p.is_file()]
+        if len(presentes) > 1:
+            raise ValueError(
+                "Dois bancos têm a mesma identidade. Resolva o conflito antes de abrir."
+            )
+        return presentes[0] if presentes else caminhos[0]
+
+    def armazem(self, planta_id):
+        """Abre operações recorrentes no mesmo arquivo de snapshots e análises."""
+        from euler.armazem import Armazem
+
+        with self._conectar(planta_id):
+            pass
+        return Armazem(self._caminho(planta_id))
 
     @contextmanager
     def _conectar(self, planta_id, *, escrita=False):
@@ -159,10 +281,16 @@ class Repositorio:
         con.row_factory = sqlite3.Row
         try:
             con.execute("PRAGMA foreign_keys=ON")
-            if con.execute("PRAGMA user_version").fetchone()[0] != VERSAO:
-                raise ValueError("Versão do banco não suportada; não foi alterado.")
+            preparar_banco(con, caminho)
             con.execute("BEGIN IMMEDIATE" if escrita else "BEGIN")
-            if con.execute("SELECT id FROM planta").fetchone()[0] != planta_id:
+            identidade = con.execute("SELECT id FROM planta").fetchone()
+            meta_id = con.execute("SELECT valor FROM meta WHERE chave='planta_id'").fetchone()
+            if (
+                not identidade
+                or not meta_id
+                or identidade[0] != planta_id
+                or meta_id[0] != planta_id
+            ):
                 raise ValueError("Identidade da planta não corresponde ao arquivo.")
             yield con
             con.commit()
@@ -172,20 +300,45 @@ class Repositorio:
         finally:
             con.close()
 
-    def _criar(self, nome, preencher=None):
+    def _criar(
+        self,
+        nome,
+        preencher=None,
+        *,
+        classe="nao_classificado",
+        autorizacao=None,
+        planta_id=None,
+        pasta=False,
+    ):
+        autorizacao = _classe(classe, autorizacao)
         planta = {
-            "id": str(uuid4()),
+            "id": _planta_id(planta_id) if planta_id else str(uuid4()),
             "nome": _texto(nome, "nome da planta", 200),
             "criado_em": _agora(),
         }
         caminho = self._caminho(planta["id"])
+        if caminho.exists():
+            raise ValueError("Planta já existe.")
+        if pasta:
+            caminho = self.raiz / planta["id"] / "euler.sqlite"
+            caminho.parent.mkdir(parents=True, exist_ok=True)
         temporario = caminho.with_suffix(".pending")
         con = sqlite3.connect(temporario, timeout=30)
         try:
             con.execute("PRAGMA foreign_keys=ON")
-            con.executescript(_ESQUEMA)
             with con:
+                _esquemas(con)
+                con.execute(f"PRAGMA user_version={VERSAO}")
                 con.execute("INSERT INTO planta VALUES (?,?,?)", tuple(planta.values()))
+                for chave, valor in {
+                    "planta_id": planta["id"],
+                    "nome": planta["nome"],
+                    "criada_em": planta["criado_em"],
+                    "classe": classe,
+                    "autorizacao": autorizacao,
+                    "revisao": "0",
+                }.items():
+                    con.execute("INSERT INTO meta VALUES (?,?)", (chave, valor))
                 if preencher:
                     preencher(con)
             con.close()
@@ -194,16 +347,65 @@ class Repositorio:
             con.close()
             temporario.unlink(missing_ok=True)
             raise
-        return planta
+        return {**planta, "classe": classe, "autorizacao": autorizacao}
 
-    def criar_planta(self, nome: str) -> dict:
-        return self._criar(nome)
+    def criar_planta(
+        self, nome: str, classe="nao_classificado", autorizacao=None, autor=None
+    ) -> dict:
+        return self._criar(nome, classe=classe, autorizacao=autorizacao)
+
+    def classificar_planta(self, planta_id, classe, autorizacao=None):
+        """Classifica uma biblioteca legada sem reclassificar plantas ou linhas já declaradas."""
+        _classe(classe, autorizacao)
+        if classe == "nao_classificado":
+            raise ValueError("Escolha a classe dos dados.")
+        with self._conectar(planta_id, escrita=True) as con:
+            atual = con.execute("SELECT valor FROM meta WHERE chave='classe'").fetchone()[0]
+            if atual != "nao_classificado":
+                raise ValueError("A planta já tem uma classe fixa.")
+            for row in con.execute("SELECT id FROM importacoes"):
+                imp = self._ler_importacao(con, row[0])
+                self._validar_origens(imp["arquivos"], classe, imp["sinteticos"])
+            con.execute("UPDATE meta SET valor=? WHERE chave='classe'", (classe,))
+            con.execute("UPDATE meta SET valor=? WHERE chave='autorizacao'", (autorizacao or "",))
+
+    @staticmethod
+    def _validar_origens(arquivos, classe, sinteticos):
+        """Origem declarada em qualquer linha é vinculante, inclusive em tabela bloqueada."""
+        from euler.armazem import ORIGEM_DA_CLASSE
+        from euler.io.leitura import ler_csv, ler_planilha
+
+        if classe == "nao_classificado":
+            return  # legado arquivado; não pode alimentar o acompanhamento até classificação
+        if (classe == "sintetico") != sinteticos:
+            raise ValueError("A origem da importação não corresponde à classe da planta.")
+        esperado = ORIGEM_DA_CLASSE[classe]
+        for nome, conteudo in arquivos.items():
+            if nome.lower().endswith(".xlsx"):
+                tabelas = list(ler_planilha(conteudo).values())
+            elif nome.lower().endswith(".csv"):
+                tabelas = [ler_csv(conteudo, nome)[0]]
+            else:
+                continue
+            for tabela in tabelas:
+                if "origem_dado" in tabela:
+                    origens = {str(x).strip() for x in tabela["origem_dado"].dropna()} - {""}
+                    if origens - {esperado}:
+                        raise ValueError(
+                            f"A origem em {nome} não corresponde à classe da planta: {sorted(origens)}."
+                        )
 
     def listar_plantas(self) -> list[dict]:
         plantas = []
-        for caminho in self.raiz.glob("*.sqlite"):
-            with self._conectar(caminho.stem) as con:
-                plantas.append(dict(con.execute("SELECT * FROM planta").fetchone()))
+        ids = {p.stem for p in self.raiz.glob("*.sqlite")}
+        ids.update(p.parent.name for p in self.raiz.glob("*/euler.sqlite"))
+        for planta_id in ids:
+            with self._conectar(planta_id) as con:
+                planta = dict(con.execute("SELECT * FROM planta").fetchone())
+                meta = dict(con.execute("SELECT chave,valor FROM meta").fetchall())
+                plantas.append(
+                    {**planta, "classe": meta["classe"], "autorizacao": meta.get("autorizacao", "")}
+                )
         return sorted(plantas, key=lambda p: p["nome"].casefold())
 
     @staticmethod
@@ -243,6 +445,8 @@ class Repositorio:
         )
         chave = _assinatura([sha, _id(anterior_id) if anterior_id else None])
         with self._conectar(planta_id, escrita=True) as con:
+            classe = con.execute("SELECT valor FROM meta WHERE chave='classe'").fetchone()[0]
+            self._validar_origens(arquivos, classe, sinteticos)
             if anterior_id:
                 anterior = self._ler_importacao(con, anterior_id)
                 if anterior["sha256"] == sha:
@@ -268,6 +472,39 @@ class Repositorio:
             meta["metadados_sha256"] = _meta_sha(meta)
             self._inserir_importacao(con, meta, arquivos)
         return {**meta, "sinteticos": sinteticos, "dedup": False}
+
+    @staticmethod
+    def preservar_lote(con, arquivos, *, altitude, sinteticos, autor, motivo, importacao_id=None):
+        """Vincula bytes à normalização dentro da mesma transação de confirmação."""
+        sha = _conteudo_sha(arquivos, altitude, sinteticos)
+        if importacao_id:
+            imp = Repositorio._ler_importacao(con, importacao_id)
+            if imp["sha256"] != sha:
+                raise ValueError(
+                    "A prévia não corresponde aos arquivos/origem/altitude da versão escolhida."
+                )
+            return imp["id"]
+        anterior = con.execute(
+            "SELECT id FROM importacoes WHERE sha256=? ORDER BY criado_em DESC LIMIT 1", (sha,)
+        ).fetchone()
+        if anterior:
+            Repositorio._ler_importacao(con, anterior[0])
+            return anterior[0]
+        meta = {
+            "id": str(uuid4()),
+            "criado_em": _agora(),
+            "rotulo": "Importação operacional",
+            "autor": _texto(autor, "autor", 200),
+            "motivo": _texto(motivo or "Importação incremental confirmada", "motivo"),
+            "anterior_id": None,
+            "altitude": float(altitude) if altitude is not None else None,
+            "sinteticos": int(sinteticos),
+            "sha256": sha,
+            "dedup_chave": _assinatura([sha, None]),
+        }
+        meta["metadados_sha256"] = _meta_sha(meta)
+        Repositorio._inserir_importacao(con, meta, arquivos)
+        return meta["id"]
 
     @staticmethod
     def _inserir_importacao(con, meta, arquivos):
@@ -352,6 +589,10 @@ class Repositorio:
                 "planta": dict(con.execute("SELECT * FROM planta").fetchone()),
                 "importacoes": [],
                 "analises": [],
+                "operacional": {
+                    t: [dict(r) for r in con.execute(f'SELECT * FROM "{t}" ORDER BY rowid')]
+                    for t in TABELAS_OPERACIONAIS
+                },
             }
             for row in con.execute("SELECT id FROM importacoes ORDER BY rowid"):
                 imp = self._ler_importacao(con, row[0])
@@ -375,12 +616,20 @@ class Repositorio:
             conteudo = envelope["conteudo"]
             if _assinatura(conteudo) != envelope["sha256"]:
                 raise ValueError("Falha de integridade do backup.")
-            if conteudo["versao"] != VERSAO:
+            if conteudo["versao"] not in (1, VERSAO):
                 raise ValueError("Versão do backup não suportada.")
-            _id(conteudo["planta"]["id"])
+            _planta_id(conteudo["planta"]["id"])
             _data(conteudo["planta"]["criado_em"])
             nome = _texto(conteudo["planta"]["nome"], "nome da planta", 200)
             importacoes = self._validar_backup(conteudo)
+            operacional = conteudo.get("operacional", {})
+            if operacional and set(operacional) != set(TABELAS_OPERACIONAIS):
+                raise ValueError("Tabelas operacionais do backup incompatíveis.")
+            meta = {r["chave"]: r["valor"] for r in operacional.get("meta", [])}
+            classe = meta.get("classe", "nao_classificado")
+            autorizacao = _classe(classe, meta.get("autorizacao"))
+            for imp, arquivos in importacoes:
+                self._validar_origens(arquivos, classe, bool(imp["sinteticos"]))
         except (KeyError, TypeError, AttributeError, OverflowError, RecursionError) as exc:
             raise ValueError("Estrutura do backup inválida.") from exc
 
@@ -399,8 +648,26 @@ class Repositorio:
                         a["sha256"],
                     ),
                 )
+            for tabela, linhas in operacional.items():
+                colunas = [r[1] for r in con.execute(f'PRAGMA table_info("{tabela}")')]
+                for linha in linhas:
+                    if set(linha) != set(colunas):
+                        raise ValueError("Colunas operacionais incompatíveis no backup.")
+                    if tabela == "meta":
+                        if linha["chave"] not in ("planta_id", "nome", "criada_em"):
+                            con.execute(
+                                "INSERT OR REPLACE INTO meta VALUES (?,?)",
+                                (linha["chave"], linha["valor"]),
+                            )
+                        continue
+                    con.execute(
+                        f'INSERT INTO "{tabela}" ({",".join(colunas)}) VALUES ({",".join("?" for _ in colunas)})',
+                        tuple(linha[c] for c in colunas),
+                    )
+            if con.execute("PRAGMA foreign_key_check").fetchone():
+                raise ValueError("Backup contém vínculos sem origem.")
 
-        return self._criar(nome, preencher)
+        return self._criar(nome, preencher, classe=classe, autorizacao=autorizacao)
 
     @staticmethod
     def _validar_backup(conteudo):

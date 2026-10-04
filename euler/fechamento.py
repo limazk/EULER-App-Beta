@@ -16,12 +16,14 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from functools import lru_cache
 from pathlib import Path
 
 import pandas as pd
 
 from euler.armazem import (
+    COLUNA_TEMPO,
     POLITICAS_CUSTO,
     Armazem,
     ErroArmazem,
@@ -94,6 +96,22 @@ def _resumo_referencia(pacote, inicio, fim) -> dict:
     return {"combustivel_t": comb, "vapor_t": vapor, "consumo_t_t": comb / vapor}
 
 
+def _dados_referencia_sha(a, equip_id, fim, revisao=None):
+    """Detecta mudança nos dados históricos que alimentam a referência e nos instrumentos.
+
+    Inclui dados anteriores ao fim (estoque/FIFO podem depender de lotes anteriores).
+    Acrescentar períodos futuros não transforma a referência silenciosamente.
+    """
+    dados = {}
+    for tabela, tempo in COLUNA_TEMPO.items():
+        dados[tabela] = sorted(
+            jdump(r)
+            for r in a.registros(equip_id, tabela, revisao)
+            if tabela == "instrumentos" or not r.get(tempo) or _ts(r[tempo]) <= _ts(fim)
+        )
+    return sha(dados)
+
+
 def criar_referencia(
     a: Armazem,
     equip_id: str,
@@ -129,6 +147,7 @@ def criar_referencia(
     if vigente is not None and tipo == "inicial":
         raise ErroArmazem("Já existe referência: use 'estrutural' ou 'correcao_de_dados'.")
     dados = _resumo_referencia(pacote, inicio, fim)
+    dados["dados_referencia_sha"] = _dados_referencia_sha(a, equip_id, fim)
     if vigente is not None:
         ini_v, fim_v = _ts(vigente["inicio"]), _ts(vigente["fim"])
         if not (fim_v <= inicio or fim <= ini_v):
@@ -194,8 +213,17 @@ def registrar_preco(
     convertido em silêncio. Custos adicionais (frete etc.) ficam separados e declarados."""
     if moeda != "BRL" or unidade != "t":
         raise ErroArmazem("Esta versão só aceita preço em BRL por tonelada.")
-    if not (preco_brl_t >= 0) or (custo_adicional_brl_t is not None and custo_adicional_brl_t < 0):
-        raise ErroArmazem("Preço e custo adicional não podem ser negativos.")
+    for valor in (preco_brl_t, custo_adicional_brl_t):
+        if valor is not None and (
+            isinstance(valor, bool)
+            or not isinstance(valor, int | float)
+            or not math.isfinite(valor)
+            or valor < 0
+        ):
+            raise ErroArmazem("Preço e custo adicional devem ser finitos e não negativos.")
+    if preco_brl_t is None or not all((x or "").strip() for x in (origem, autor, combustivel)):
+        raise ErroArmazem("Informe preço, combustível, origem e autor.")
+    a.equipamento(equip_id)
     if custo_adicional_brl_t and not (custo_adicional_desc or "").strip():
         raise ErroArmazem("Descreva o custo adicional (ex.: frete).")
     de = _ts(valido_de)
@@ -239,7 +267,9 @@ def precos(a: Armazem, equip_id: str) -> list[dict]:
     ]
 
 
-def preco_do_periodo(a: Armazem, equip_id: str, pacote, inicio, fim, politica: str) -> dict:
+def preco_do_periodo(
+    a: Armazem, equip_id: str, pacote, inicio, fim, politica: str, precos_tabela=None
+) -> dict:
     """Preço atribuído ao combustível consumido no período, pela política declarada.
 
     Nunca troca de política em silêncio: se a política escolhida não tem dado suficiente,
@@ -288,7 +318,7 @@ def preco_do_periodo(a: Armazem, equip_id: str, pacote, inicio, fim, politica: s
         }
     vigentes = [
         p
-        for p in precos(a, equip_id)
+        for p in (precos(a, equip_id) if precos_tabela is None else precos_tabela)
         if _ts(p["valido_de"]) <= inicio
         and (p["valido_ate"] is None or _ts(p["valido_ate"]) >= fim)
     ]
@@ -420,11 +450,19 @@ def periodos_pendentes(a: Armazem, equip_id: str) -> list[dict]:
     return validade_periodos(pacote, pend)
 
 
-def _nucleo(a, equip_id, pacote, ref, inicio, fim, politica) -> dict:
+def _nucleo(a, equip_id, pacote, ref, inicio, fim, politica, precos_fixados=None) -> dict:
     """Parte reproduzível: depende só dos dados, da referência, da política e do código."""
     j = investigar(pacote, (_ts(ref["inicio"]), _ts(ref["fim"])), (inicio, fim))
-    preco_ref = preco_do_periodo(a, equip_id, pacote, ref["inicio"], ref["fim"], politica)
-    preco = preco_do_periodo(a, equip_id, pacote, inicio, fim, politica)
+    preco_ref = (
+        precos_fixados["referencia"]
+        if precos_fixados is not None
+        else preco_do_periodo(a, equip_id, pacote, ref["inicio"], ref["fim"], politica)
+    )
+    preco = (
+        precos_fixados["periodo"]
+        if precos_fixados is not None
+        else preco_do_periodo(a, equip_id, pacote, inicio, fim, politica)
+    )
     entradas = (j.get("explicacao_conta") or {}).get("entradas")
     if entradas:
         conta = explicar_conta(
@@ -449,6 +487,18 @@ def _nucleo(a, equip_id, pacote, ref, inicio, fim, politica) -> dict:
     c = j["o_que_mudou"]["consumo_especifico"]
     comp = j["periodos"]["comparacao"]
     ops = j.get("oportunidades") or {}
+    preco_t = preco.get("preco_brl_t")
+    energia = (comp.get("energia_combustivel") or {}).get("valor")
+    massa_kg = (comp.get("combustivel_kg") or {}).get("valor")
+    custo_gj = (
+        preco_t * massa_kg / 1000 / energia
+        if preco_t is not None and massa_kg is not None and energia and energia > 0
+        else None
+    )
+
+    def valorizar(toneladas):
+        return None if toneladas is None or preco_t is None else toneladas * preco_t
+
     return {
         "periodo": {"inicio": inicio.isoformat(), "fim": fim.isoformat()},
         "referencia": {
@@ -472,10 +522,11 @@ def _nucleo(a, equip_id, pacote, ref, inicio, fim, politica) -> dict:
             "frase": j["o_que_mudou"]["frase"],
         },
         "custo_por_energia": {
-            "periodo_brl_gj": comp.get("preco_brl_gj"),
+            "periodo_brl_gj": custo_gj,
+            "politica_custo": politica,
             "motivo": None
-            if comp.get("preco_brl_gj") is not None
-            else "R$/GJ não calculado: falta umidade ou PCI medidos dos lotes (nada é presumido).",
+            if custo_gj is not None
+            else "R$/GJ não calculado: faltam preço pela política declarada ou energia e massa do combustível.",
         },
         "explicacao_conta": conta,
         "oportunidades": [
@@ -484,8 +535,11 @@ def _nucleo(a, equip_id, pacote, ref, inicio, fim, politica) -> dict:
                 "titulo": o["titulo"],
                 "prioridade": o["prioridade"],
                 "evidencia": o["evidencia"]["nivel"],
-                "impacto_brl": o["impacto"]["custo_brl"],
-                "faixa_brl": o["impacto"]["faixa_brl"],
+                "impacto_brl": valorizar(o["impacto"]["combustivel_t"]),
+                "faixa_brl": [valorizar(x) for x in o["impacto"]["faixa_t"]]
+                if o["impacto"]["faixa_t"] is not None and preco_t is not None
+                else None,
+                "politica_custo": politica,
                 "verificacao": o["verificacao"]["acao"],
                 "complexidade": o["verificacao"]["complexidade"],
             }
@@ -574,8 +628,17 @@ def produzir_fechamento(
 ) -> dict:
     """Fecha o período (padrão: todos os períodos completos ainda não fechados)."""
     ref = referencia_vigente(a, equip_id)
+    if not (autor or "").strip():
+        raise ErroArmazem("Informe o autor do fechamento.")
     if ref is None:
         raise ErroArmazem("Defina a referência do equipamento antes do primeiro fechamento.")
+    original_sha = ref["dados"].get("dados_referencia_sha") or _dados_referencia_sha(
+        a, equip_id, ref["fim"], ref["revisao"]
+    )
+    if _dados_referencia_sha(a, equip_id, ref["fim"]) != original_sha:
+        raise ErroArmazem(
+            "Os dados da referência foram alterados. Registre uma nova versão da referência com motivo antes de fechar outro período."
+        )
     if inicio is None or fim is None:
         pendentes = periodos_pendentes(a, equip_id)
         if not pendentes:
@@ -590,12 +653,25 @@ def produzir_fechamento(
     inicio, fim = _ts(inicio), _ts(fim)
     revisao = a.revisao
     politica = a.equipamento(equip_id)["config"]["politica_custo"]
-    pacote = a.pacote(equip_id, revisao=revisao, p_atm_bar=p_atm(a, equip_id))
+    pressao_atm = p_atm(a, equip_id)
+    pacote = a.pacote(equip_id, revisao=revisao, p_atm_bar=pressao_atm)
     nucleo = _nucleo(a, equip_id, pacote, ref, inicio, fim, politica)
     anteriores = fechamentos(a, equip_id)
     from euler.acompanhamento import contexto_para_fechamento
 
+    premissas = {
+        "p_atm_bar": pressao_atm,
+        "config": a.equipamento(equip_id)["config"],
+        "referencia": ref,
+        "precos_cadastrados": precos(a, equip_id),
+        "precos": {
+            "referencia": nucleo["politica_custo_referencia"],
+            "periodo": nucleo["politica_custo"],
+        },
+    }
     resultado = {
+        "premissas_reproducao": premissas,
+        "premissas_sha": sha(premissas),
         "nucleo": nucleo,
         "nucleo_sha": sha(nucleo),
         "situacao": _situacao(nucleo),
@@ -642,12 +718,49 @@ def reproduzir(a: Armazem, fechamento_id: int, referencia_id: int | None = None)
     """Recalcula o núcleo com os dados da revisão gravada (e a mesma referência, ou outra
     versão escolhida). Compara o hash; se o código mudou, diz isso em vez de esconder."""
     f = fechamento(a, fechamento_id)
-    ref = referencia(a, referencia_id or f["referencia_id"])
+    premissas = f["resultado"].get("premissas_reproducao")
+    if premissas is None:
+        return {
+            "identico": False,
+            "nucleo": None,
+            "dados_identicos": None,
+            "frase": "Fechamento legado sem configuração histórica: não é possível reproduzir sem adivinhar altitude ou preços. O resultado original permanece disponível.",
+        }
+    if sha(premissas) != f["resultado"].get("premissas_sha"):
+        raise ErroArmazem("Falha de integridade das premissas do fechamento.")
+    ref = premissas["referencia"]
+    fixados = premissas["precos"]
+    if referencia_id is not None and referencia_id != f["referencia_id"]:
+        ref = referencia(a, referencia_id)
+        if ref["equipamento_id"] != f["equipamento_id"]:
+            raise ErroArmazem("A referência pertence a outro equipamento.")
     pacote = a.pacote(
-        f["equipamento_id"], revisao=f["revisao_dados"], p_atm_bar=p_atm(a, f["equipamento_id"])
+        f["equipamento_id"], revisao=f["revisao_dados"], p_atm_bar=premissas["p_atm_bar"]
     )
     politica = f["resultado"]["nucleo"]["politica_custo"]["politica"]
-    nucleo = _nucleo(a, f["equipamento_id"], pacote, ref, _ts(f["inicio"]), _ts(f["fim"]), politica)
+    if ref["id"] != f["referencia_id"]:
+        fixados = {
+            **fixados,
+            "referencia": preco_do_periodo(
+                a,
+                f["equipamento_id"],
+                pacote,
+                ref["inicio"],
+                ref["fim"],
+                politica,
+                precos_tabela=premissas["precos_cadastrados"],
+            ),
+        }
+    nucleo = _nucleo(
+        a,
+        f["equipamento_id"],
+        pacote,
+        ref,
+        _ts(f["inicio"]),
+        _ts(f["fim"]),
+        politica,
+        precos_fixados=fixados,
+    )
     novo_sha = sha(nucleo)
     mesma_ref = ref["id"] == f["referencia_id"]
     mesmo_codigo = versao_codigo() == f["versao_euler"]

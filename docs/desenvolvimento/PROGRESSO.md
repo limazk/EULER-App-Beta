@@ -278,3 +278,17 @@ Pedido do Adryan: manter só uma versão do software, sempre atualizada (D91).
 - Sessões novas reabrem os dados. Trocar planta, altitude ou motor impede reutilizar resultado incompatível. Carregar exemplos e limpar dados desvincula a sessão sem apagar o banco.
 - Entrega, uso, API, validação e limites: [persistencia_local_2026-10-04.md](persistencia_local_2026-10-04.md).
 - Ainda faltam perfis de colunas, diferenças por célula, conciliação incremental, referência aprovada independente, entidades de intervenção/fechamento e autenticação multiempresa. Nenhuma equação ou golden foi alterado.
+
+## Conciliação do banco único — 04/10/2026
+
+- Integrado o trabalho do Claude em `6e5dad9`, preservando armazém, fechamento,
+  acompanhamento, painel e testes originais. Os limites da primeira entrega acima
+  são históricos: a estrutura operacional está agora no mesmo banco dos arquivos.
+- Esquema v2, migração dos dois formatos v1 no próprio arquivo e backup anterior;
+  raiz comum, classes explícitas, originais ligados aos lotes e restauração integral.
+- Tela **Acompanhamento**: equipamentos, prévia incremental, perfis de nomes,
+  resolução de conflitos, série acumulada, referência e fechamentos.
+- Reprodução congela configuração e preços históricos. Dados da referência alterados
+  exigem nova versão. Política de preço consistente entre números do fechamento.
+- Passagem para o Claude e limites atuais:
+  [unificacao_banco_2026-10-04.md](unificacao_banco_2026-10-04.md).

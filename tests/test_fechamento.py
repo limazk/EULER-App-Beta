@@ -157,6 +157,11 @@ def test_politica_de_custo_explicita_sem_troca_silenciosa(tmp_path):
     f = produzir_fechamento(a, EQ, "Ana")
     assert f["resultado"]["nucleo"]["politica_custo"]["preco_brl_t"] is None
     assert f["resultado"]["nucleo"]["conta_do_periodo"]["custo_atribuido_brl"] is None
+    assert f["resultado"]["nucleo"]["custo_por_energia"]["periodo_brl_gj"] is None
+    assert all(
+        o["impacto_brl"] is None and o["faixa_brl"] is None
+        for o in f["resultado"]["nucleo"]["oportunidades"]
+    )
 
 
 def test_fechamento_reproduzivel_mesmo_depois_de_correcao(tmp_path):
@@ -212,3 +217,52 @@ def test_relatorio_do_fechamento_vem_do_mesmo_objeto(tmp_path):
     assert f["resultado"]["nucleo_sha"][:16] in texto
     assert "não é economia recuperável" in texto
     assert not comandos_operacionais(texto)
+
+
+def test_reproducao_congela_altitude_e_precos_do_fechamento(tmp_path):
+    a, s = planta_com(tmp_path, [Periodo(G01), Periodo(G01)])
+    a.configurar(EQ, {"politica_custo": "tabela_de_precos"}, autor="Ana")
+    registrar_preco(a, EQ, "cavaco", 190.0, s[0][0], "Contrato original", "Ana")
+    criar_referencia(a, EQ, s[0][0], s[0][1], "inicial", "Base", "Ana")
+    f = produzir_fechamento(a, EQ, "Ana")
+    a.configurar(EQ, {"altitude_m": 1500.0}, autor="Ana")
+    registrar_preco(a, EQ, "cavaco", 220.0, s[0][0], "Nova cotação", "Ana")
+    r = reproduzir(a, f["id"])
+    assert r["identico"] and r["dados_identicos"]
+    assert r["nucleo"]["politica_custo"]["preco_brl_t"] == 190.0
+
+
+def test_reproducao_antiga_sem_premissas_nao_adivinha_configuracao(tmp_path):
+    from euler.armazem import jdump
+
+    a, s = planta_com(tmp_path, [Periodo(G01), Periodo(G01)])
+    criar_referencia(a, EQ, s[0][0], s[0][1], "inicial", "Base", "Ana")
+    f = produzir_fechamento(a, EQ, "Ana")
+    resultado = f["resultado"]
+    resultado.pop("premissas_reproducao", None)
+    with a._transacao() as cur:
+        cur.execute("UPDATE fechamento SET resultado=? WHERE id=?", (jdump(resultado), f["id"]))
+    r = reproduzir(a, f["id"])
+    assert not r["identico"] and r["nucleo"] is None
+    assert "configuração" in r["frase"]
+
+
+@pytest.mark.parametrize("valor", [float("inf"), float("nan"), -1])
+def test_preco_nao_finito_ou_negativo_nao_entra_no_banco(tmp_path, valor):
+    a = criar_planta("Preço", "sintetico", raiz=tmp_path)
+    a.criar_equipamento(EQ, "Caldeira")
+    with pytest.raises(ErroArmazem):
+        registrar_preco(a, EQ, "cavaco", valor, "2026-01-01", "Contrato", "Ana")
+    assert a.con.execute("SELECT count(*) FROM preco").fetchone()[0] == 0
+    a.fechar()
+
+
+def test_referencia_nao_absorve_correcao_sem_nova_versao(tmp_path):
+    a, s = planta_com(tmp_path, [Periodo(G01), Periodo(G01)])
+    criar_referencia(a, EQ, s[0][0], s[0][1], "inicial", "Base", "Ana")
+    chave = next(iter(a._ativos(EQ, "diario")))
+    a.corrigir(EQ, "diario", chave, {"t_gases_c": 400}, "Calibração", "Ana")
+    with pytest.raises(ErroArmazem, match="nova versão da referência"):
+        produzir_fechamento(a, EQ, "Ana")
+    assert not fechamentos(a, EQ)
+    a.fechar()
