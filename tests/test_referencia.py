@@ -70,3 +70,23 @@ def test_cobertura_regime_e_invariancia_de_escala():
     kw = entradas()
     kw["instantes"] = [pd.Timestamp("2023-01-01")] * 100
     assert avaliar_referencia(**kw)["nivel"] == "FRACA"
+
+
+def test_limiares_publicados_sao_os_usados(monkeypatch):
+    """Os PARAMETROS devolvidos no resultado governam o cálculo (antes eram repetidos no código)."""
+    import euler.referencia as modulo
+
+    y = [10.0 + 0.1 * (i % 3) for i in range(12)]
+    base = modulo.avaliar_referencia(observado=y, previsto=[10.1] * 12, unidade="GJ")
+    assert any("menos de 30" in m for m in base["motivos"])
+    monkeypatch.setitem(modulo.PARAMETROS, "n_triagem", 10)
+    outro = modulo.avaliar_referencia(observado=y, previsto=[10.1] * 12, unidade="GJ")
+    assert not any("Poucas observações" in m for m in outro["motivos"])
+    assert outro["parametros"]["n_triagem"] == 10
+
+
+def test_referencia_insuficiente_nao_sugere_interpretacao_com_cautela():
+    r = avaliar_referencia(observado=[1.0, 2.0], previsto=[1.0, 2.0], unidade="GJ")
+    assert r["nivel"] == "INSUFICIENTE"
+    assert "não permite interpretar" in r["resumo"]
+    assert "cautela" not in r["resumo"]

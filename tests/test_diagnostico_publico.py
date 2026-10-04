@@ -68,3 +68,24 @@ def test_pagina_diagnostico_abre_e_troca_periodo():
     at.selectbox[2].select("2023-03").run()
     assert not at.exception
     assert any("persiste" in m.value for m in at.info)
+
+
+def test_b06_menos_verificacao_nao_melhora_nota_e_retirada_de_um_dia_conta():
+    """D87 com dados reais: na B06 todas as faixas de reamostragem cruzam zero e a auditoria
+    está incompleta; antes recebia robustez MODERADA (acima da B10 de fevereiro, FRACA). Em
+    março, retirar um único dia muda o sinal, então a consistência temporal não é MODERADA.
+    Energia e valores condicionais não mudam."""
+    r = executar()
+    fev, mar = diagnosticos(r, "B06")
+    assert fev["dimensoes"]["robustez_estatistica"]["nivel"] == "FRACA"
+    assert mar["dimensoes"]["robustez_estatistica"]["nivel"] == "FRACA"
+    assert mar["dimensoes"]["consistencia_temporal"]["nivel"] == "FRACA"
+    assert fev["dimensoes"]["consistencia_temporal"]["nivel"] == "MODERADA"
+    for d, m in zip((fev, mar), r["unidades"]["B06"]["comparacoes"], strict=True):
+        assert d["observacao"]["variacao"] == m["delta_gj"]
+        assert d["economia"]["desvio_estimado"] == m["valor_referencia_usd"]
+    b10 = diagnosticos(r, "B10")
+    assert [d["dimensoes"]["consistencia_temporal"]["nivel"] for d in b10] == [
+        "MODERADA",
+        "MODERADA",
+    ]

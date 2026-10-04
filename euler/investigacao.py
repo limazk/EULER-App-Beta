@@ -328,9 +328,14 @@ def _sinal(x: float, casas: int = 1) -> str:
 
 
 def _curto(titulo: str) -> str:
-    """Título da hipótese sem o parêntese explicativo, começando em minúscula."""
+    """Título da hipótese sem o parêntese explicativo, começando em minúscula.
+
+    Só baixa a caixa de uma palavra comum ("Mais calor" → "mais calor"); símbolos e
+    siglas ficam como estão ("O₂ maior", "CO alto")."""
     base = titulo.split(" (")[0].strip()
-    return base[:1].lower() + base[1:]
+    if len(base) > 1 and base[1].islower():
+        return base[:1].lower() + base[1:]
+    return base
 
 
 def _com_efeito(h: dict) -> str:

@@ -40,6 +40,9 @@ include = ["euler*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# raiz (pacote euler e "app.<módulo>") e app/ (módulos da interface importados pelos testes):
+# sem isso a coleta dependia da ordem dos arquivos e o CI parava antes de rodar os testes
+pythonpath = [".", "app"]
 
 [tool.ruff]
 line-length = 100

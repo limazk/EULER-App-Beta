@@ -7,7 +7,7 @@ import streamlit as st
 
 from euler.evidencias import ROTULOS
 from euler.formato import num
-from euler.relatorio_evidencias import texto_diagnostico
+from euler.relatorio_evidencias import casas, texto_diagnostico, texto_valor
 
 
 def renderizar(d: dict, *, completo: bool = True):
@@ -36,9 +36,13 @@ def renderizar(d: dict, *, completo: bool = True):
         return
     o = d["observacao"]
     a, b, c = st.columns(3)
-    a.metric("Referência calculada", f"{num(o.get('referencia'))} {o['unidade']}", border=True)
-    b.metric("Observado", f"{num(o.get('comparacao'))} {o['unidade']}", border=True)
-    c.metric("Diferença observada", f"{num(o.get('variacao'))} {o['unidade']}", border=True)
+    for col, rotulo, chave in (
+        (a, "Referência calculada", "referencia"),
+        (b, "Observado", "comparacao"),
+        (c, "Diferença observada", "variacao"),
+    ):
+        v = o.get(chave)
+        col.metric(rotulo, f"{num(v, casas(v))} {o['unidade']}", border=True)
     st.caption(
         "Comparação restrita às condições e horas declaradas; referência não significa operação ideal."
     )
@@ -69,11 +73,14 @@ def renderizar(d: dict, *, completo: bool = True):
         )
     e = d["economia"]
     st.markdown("### O que o dinheiro significa")
+    valor = e.get("desvio_estimado")
     st.metric(
         "Valorização do desvio observado",
-        f"{e.get('moeda', '')} {num(e.get('desvio_estimado'))}",
+        f"{e.get('moeda', '')} {num(valor)}" if valor is not None else "não estimado",
         border=True,
     )
+    if valor is None and e.get("motivo_sem_valor"):
+        st.caption(texto_valor(e).removeprefix("não estimado. "))
     st.caption("Oportunidade recuperável: não apurada · Economia verificada: não apurada")
     for premissa in e.get("premissas", []):
         st.caption(premissa)

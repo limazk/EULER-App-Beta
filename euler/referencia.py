@@ -10,6 +10,17 @@ import pandas as pd
 
 from euler.evidencias import NIVEIS
 
+RESUMO_NIVEL = {
+    "INSUFICIENTE": "Referência insuficiente: não permite interpretar o desvio. "
+    "Os motivos indicam o que falta.",
+    "FRACA": "Referência com estabilidade limitada. A interpretação do desvio deve ser feita "
+    "com cautela.",
+    "MODERADA": "Referência com estabilidade limitada. A interpretação do desvio deve ser feita "
+    "com cautela.",
+    "FORTE": "Referência adequada nas verificações disponíveis; não certifica operação ideal.",
+}
+"""Resumo por nível; INSUFICIENTE não sugere que o desvio possa ser interpretado (D87)."""
+
 PARAMETROS = {
     "n_minimo": 3,
     "n_triagem": 30,
@@ -46,6 +57,8 @@ def avaliar_referencia(
     y = np.asarray(observado, dtype=float)
     if y.ndim != 1:
         raise ValueError("Informe uma série unidimensional.")
+    # os limiares publicados no resultado são os mesmos usados aqui (lidos a cada chamada)
+    lim = PARAMETROS.copy()
     n, nivel, motivos, limites = len(y), 3, [], []
 
     def limitar(maximo, motivo):
@@ -83,13 +96,15 @@ def avaliar_referencia(
         "carga_comparacao_ausente": None,
         "validacao_temporal": validacao_temporal,
     }
-    if nv < 3:
-        limitar(0, "Menos de três observações finitas; referência insuficiente.")
-    elif nv < 30:
-        limitar(1, "Poucas observações para os diagnósticos de triagem (menos de 30).")
+    if nv < lim["n_minimo"]:
+        limitar(0, f"Menos de {lim['n_minimo']} observações finitas; referência insuficiente.")
+    elif nv < lim["n_triagem"]:
+        limitar(
+            1, f"Poucas observações para os diagnósticos de triagem (menos de {lim['n_triagem']})."
+        )
     if n - nv:
         limitar(
-            1 if (n - nv) / n > 0.1 else 2,
+            1 if (n - nv) / n > lim["invalidos_frac"] else 2,
             "Dados ausentes ou inválidos na referência; exclusões contabilizadas.",
         )
     escala = float(np.mean(abs(y[valido]))) if nv else 0
@@ -98,7 +113,8 @@ def avaliar_referencia(
         r = residuo[valido] if residuo is not None else y[valido]
         mad = float(np.median(abs(r - np.median(r))))
         if mad > 0:
-            m["outliers_mad"] = int((abs(0.6745 * (r - np.median(r)) / mad) > 3.5).sum())
+            z = abs(0.6745 * (r - np.median(r)) / mad)
+            m["outliers_mad"] = int((z > lim["outlier_mad_z"]).sum())
             if m["outliers_mad"]:
                 limitar(
                     2, "Potenciais outliers sinalizados por MAD; nenhum removido automaticamente."
@@ -122,9 +138,9 @@ def avaliar_referencia(
             meio = len(s) // 2
             drift = 100 * float(s.iloc[meio:].mean() - s.iloc[:meio].mean()) / escala
             m["mudanca_residual_metades_pct"] = drift
-            if abs(drift) > 1:
+            if abs(drift) > lim["vies_atencao_pct"]:
                 limitar(
-                    1 if abs(drift) > 3 else 2,
+                    1 if abs(drift) > lim["vies_alto_pct"] else 2,
                     "Mudança temporal entre as metades dos resíduos da referência.",
                 )
             if intervalo_horas is not None:
@@ -135,10 +151,10 @@ def avaliar_referencia(
                     axis=1,
                 ).dropna()
                 m["pares_autocorrelacao"] = len(pares)
-                if len(pares) >= 3 and pares.a.std() > 0 and pares.b.std() > 0:
+                if len(pares) >= lim["n_minimo"] and pares.a.std() > 0 and pares.b.std() > 0:
                     ac = float(pares.a.corr(pares.b))
                     m["autocorrelacao"] = ac
-                    if abs(ac) > 0.5:
+                    if abs(ac) > lim["autocorrelacao_atencao"]:
                         limitar(
                             2, "Dependência temporal dos resíduos; não supor horas independentes."
                         )
@@ -158,7 +174,7 @@ def avaliar_referencia(
         xr = x[valido & np.isfinite(x)]
         m["carga_comparacao_ausente"] = int((~np.isfinite(xc)).sum())
         m["carga_referencia_ausente"] = int((~np.isfinite(x)).sum())
-        if len(xr) < 3 or not len(xc) or np.ptp(xr) == 0:
+        if len(xr) < lim["n_minimo"] or not len(xc) or np.ptp(xr) == 0:
             limitar(0, "Carga insuficiente ou sem variação para avaliar suporte operacional.")
         else:
             dentro = np.isfinite(xc) & (xc >= min(xr)) & (xc <= max(xr))
@@ -167,7 +183,7 @@ def avaliar_referencia(
             m["unidade_carga"] = unidade_carga
             m["carga_min"] = float(min(xr))
             m["carga_max"] = float(max(xr))
-            if dentro.sum() < 3:
+            if dentro.sum() < lim["n_minimo"]:
                 limitar(0, "Menos de três cargas de comparação no suporte da referência.")
             elif cobertura < 1:
                 limitar(
@@ -181,11 +197,12 @@ def avaliar_referencia(
     else:
         for v in validacao_temporal:
             vies = v.get("vies_pct")
-            if vies is None or not np.isfinite(vies) or v.get("horas_comparaveis", 0) < 3:
+            curto = v.get("horas_comparaveis", 0) < lim["n_minimo"]
+            if vies is None or not np.isfinite(vies) or curto:
                 limitar(2, "Trecho de validação temporal insuficiente; não substituído.")
-            elif abs(vies) > 1:
+            elif abs(vies) > lim["vies_atencao_pct"]:
                 limitar(
-                    1 if abs(vies) > 3 else 2,
+                    1 if abs(vies) > lim["vies_alto_pct"] else 2,
                     "Viés na validação temporal da referência; processo ou modelo podem ter mudado.",
                 )
     if regimes is None:
@@ -204,12 +221,10 @@ def avaliar_referencia(
     return {
         "versao": "referencia/1.0",
         "nivel": NIVEIS[nivel],
-        "resumo": "Referência com estabilidade limitada. A interpretação do desvio deve ser feita com cautela."
-        if nivel < 3
-        else "Referência adequada nas verificações disponíveis; não certifica operação ideal.",
+        "resumo": RESUMO_NIVEL[NIVEIS[nivel]],
         "motivos": list(dict.fromkeys(motivos))
         or ["Diagnósticos disponíveis sem alertas pelos critérios de triagem."],
         "metricas": m,
-        "parametros": PARAMETROS.copy(),
+        "parametros": lim,
         "limitacoes": limites,
     }

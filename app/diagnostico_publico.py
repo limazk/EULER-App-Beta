@@ -7,7 +7,13 @@ import pandas as pd
 from ensaio_horario import DADOS, preparar
 from robustez_ensaio import carregar_auditoria
 
-from euler.evidencias import assinatura, consolidar, dimensao, robustez_publica
+from euler.evidencias import (
+    assinatura,
+    consistencia_publica,
+    consolidar,
+    dimensao,
+    robustez_publica,
+)
 from euler.referencia import avaliar_referencia
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -170,13 +176,8 @@ def diagnosticos(resultado: dict, unidade: str) -> list[dict]:
             ),
             "referencia": referencia,
             "robustez_estatistica": rob,
-            "consistencia_temporal": dimensao(
-                "MODERADA" if am else "INSUFICIENTE",
-                [
-                    "Dependência temporal examinada por blocos e retirada de um dia; regime não observado."
-                    if am
-                    else "Verificação temporal não disponível para esta execução."
-                ],
+            "consistencia_temporal": consistencia_publica(
+                am,
                 {
                     "dias_comparaveis": mes["dias_comparaveis"],
                     "dias_delta_positivo": mes["dias_delta_positivo"],

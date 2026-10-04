@@ -170,3 +170,14 @@ def test_resumo_em_ate_tres_frases_curtas():
         assert all(len(f) <= 220 for f in frases)
         sem_vapor = investigar(p, (s[0][0], s[3][1]), s[6])["resumo"]["frases"]
         assert sem_vapor[0] == "Não dá para saber se o consumo por tonelada de vapor mudou."
+
+
+def test_resumo_nao_baixa_a_caixa_de_simbolos_quimicos():
+    """"O₂ maior nos gases" não vira "o₂" quando entra no meio da frase do resultado."""
+    from euler.investigacao import _curto
+
+    assert _curto("O₂ maior nos gases") == "O₂ maior nos gases"
+    assert _curto("CO alto nos gases (combustão incompleta)") == "CO alto nos gases"
+    assert _curto("Mais calor saindo pela chaminé (temperatura dos gases)") == (
+        "mais calor saindo pela chaminé"
+    )

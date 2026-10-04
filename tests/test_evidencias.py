@@ -77,3 +77,23 @@ def test_consolidacao_hash_repetivel_e_deteccao_de_alteracao():
         dimensao("87%", ["Indefensável"])
     with pytest.raises(ValueError):
         consolidar({**j, "observacao": {"unidade": "GJ", "valor": float("nan")}})
+
+
+def test_menos_verificacao_nunca_melhora_a_nota_da_robustez():
+    """D87: o sinal é avaliado antes da completude. Antes, uma auditoria incompleta com
+    faixas cruzando zero (caso B06) recebia MODERADA, acima de uma completa com zero (FRACA)."""
+    completo = auditoria()
+    completo["reamostragem"][1]["quantil_025_pct"] = -0.3
+    incompleto = deepcopy(completo)
+    incompleto["reamostragem"][2].update(validas=1723, invalidas=277)
+    incompleto["referencias"]["metodos"] = []
+    assert robustez_publica(completo, 2000)["nivel"] == "FRACA"
+    assert robustez_publica(incompleto, 2000)["nivel"] == "FRACA"
+    assert "incompleta" in " ".join(robustez_publica(incompleto, 2000)["motivos"])
+    # sinal consistente com verificação incompleta: no máximo MODERADA
+    sem_referencias = auditoria()
+    sem_referencias["referencias"]["metodos"] = []
+    assert robustez_publica(sem_referencias, 2000)["nivel"] == "MODERADA"
+    sem_bloco = auditoria()
+    sem_bloco["reamostragem"][0]["validas"] = 1999
+    assert robustez_publica(sem_bloco, 2000)["nivel"] == "MODERADA"

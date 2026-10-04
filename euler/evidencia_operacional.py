@@ -5,7 +5,6 @@ from dataclasses import asdict
 from hashlib import sha256
 from pathlib import Path
 
-from euler.economia import valorizar_diferenca
 from euler.evidencias import assinatura, consolidar, dimensao
 
 ESTADOS = {
@@ -118,8 +117,13 @@ def diagnosticar_investigacao(j: dict, fontes: dict) -> dict:
             "origem": "Regra de investigação física existente",
         }
     ]
-    vapor = (comp.get("vapor_t") or {}).get("valor")
-    valor = valorizar_diferenca(c["variacao"], vapor, comp["preco_brl_t"])
+    # Mesma regra do "valor em jogo" da investigação (D87): só um aumento confirmado pelas
+    # incertezas é valorizado; senão o valor fica ausente, com o motivo do motor. Antes a
+    # diferença era valorizada sempre, e o Diagnóstico mostrava R$ para uma alta não
+    # confirmada (ou para uma queda) enquanto a Investigação dizia "não estimado".
+    valor_jogo = j.get("valor_em_jogo")
+    valor = valor_jogo["valor_brl"] if valor_jogo else None
+    motivo_sem_valor = None if valor_jogo else (j.get("valor_em_jogo_motivo") or None)
     return consolidar(
         {
             "equipamento": j["caldeira_id"],
@@ -133,6 +137,7 @@ def diagnosticar_investigacao(j: dict, fontes: dict) -> dict:
             "proximas_medicoes": acoes,
             "economia": {
                 "desvio_estimado": valor,
+                "motivo_sem_valor": motivo_sem_valor,
                 "moeda": "BRL",
                 "preco": comp["preco_brl_t"],
                 "unidade_preco": "BRL/t de combustível",
@@ -141,6 +146,10 @@ def diagnosticar_investigacao(j: dict, fontes: dict) -> dict:
                 "premissas": [
                     "Mesmo preço e mesma produção de vapor na comparação.",
                     "Valorização aritmética do desvio, sem confirmação de prejuízo ou recuperação.",
+                    (
+                        "Só é calculada quando o aumento de consumo está confirmado pelas "
+                        "incertezas (mesma regra do valor em jogo da investigação)."
+                    ),
                 ],
                 "oportunidade_potencial": None,
                 "economia_verificada": None,

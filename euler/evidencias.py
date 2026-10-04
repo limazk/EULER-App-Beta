@@ -95,8 +95,14 @@ def robustez_publica(auditoria_mes: dict | None, repeticoes: int | None) -> dict
     """Interpreta D85 sem mudar ajuste, amostra ou selecionar teste favorável.
 
     FORTE: sinal igual nos três blocos completos, quatro modelos, três referências
-    e retirada de um dia. FRACA: reversão/zero. MODERADA: verificações incompletas.
-    Ausência da auditoria -> INSUFICIENTE. Faixas são sensibilidades retrospectivas.
+    e retirada de um dia. FRACA: reversão/zero em qualquer verificação disponível,
+    completa ou não. MODERADA: sinal igual em tudo o que existe, mas verificações
+    incompletas. Ausência da auditoria -> INSUFICIENTE. Faixas são sensibilidades
+    retrospectivas.
+
+    O sinal é avaliado antes da completude (D87): faltar verificação nunca melhora a
+    nota. Antes, uma auditoria incompleta com faixas cruzando zero (B06) recebia
+    MODERADA, acima de uma auditoria completa com zero (FRACA).
     """
     a = auditoria_mes or {}
     blocos = a.get("reamostragem", [])
@@ -115,6 +121,38 @@ def robustez_publica(auditoria_mes: dict | None, repeticoes: int | None) -> dict
         and all(b.get("validas") == repeticoes and b.get("invalidas") == 0 for b in blocos)
         and all(_finito(lo) and _finito(hi) and lo <= hi for lo, hi in intervalos)
     )
+    modelos = a.get("modelos", {}).get("metodos", [])
+    refs = a.get("referencias", {}).get("metodos", [])
+    retirada = a.get("retirada_de_um_dia_pct", {})
+    valores = [m.get("delta_pct") for m in modelos + refs] + [
+        retirada.get("min"),
+        retirada.get("max"),
+    ]
+    extras = len(modelos) == 4 and len(refs) == 3 and all(_finito(v) for v in valores)
+    todos = [x for par in intervalos for x in par if _finito(x)] + [
+        v for v in valores if _finito(v)
+    ]
+    if not todos:
+        return {
+            **dimensao("INSUFICIENTE", ["Auditoria sem valores finitos; sinal não avaliável."]),
+            "sinal": "nao_avaliavel",
+            "conclusao": "Robustez não avaliável.",
+        }
+    positivo, negativo = all(x > 0 for x in todos), all(x < 0 for x in todos)
+    if not (positivo or negativo):
+        motivos = [
+            "Há faixa incluindo zero ou mudança de sinal entre verificações; preservar o resultado inconclusivo."
+        ]
+        if not (completas and extras):
+            motivos.append(
+                "A auditoria também está incompleta (blocos, modelos ou referências); "
+                "verificações ausentes não foram presumidas."
+            )
+        return {
+            **dimensao("FRACA", motivos),
+            "sinal": "inconclusivo",
+            "conclusao": "Sinal menos conclusivo nas verificações realizadas.",
+        }
     if not completas:
         return {
             **dimensao(
@@ -125,27 +163,6 @@ def robustez_publica(auditoria_mes: dict | None, repeticoes: int | None) -> dict
             ),
             "sinal": "inconclusivo",
             "conclusao": "Sinal menos conclusivo: verificações incompletas.",
-        }
-    modelos = a.get("modelos", {}).get("metodos", [])
-    refs = a.get("referencias", {}).get("metodos", [])
-    retirada = a.get("retirada_de_um_dia_pct", {})
-    valores = [m.get("delta_pct") for m in modelos + refs] + [
-        retirada.get("min"),
-        retirada.get("max"),
-    ]
-    extras = len(modelos) == 4 and len(refs) == 3 and all(_finito(v) for v in valores)
-    todos = [x for par in intervalos for x in par] + [v for v in valores if _finito(v)]
-    positivo, negativo = all(x > 0 for x in todos), all(x < 0 for x in todos)
-    if not (positivo or negativo):
-        return {
-            **dimensao(
-                "FRACA",
-                [
-                    "Há faixa incluindo zero ou mudança de sinal entre verificações; preservar o resultado inconclusivo."
-                ],
-            ),
-            "sinal": "inconclusivo",
-            "conclusao": "Sinal menos conclusivo nas verificações realizadas.",
         }
     if not extras:
         return {
@@ -171,3 +188,39 @@ def robustez_publica(auditoria_mes: dict | None, repeticoes: int | None) -> dict
         if positivo
         else "Redução persiste nas verificações realizadas.",
     }
+
+
+def consistencia_publica(auditoria_mes: dict | None, metricas: dict) -> dict:
+    """Consistência temporal pelo que a retirada de um dia mostrou (D87).
+
+    Antes a dimensão era MODERADA sempre que a auditoria existia, sem olhar o resultado.
+    FRACA: retirar um único dia muda o sinal da diferença (o resultado depende de dias
+    específicos). MODERADA: o sinal se mantém, ou a retirada não foi feita (verificação
+    ausente não é presumida favorável nem vira falha); o regime operacional não é
+    observado, então nunca passa de MODERADA. Sem auditoria: INSUFICIENTE.
+    """
+    if not auditoria_mes:
+        return dimensao(
+            "INSUFICIENTE", ["Verificação temporal não disponível para esta execução."], metricas
+        )
+    retirada = auditoria_mes.get("retirada_de_um_dia_pct") or {}
+    lo, hi = retirada.get("min"), retirada.get("max")
+    m = {**metricas, "retirada_de_um_dia_min_pct": lo, "retirada_de_um_dia_max_pct": hi}
+    if _finito(lo) and _finito(hi) and lo <= 0 <= hi:
+        return dimensao(
+            "FRACA",
+            [
+                (
+                    "Retirar um único dia muda o sinal da diferença: o resultado depende de "
+                    "dias específicos."
+                ),
+                "Regime operacional não observado.",
+            ],
+            m,
+        )
+    motivo = (
+        "Sinal mantido ao retirar cada dia; dependência temporal examinada também por blocos."
+        if _finito(lo) and _finito(hi)
+        else "Retirada de um dia não disponível; dependência temporal examinada só por blocos."
+    )
+    return dimensao("MODERADA", [motivo, "Regime operacional não observado."], m)
