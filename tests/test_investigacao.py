@@ -173,7 +173,7 @@ def test_resumo_em_ate_tres_frases_curtas():
 
 
 def test_resumo_nao_baixa_a_caixa_de_simbolos_quimicos():
-    """"O₂ maior nos gases" não vira "o₂" quando entra no meio da frase do resultado."""
+    """ "O₂ maior nos gases" não vira "o₂" quando entra no meio da frase do resultado."""
     from euler.investigacao import _curto
 
     assert _curto("O₂ maior nos gases") == "O₂ maior nos gases"

@@ -90,3 +90,22 @@ def test_referencia_insuficiente_nao_sugere_interpretacao_com_cautela():
     assert r["nivel"] == "INSUFICIENTE"
     assert "não permite interpretar" in r["resumo"]
     assert "cautela" not in r["resumo"]
+
+
+def test_minimo_de_comparacoes_no_suporte_e_configuravel_sem_mudar_o_padrao():
+    """Séries por período (ex.: semanas entre estoques) têm poucas comparações; o mínimo de
+    comparações dentro do suporte pode ser informado. O padrão (3) não muda."""
+    y = [10.0, 10.2, 9.9, 10.1, 10.0]
+    carga = [14.7, 14.8, 14.75, 14.72, 14.78]
+    args = {
+        "observado": y,
+        "previsto": [10.04] * 5,
+        "unidade": "t",
+        "carga": carga,
+        "unidade_carga": "t/h",
+    }
+    padrao = avaliar_referencia(**args, carga_comparacao=[14.74, 14.76])
+    assert any("Menos de 3 cargas" in m for m in padrao["motivos"])
+    semanal = avaliar_referencia(**args, carga_comparacao=[14.74, 14.76], minimo_comparacao=1)
+    assert not any("cargas de comparação no suporte" in m for m in semanal["motivos"])
+    assert semanal["metricas"]["cobertura_carga_frac"] == 1.0

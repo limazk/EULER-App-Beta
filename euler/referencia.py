@@ -44,6 +44,7 @@ def avaliar_referencia(
     intervalo_horas=None,
     validacao_temporal=None,
     regimes=None,
+    minimo_comparacao=None,
 ) -> dict:
     """Arrays da referência, com unidade comum de energia/massa explicitada.
 
@@ -51,6 +52,9 @@ def avaliar_referencia(
     Carga em unidade separada; cobertura min/max não garante cobertura interna.
     Instantes opcionais; sem eles não se infere cronologia pela posição do array.
     Dados inválidos são contados e não preenchidos. Diagnósticos não alteram arrays.
+    `minimo_comparacao`: quantas cargas de comparação precisam cair no suporte da
+    referência (padrão: n_minimo, pensado para registros horários). Séries por período,
+    como semanas entre medições de estoque, podem informar um mínimo menor (D88).
     """
     if not isinstance(unidade, str) or not unidade.strip():
         raise ValueError("Informe a unidade dos valores observados e previstos.")
@@ -183,8 +187,9 @@ def avaliar_referencia(
             m["unidade_carga"] = unidade_carga
             m["carga_min"] = float(min(xr))
             m["carga_max"] = float(max(xr))
-            if dentro.sum() < lim["n_minimo"]:
-                limitar(0, "Menos de três cargas de comparação no suporte da referência.")
+            minimo = lim["n_minimo"] if minimo_comparacao is None else minimo_comparacao
+            if dentro.sum() < minimo:
+                limitar(0, f"Menos de {minimo} cargas de comparação no suporte da referência.")
             elif cobertura < 1:
                 limitar(
                     1 if cobertura < 0.5 else 2,
@@ -193,7 +198,7 @@ def avaliar_referencia(
             if m["carga_referencia_ausente"]:
                 limitar(2, "Carga ausente em parte da referência.")
     if not validacao_temporal:
-        limitar(2, "Validação cronológica fora do ajuste não disponível.")
+        limitar(2, "Validação cronológica fora do trecho usado no modelo não disponível.")
     else:
         for v in validacao_temporal:
             vies = v.get("vies_pct")

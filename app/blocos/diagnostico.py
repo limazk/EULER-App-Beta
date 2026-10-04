@@ -46,6 +46,7 @@ def renderizar(d: dict, *, completo: bool = True):
     st.caption(
         "Comparação restrita às condições e horas declaradas; referência não significa operação ideal."
     )
+    _serie_referencia(d["dimensoes"]["referencia"])
     st.markdown("### Explicações a investigar")
     st.dataframe(
         pd.DataFrame(
@@ -111,3 +112,50 @@ def renderizar(d: dict, *, completo: bool = True):
         f"{d['analise_id']}.json",
         "application/json",
     )
+
+
+def _serie_referencia(ref: dict) -> None:
+    """Série usada para avaliar a referência na rota operacional (D88), quando existe.
+
+    Só mostra o que o diagnóstico já calculou: período a período, observado, previsto pelo
+    consumo específico da referência e resíduo. Período sem dado aparece como "—"."""
+    serie = ref.get("serie")
+    if not serie:
+        return
+    modelo = ref.get("modelo") or {}
+    with st.expander(f"Como a referência foi avaliada · {len(serie)} períodos"):
+        st.markdown(f"**{ref['nivel'].capitalize()}** · {ref.get('resumo', '')}")
+        for motivo in ref.get("motivos", []):
+            st.write(f"- {motivo}")
+        st.dataframe(
+            pd.DataFrame(
+                [
+                    {
+                        "Período": x["periodo"],
+                        "Combustível (t)": num(x["combustivel_t"], 1),
+                        "Vapor (t)": num(x["vapor_t"], 1),
+                        "Consumo (t/t)": num(x["consumo_t_t"], 3),
+                        "Previsto (t)": num(x["previsto_t"], 1),
+                        "Diferença (t)": num(x["residuo_t"], 1),
+                        "Regime": {"estavel": "estável", "transitorio": "transitório"}.get(
+                            x["regime"], "não informado"
+                        ),
+                    }
+                    for x in serie
+                ]
+            ),
+            hide_index=True,
+            width="stretch",
+        )
+        k = modelo.get("consumo_especifico_t_t")
+        st.caption(
+            "Previsto = consumo da referência "
+            + (f"({num(k, 3)} t/t) " if k is not None else "")
+            + "× vapor de cada período, o mesmo modelo da comparação. Um ponto por período entre "
+            "medições de estoque; nada foi preenchido nem removido."
+        )
+        for v in ref.get("metricas", {}).get("validacao_temporal") or []:
+            st.caption(
+                f"Validação: {v['periodo']} previsto pelos períodos anteriores, diferença de "
+                f"{num(v['vies_pct'], 1)}%."
+            )

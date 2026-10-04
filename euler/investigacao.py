@@ -1622,9 +1622,21 @@ def investigar(
             },
         }
     )
-    from euler.evidencia_operacional import diagnosticar_investigacao, fontes_pacote
+    from euler.evidencia_operacional import (
+        avaliar_referencia_operacional,
+        diagnosticar_investigacao,
+        fontes_pacote,
+    )
 
+    # D88: a referência é avaliada com a série por período entre medições de estoque,
+    # usando o consumo específico da referência que o próprio motor calculou
+    ref_operacional = avaliar_referencia_operacional(
+        pacote,
+        referencia,
+        comparacao,
+        consumo_referencia=resultado["o_que_mudou"]["consumo_especifico"]["referencia"],
+    )
     resultado["diagnostico_evidencias"] = diagnosticar_investigacao(
-        resultado, fontes_pacote(pacote)
+        resultado, fontes_pacote(pacote), ref_operacional
     )
     return resultado

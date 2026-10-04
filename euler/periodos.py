@@ -1141,3 +1141,32 @@ def resumir_periodo(pacote: Pacote, inicio: pd.Timestamp, fim: pd.Timestamp) -> 
             for t, tipo, d in zip(ev["instante"], ev["tipo"], ev["descricao"], strict=True)
         ]
     return r
+
+
+def vapor_e_combustivel(pacote: Pacote, inicio: pd.Timestamp, fim: pd.Timestamp) -> ResumoPeriodo:
+    """Só o vapor do totalizador (t) e o combustível queimado (kg, E9) do período, mais os
+    regimes presentes no diário — os mesmos cálculos e bloqueios de `resumir_periodo`.
+
+    Para onde só esses números importam, como a série da referência por período (D88):
+    cerca de 4× mais rápido, porque não calcula gases, mistura, composição, purga nem
+    economizador. A energia útil do vapor não deve ser lida daqui (o estado do vapor não é
+    avaliado); use `resumir_periodo`. Nada é preenchido: sem dado, o campo fica None e o
+    motivo vai para `bloqueios`.
+    """
+    r = ResumoPeriodo(inicio=inicio, fim=fim)
+    diario = pacote.dados("diario")
+    if diario is None:
+        r.bloqueios["diario"] = AnaliseBloqueada(
+            "Sem diário do operador: não há leituras da caldeira.", ["diário do operador"]
+        )
+    else:
+        no_periodo = diario[
+            (diario["instante_observado"] >= inicio) & (diario["instante_observado"] < fim)
+        ]
+        regimes = [str(x) for x in no_periodo["regime"].dropna()]
+        if no_periodo["regime"].isna().any():
+            regimes.append("nao_informado")
+        r.regimes_presentes = tuple(dict.fromkeys(regimes))
+        _vapor(pacote, diario, r)
+    _combustivel(pacote, r)
+    return r

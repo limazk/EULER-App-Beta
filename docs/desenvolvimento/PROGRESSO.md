@@ -228,3 +228,14 @@ Esta seção atualiza o estado das extensões que apareciam como pendentes acima
 ## Reconciliação dos PRs do motor — 02/10/2026
 
 Preservada a integração do PR #7 e a organização do PR #8. Incorporada a separação das pressões da purga e da água de referência do PR #5, com importação, bloqueio por leitura e testes. A revisão física humana permanece pendente (D77).
+
+## Revisão crítica da camada de evidências — 04/10/2026
+
+Pedido do Adryan: conferir a entrega `0fe589d`, corrigir contradições demonstráveis e avançar a referência operacional com validação temporal.
+
+- **CI reativado.** Desde 03/10 a coleta do pytest falhava (`from app.financeiro`, `from diagnostico_publico`) e o CI parava antes de rodar os testes. Agora `pyproject.toml` declara `pythonpath = [".", "app"]`; `pytest -q` simples coleta tudo.
+- **Contradições corrigidas (D87, commit `9c47df2`).** Robustez pública avalia o sinal antes da completude (B06, com faixas cruzando zero e auditoria incompleta, recebia nota acima de B10 fevereiro). Consistência temporal pública usa a retirada de um dia (B06 março muda de sinal: FRACA). Valorização no Diagnóstico segue a mesma regra do valor em jogo da Investigação (uma alta não confirmada aparecia como R$ 7.803 numa tela e "não estimado" na outra). Limiares publicados passam a ser os usados. Referência INSUFICIENTE não sugere "interpretar com cautela". Diagnóstico mostra 0,321 t/t (não 0,32). Resultado não escreve "o₂".
+- **Referência operacional avaliada (D88).** A dimensão "Qualidade da referência" ficava sempre INSUFICIENTE na rota operacional. Agora é avaliada com a série da fábrica: um ponto por período entre medições de estoque, previsto = consumo específico da referência × vapor, último período validado pelos anteriores. Ato 1: FRACA (4 períodos, deriva de 2,85% entre metades, validação com 1,8%). Tela Diagnóstico ganhou "Como a referência foi avaliada", com a tabela período a período. `vapor_e_combustivel` (≈4× mais rápido que o resumo completo) evita recalcular a energia útil.
+- **Caso público reproduzido antes e depois.** Energia, percentuais e valores condicionais idênticos nas 8 unidades/meses. B10 sem mudança: fevereiro +2,09% (robustez FRACA), março +2,96% (FORTE), referência MODERADA. Mudou só B06: robustez MODERADA → FRACA nos dois meses; consistência de março MODERADA → FRACA. Os identificadores de análise mudaram (o hash inclui o método).
+- **Validação:** `pytest -q` → 487 passaram (eram 477; 10 testes novos); `ruff check .` e `ruff format --check .` limpos. Telas Diagnóstico e Investigação conferidas no navegador.
+- **Fica de fora:** robustez e consistência temporal da rota operacional continuam INSUFICIENTE; limiares aplicados a períodos pendentes de revisão estatística; registro de intervenção e economia verificada não iniciados. Golden e tolerâncias intocados.
