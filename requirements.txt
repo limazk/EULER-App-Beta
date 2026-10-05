@@ -1,0 +1,10 @@
+# Para rodar o app num servidor (ex.: Streamlit Community Cloud): só o necessário para o app,
+# nas versões em que os testes passaram (requirements-lock.txt). O "." instala o motor (euler).
+# Para desenvolver: pip install -e ".[dev]".
+pandas==3.0.6
+numpy==2.4.6
+scipy==1.17.1
+iapws==1.5.5
+streamlit==1.64.0
+openpyxl==3.1.5
+.

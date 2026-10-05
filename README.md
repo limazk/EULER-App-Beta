@@ -49,6 +49,20 @@ evita servidores duplicados e, a cada abertura, traz a versão principal do GitH
 é seguro: só avança, nunca descarta alteração local não salva nem commits próprios. A barra
 lateral mostra se a versão foi atualizada ou por que não foi (D91).
 
+### Pela internet (Streamlit Community Cloud, gratuito)
+
+1. Em **share.streamlit.io**, entre com a conta do GitHub dona deste repositório.
+2. **Create app** → implantar a partir do GitHub: repositório `rodriguesadryan06-a11y/softwer-euler`,
+   branch `claude/new-session-xytynj`, arquivo principal `app/main.py`.
+3. Em **Advanced settings**, Python **3.11**. Depois, **Deploy**.
+
+O servidor instala o [requirements.txt](requirements.txt) e publica um endereço
+`….streamlit.app`. Cada envio para esse branch atualiza o app sozinho (uma versão só).
+Cuidados: com o repositório público, **qualquer pessoa com o link abre o app**; use só
+**dados sintéticos** (nunca dados de cliente); o que for gravado lá (plantas, fechamentos)
+**some quando o app reinicia**. Depois de um tempo sem uso, o app "dorme" e leva alguns
+segundos para acordar.
+
 ## Mapa do repositório
 
 | Pasta | Conteúdo |

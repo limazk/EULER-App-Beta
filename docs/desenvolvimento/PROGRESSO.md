@@ -305,3 +305,11 @@ Pedido do Adryan: "entrou muita coisa e ficou um pouco confuso usar" (D96).
 - **Uso mais seguro:** o nome de quem registra é digitado uma vez e vale em todas as telas; depois de gravar, a tela se redesenha com aviso verde no topo e formulários limpos (nada é enviado duas vezes por engano); a aba escolhida continua aberta.
 - **Testes:** ciclo completo pelas telas (planta de demonstração → painel → fechamento → investigação → evidência → ação → avaliação → encerramento → custo → preço) e as quatro telas abrindo sem planta. Conferido no navegador, sem erros.
 - Decisões D93–D96 registradas como propostas pendentes. Guias de demonstração atualizados para o menu novo.
+
+## App pronto para a internet — 05/10/2026
+
+Pedido do Adryan: acessar o software pela internet, em vez de uma prévia refeita à parte.
+
+- `requirements.txt` na raiz com só o necessário para o app, nas versões testadas, e o motor (`.`). Conferido numa cópia limpa do repositório: instalação do zero em Python 3.11 e 3.12, app aberto sem pasta de dados configurada e todas as telas percorridas no navegador sem erro (análise, Financeiro, Oportunidades, Relatório e o acompanhamento com a planta de demonstração).
+- Passo a passo do Streamlit Community Cloud no README. A publicação em si precisa da conta do Adryan (login pelo GitHub); cada envio ao branch atualiza o app.
+- Cuidados registrados: repositório público = link aberto a quem o tiver; só dados sintéticos; o que for gravado lá some quando o app reinicia.
