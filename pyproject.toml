@@ -33,6 +33,8 @@ prints = [
 validacao = [
     "CoolProp>=6.6",
     "cantera>=3.0",
+    # lê a planilha .xls original do caso público brasileiro (validation/public/cervejaria_rs)
+    "xlrd>=2.0",
 ]
 
 [tool.setuptools.packages.find]

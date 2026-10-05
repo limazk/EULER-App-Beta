@@ -2,6 +2,12 @@
 
 Esta pasta existe para responder a uma pergunta simples: **o motor continua fisicamente coerente quando recebe telemetria industrial que não foi criada por nós?**
 
+## Planta brasileira: cervejaria em Viamão (RS), 660 dias
+
+`cervejaria_rs/`: planilha diária original do projeto 1202 do MDL (UNFCCC), sem alteração, e a
+extração em CSV. Duas caldeiras a casca de arroz, 05/11/2007 a 25/08/2009. Ver o `LEIA-ME.md`
+da pasta, `BUSCA_PLANTA_BRASILEIRA.md` (como foi achada e o que mais existe) e D99.
+
 ## Caso materializado: Zhejiang, China
 
 O arquivo `zhejiang_real_sample.csv` contém 20 linhas do prefixo **real operacional** de um conjunto público de uma caldeira industrial a carvão. A publicação original descreve uma caldeira de uma planta química em Zhejiang, 30 variáveis, amostragem a cada 5 s e 86.400 amostras entre 27/03/2022 e 01/04/2022. O repositório original do artigo no Figshare é CC0.

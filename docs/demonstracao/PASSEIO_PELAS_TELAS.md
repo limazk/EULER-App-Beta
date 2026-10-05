@@ -113,10 +113,15 @@ cadastro de instrumentos:
 ## 8. Dados reais testados (menu "Dados reais testados")
 
 - **Testes com dados públicos:** começa pelo quadro **O que já foi testado com dados reais**
-  (caso, dados, o que a EULER fez, resultado e o que falta) e mostra um caso por aba:
+  (caso, dados, o que a EULER fez, resultado e o que falta) e mostra um caso por aba. A
+  primeira é a **planta brasileira**: 660 dias reais de duas caldeiras a casca de arroz de uma
+  cervejaria em Viamão (RS), publicados no MDL da ONU. A EULER confere a planilha (os totais
+  batem com o relatório oficial; acha dias com total em branco e registros acima da
+  capacidade), compara dois anos com incerteza e responde "não dá para concluir" com a
+  medição que separa as explicações (o estoque do galpão nas datas de corte). Depois:
   caldeiras da EPA nos EUA (registros horários de 2023), biomassa (UTFPR), custo do vapor
   (Unisanta), caldeira a carvão em três cargas e a série por minuto de Zhejiang. Nenhum é de
-  cliente; ainda falta o histórico bruto de uma planta brasileira.
+  cliente.
 - **Diagnóstico de evidências:** para cada caldeira da EPA e cada mês, o que os dados
   sustentam, a força da evidência e a próxima verificação.
 

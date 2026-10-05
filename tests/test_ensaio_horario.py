@@ -73,8 +73,10 @@ def test_tela_executa_serie_e_preserva_limites():
     assert any("Registros horários reais" in h.value for h in at.subheader)
     assert any("referência regional" in c.value for c in at.caption)
     abas = [t.label for t in at.tabs]
-    # um caso público por aba; dentro do caso EPA, as três abas do resultado
-    assert abas[0] == "Caldeiras EPA · EUA"
+    # um caso público por aba (a planta brasileira primeiro); dentro do caso EPA, as três
+    # abas do resultado
+    assert abas[0] == "Planta brasileira · RS"
+    assert abas.index("Caldeiras EPA · EUA") > abas.index("Fontes")  # depois da 1ª aba
     assert ["Resultado", "O que verificar", "Fontes e cálculo"] == [
         a for a in abas if a in ("Resultado", "O que verificar", "Fontes e cálculo")
     ]

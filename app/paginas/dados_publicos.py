@@ -7,8 +7,10 @@ ausentes. A tela começa pelo resumo do que foi testado e mostra um caso por aba
 import estado
 import pandas as pd
 import streamlit as st
+from blocos.ensaio_cervejaria import renderizar as renderizar_cervejaria
 from blocos.ensaio_horario import renderizar as renderizar_ensaio_horario
 from componentes import cabecalho
+from ensaio_cervejaria import executar as executar_cervejaria
 from ensaio_horario import executar as executar_horario
 from ensaio_publico import DADOS, comparar_custo_publicado, executar
 from resumo_publico import AVISO, linhas_resumo
@@ -28,10 +30,15 @@ def resultado_horario():
     return executar_horario()
 
 
-def resumo(r: dict, h: dict) -> None:
+@st.cache_data(show_spinner="Conferindo os 660 dias da planta brasileira…")
+def resultado_cervejaria():
+    return executar_cervejaria()
+
+
+def resumo(r: dict, h: dict, c: dict) -> None:
     """O que já foi testado com dados reais, num quadro só (números do próprio motor)."""
     st.markdown("### O que já foi testado com dados reais")
-    st.dataframe(pd.DataFrame(linhas_resumo(r, h)), hide_index=True, width="stretch")
+    st.dataframe(pd.DataFrame(linhas_resumo(r, h, c)), hide_index=True, width="stretch")
     st.caption(AVISO)
 
 
@@ -351,9 +358,11 @@ cabecalho(
     "Dados reais testados",
 )
 r = resultado()
-resumo(r, resultado_horario())
+cervejaria = resultado_cervejaria()
+resumo(r, resultado_horario(), cervejaria)
 abas = st.tabs(
     [
+        "Planta brasileira · RS",
         "Caldeiras EPA · EUA",
         "Biomassa · UTFPR",
         "Custo do vapor · Unisanta",
@@ -363,12 +372,14 @@ abas = st.tabs(
     key="publicos_aba",
 )
 with abas[0]:
-    renderizar_ensaio_horario()
+    renderizar_cervejaria(cervejaria)
 with abas[1]:
-    biomassa_utfpr(r)
+    renderizar_ensaio_horario()
 with abas[2]:
-    custo_unisanta(r)
+    biomassa_utfpr(r)
 with abas[3]:
-    tres_cargas(r)
+    custo_unisanta(r)
 with abas[4]:
+    tres_cargas(r)
+with abas[5]:
     serie_zhejiang(r)

@@ -328,3 +328,15 @@ Pedidos do Adryan: "cadê a parte dos dados reais que foram testados?" e "busque
 - **Dados reais (D98).** Grupo próprio no menu, quadro do que foi testado no topo da tela e um caso por aba; atalho no Início; Diagnóstico de evidências com o cabeçalho padrão. Resumo calculado em `app/resumo_publico.py`, usado pelo app e pela prévia.
 - **Prévia** republicada no mesmo link com as telas de dados reais e a explicação da faixa.
 - 622 testes passando; nenhum golden ou tolerância alterado.
+
+## Primeira planta brasileira real nos dados testados — 05/10/2026
+
+Pedido do Adryan: "trabalhe exaustivamente nisso até achar dados completos de uma planta brasileira para nossa validação!"
+
+- **Onde estava:** teses e artigos brasileiros só publicam médias ou ensaios de horas. Os pedidos de emissão do **Mecanismo de Desenvolvimento Limpo (MDL)** da ONU trazem as planilhas de cálculo com os dados de operação. Filtrados os 42 projetos brasileiros com créditos emitidos; conferidos AmBev (cervejaria), Klabin, Solvay, Cargill (rejeitado, sem dados) e outros. Detalhes e o que cada fonte tem em `validation/public/BUSCA_PLANTA_BRASILEIRA.md`.
+- **Caso importado (D99):** cervejaria AmBev em Viamão (RS), duas caldeiras a casca de arroz de 19 t/h, **660 dias seguidos** (05/11/2007 a 25/08/2009). Planilha original no repositório sem alteração (termos da UNFCCC: domínio público, cópia sem alteração com a fonte) e extração em CSV conferida célula a célula.
+- **O que a EULER faz com ela** (aba **Planta brasileira · RS**, a primeira de Dados reais testados): reproduz os totais do relatório oficial de verificação (218.123 t de vapor, 49.566 t de casca); acha 3 dias com o total diário em branco, 1 dia com energia em branco e 7 registros acima da capacidade da caldeira (até 165%); mostra que a casca do dia não é a queimada no dia; confere a entalpia da planilha com a IF97 (diferença máxima 0,04%); compara dois anos no mesmo trecho do calendário: **8,5% menos casca por tonelada de vapor no 2º ano, não estabelecido** — faltam estoque nas datas de corte e incerteza dos medidores de vapor — com as seis explicações possíveis e a medição que separa cada uma.
+- Testes em `tests/test_ensaio_cervejaria.py` (contas refeitas só com a biblioteca padrão e a IAPWS direta). `xlrd` entrou no grupo `validacao` para o CI conferir a planilha original.
+- Prints em `prints/dados_reais_planta_brasileira_*.png`.
+- 635 testes passando; nenhum golden ou tolerância alterado.
+- **Continua faltando** para a validação completa: estoque medido, umidade/PCI da casca, água de alimentação e gases. Isso só vem de uma planta piloto autorizada.

@@ -1,6 +1,7 @@
 """Resumo dos testes com dados reais publicados (tela e prévia usam o mesmo quadro).
 
-Os números vêm das execuções do motor (ensaio_publico, ensaio_horario); nada é digitado à mão.
+Os números vêm das execuções do motor (ensaio_cervejaria, ensaio_publico, ensaio_horario);
+nada é digitado à mão.
 """
 
 from diagnostico_publico import diagnosticos
@@ -11,15 +12,33 @@ from euler.formato import num
 from euler.tipos import Grandeza
 
 AVISO = (
-    "Nenhum destes dados é de cliente da EULER. Ainda não há o histórico bruto de uma planta "
-    "brasileira com resultado de referência medido: esse é o próximo passo da validação."
+    "Nenhum destes dados é de cliente da EULER. Já há o histórico diário real de uma planta "
+    "brasileira (660 dias, publicado no MDL da ONU), mas sem estoque medido, umidade da casca e "
+    "água de alimentação: a validação completa ainda depende de uma planta piloto autorizada."
 )
 
 
-def linhas_resumo(r: dict, h: dict) -> list[dict]:
+def linha_cervejaria(c: dict) -> dict:
+    """Linha da planta brasileira (ensaio_cervejaria.executar())."""
+    k = c["conferencia"]
+    cmp = c["comparacao"]
+    sinal = "menos" if cmp["variacao_pct"] < 0 else "mais"
+    return {
+        "Caso": "Planta brasileira · cervejaria, RS",
+        "Dados": f"{k['dias']} dias reais de 2 caldeiras a casca de arroz (2007–2009)",
+        "O que a EULER fez": "conferiu a planilha, comparou dois anos com incerteza (GUM) "
+        "e listou as explicações",
+        "Resultado": f"{num(abs(cmp['variacao_pct']), 1)}% {sinal} casca por t de vapor; "
+        "não estabelecido (faltam estoque e incerteza do vapor)",
+        "O que falta": "estoque nas datas de corte, umidade/PCI e água de alimentação",
+    }
+
+
+def linhas_resumo(r: dict, h: dict, c: dict | None = None) -> list[dict]:
     """Uma linha por caso público: dados, o que a EULER fez, resultado e o que falta.
 
-    r: resultado de ensaio_publico.executar(); h: de ensaio_horario.executar().
+    r: resultado de ensaio_publico.executar(); h: de ensaio_horario.executar();
+    c: de ensaio_cervejaria.executar() (planta brasileira, primeira linha quando houver).
     """
     unidades = {}
     for un in ("B10", "B08", "B07", "B06"):
@@ -37,7 +56,7 @@ def linhas_resumo(r: dict, h: dict) -> list[dict]:
     )
     f = r["caso_financeiro"]
     maior = max(abs(e["delta_heos_pct"]) for e in r["estados"])
-    return [
+    return ([linha_cervejaria(c)] if c is not None else []) + [
         {
             "Caso": "Caldeiras EPA · EUA",
             "Dados": "registros horários de 4 caldeiras (2023)",

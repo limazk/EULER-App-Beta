@@ -1,0 +1,100 @@
+{
+  "caso": "Cervejaria AmBev, filial Águas Claras do Sul (Viamão/RS): duas caldeiras Bremer HBFR-4 a casca de arroz",
+  "origem_dado": "publico_real",
+  "aviso": "Documentos públicos do Mecanismo de Desenvolvimento Limpo (MDL) da UNFCCC. Não implica participação, revisão ou validação da AmBev. Não é dado de cliente da EULER.",
+  "projeto_mdl": {
+    "numero": 1202,
+    "titulo": "Burning of solid biomass for process steam generation for beer manufacture in place of the BPF 3 fuel oil at the Águas Claras do Sul Branch",
+    "pagina": "https://cdm.unfccc.int/Projects/DB/DNV-CUK1182338547.3/view",
+    "pedido_de_emissao": "https://cdm.unfccc.int/Projects/DB/DNV-CUK1182338547.3/iProcess/DNV-CUK1253163036.87/view",
+    "periodo_monitorado": [
+      "2007-11-05",
+      "2009-08-25"
+    ]
+  },
+  "termos_de_uso": {
+    "url": "https://unfccc.int/this-site/terms-of-use",
+    "trecho": "All official texts, data and documents [...] are in the public domain and may be freely downloaded, copied and printed provided no change to the content is introduced, and the source is duly acknowledged.",
+    "como_cumprimos": "A planilha está no repositório sem nenhuma alteração (SHA-256 abaixo) e a fonte é citada em cada tela. O CSV é só uma extração das colunas diárias, refeita pelo script, sem mudar valores."
+  },
+  "arquivos": {
+    "1202_CER_Calc_Sheet_Rev1.xls": {
+      "url": "https://cdm.unfccc.int/UserManagement/FileStorage/PBL8CGK2V643W95HIDYXN7E0JZQTUM",
+      "rotulo_na_unfccc": "1202_CER_Calc_Sheet_Rev1",
+      "sha256": "38fd1e5e2e7be58da9f54a7eaa1bed8c6d5a301ec43adb41bd8566c6db046283",
+      "aba": "Emission Reduction Calculation"
+    },
+    "diario.csv": {
+      "gerado_por": "scripts/extrair_cervejaria.py",
+      "sha256": "817b5fea084bb45d26544b4d031fad76bf73fe58cef375c7c2ceed8d1d80f659"
+    }
+  },
+  "documentos_consultados": {
+    "relatorio_de_verificacao": {
+      "rotulo_na_unfccc": "Verification report (DNV, Report No. 2009-1812, rev. 03)",
+      "url": "https://cdm.unfccc.int/UserManagement/FileStorage/YQFO824HS91CZ5UXM3NBWKGR7DPITJ",
+      "sha256": "1c5b0415316b0dfaf7ad49ccd7129eac7a19f0912c53563d7567afc35e4e79bc"
+    },
+    "pdd_revisado": {
+      "rotulo_na_unfccc": "project design document (1202_revised PDD)",
+      "url": "https://cdm.unfccc.int/UserManagement/FileStorage/YMBE07XSUKD3CQJFPOHZ19L84W6I5T"
+    },
+    "relatorio_de_monitoramento": {
+      "rotulo_na_unfccc": "Monitoring report: 05 Nov 2007 - 25 Aug 2009",
+      "url": "https://cdm.unfccc.int/UserManagement/FileStorage/SA5NMZKY8ETDBG3971VQULCF2JHR6P",
+      "sha256": "8a66367cc98f360c5272a5976d35357956c87622502d5ee0a373d30d66d6f458"
+    }
+  },
+  "fatos_documentados": {
+    "totais_verificados": {
+      "vapor_t": 218123,
+      "biomassa_t": 49566,
+      "oleo_equivalente_t": 1530,
+      "onde": "relatório de verificação, página 13 do PDF"
+    },
+    "balanca": {
+      "tipo": "balança rodoviária",
+      "exatidao_pct": 2.0,
+      "tipo_da_incerteza": null,
+      "calibracoes": [
+        "2007-12-06",
+        "2008-03-28",
+        "2009-01-19"
+      ],
+      "onde": "relatório de verificação, páginas 10 e 11 do PDF (\"The accuracy is 2% (it is not established in the PDD)\")"
+    },
+    "medidores_de_vapor": {
+      "tags": [
+        "FIT133001",
+        "FIT134001"
+      ],
+      "exatidao_citada": "0,01 mmH2O (resolução da pressão diferencial, não incerteza da vazão)",
+      "calibracoes_vazao": [
+        "2008-07-13",
+        "2009-07-13"
+      ],
+      "leitura": "o operador lê o totalizador uma vez por dia e registra a diferença (PDD, página 17 do PDF)",
+      "onde": "relatório de verificação, página 12 do PDF; PDD, página 17 do PDF"
+    },
+    "origem_da_biomassa_diaria": {
+      "pdd": "o operador calcula o consumo diário pelo volume de casca no galpão vezes a densidade; inventário mensal ajusta o consumo (PDD, página 16 do PDF)",
+      "verificacao": "\"Data of fuel consumption is taken from the suppliers invoices\" (relatório de verificação, página 13 do PDF)"
+    },
+    "caldeiras": {
+      "quantidade": 2,
+      "capacidade_t_h": 19.0,
+      "pressao_nominal": "10 kgf/cm² e 15 bar, em trechos diferentes do PDD (página 7 do PDF)",
+      "onde": "PDD, página 7 do PDF"
+    },
+    "estoque_de_projeto": "área de estoque de biomassa para no mínimo 5 dias de operação (PDD, página 3 do PDF; relatório de monitoramento, página 2)",
+    "exemplo_de_projeto_do_fabricante": {
+      "casca_de_arroz_pci_kcal_kg": 3300,
+      "umidade_pct": 12,
+      "consumo_kg_h": 3979.04,
+      "vapor_kg_h": 19000,
+      "onde": "PDD, página 8 do PDF, tabela \"Examples of boiler combustion performance by biomass type\"",
+      "natureza": "exemplo de projeto; não é ensaio desta caldeira no período"
+    },
+    "tabela_de_vapor_da_planilha": "aba \"DRY SATURATED STEAM TABLE\": pressão em kgf/cm² com 0 kgf/cm² a 99,09 °C, isto é, referida a 1 kgf/cm² absoluto; entalpia total contada a partir de 0 °C"
+  }
+}

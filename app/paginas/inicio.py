@@ -77,7 +77,8 @@ with cartao("dados-reais"):
         "governos e universidades**"
     )
     st.caption(
-        "Registros horários de caldeiras nos EUA (EPA), estudos brasileiros de biomassa e de custo "
+        "660 dias reais de uma planta brasileira (cervejaria no RS, caldeiras a casca de arroz), "
+        "registros horários de caldeiras nos EUA (EPA), estudos brasileiros de biomassa e de custo "
         "do vapor, uma caldeira a carvão em três cargas e uma série por minuto da China. Nenhum é "
         "de cliente; cada um mostra o que foi possível concluir e o que faltou."
     )
