@@ -313,3 +313,9 @@ Pedido do Adryan: acessar o software pela internet, em vez de uma prévia refeit
 - `requirements.txt` na raiz com só o necessário para o app, nas versões testadas, e o motor (`.`). Conferido numa cópia limpa do repositório: instalação do zero em Python 3.11 e 3.12, app aberto sem pasta de dados configurada e todas as telas percorridas no navegador sem erro (análise, Financeiro, Oportunidades, Relatório e o acompanhamento com a planta de demonstração).
 - Passo a passo do Streamlit Community Cloud no README. A publicação em si precisa da conta do Adryan (login pelo GitHub); cada envio ao branch atualiza o app.
 - Cuidados registrados: repositório público = link aberto a quem o tiver; só dados sintéticos; o que for gravado lá some quando o app reinicia.
+
+## Prévia interativa atualizada — 05/10/2026
+
+- A prévia (página que abre no navegador sem instalar nada) passou a ter o menu em três grupos, Financeiro, Oportunidades e todas as telas de **Acompanhar a planta**. Gerada por `scripts/gerar_previa.py`; dados do acompanhamento em `scripts/previa_acompanhamento.py`; telas novas em `scripts/previa_telas_novas.js`.
+- Os números vêm do motor: os três fechamentos da planta de demonstração, a investigação aberta a partir de cada um e a avaliação de uma ação para cada data de 03/08 a 29/09. O que o visitante registra (evidência, ação, encerramento, preço, custo) fica só no navegador dele.
+- Conferida no navegador: o ciclo completo, as telas de análise e a largura de celular, sem rolagem lateral nem erro. Publicada num link novo, que substitui a prévia de 01/10.
