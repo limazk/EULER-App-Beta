@@ -142,6 +142,7 @@ def _fechamento(f: dict) -> dict:
         "ref_versao": n["referencia"]["versao"],
         "ref_id": n["referencia"]["id"],
         "desvio_brl": desvio.get("custo_brl"),
+        "incerteza": desvio.get("incerteza"),
         # para a fila do Painel (mesmas regras de euler/painel.py)
         "desvio_pct": desvio.get("pct_do_esperado"),
         "desvio_faixa": desvio.get("faixa_brl"),

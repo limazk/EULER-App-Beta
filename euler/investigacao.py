@@ -40,7 +40,7 @@ import pandas as pd
 
 from euler import __version__
 from euler.conta import explicar_conta
-from euler.deteccao import Comparacao, comparar
+from euler.deteccao import Comparacao, _como_grandeza, comparar
 from euler.direto import MEDICOES_DIRETO, BalancoDireto, balanco_direto
 from euler.economia import valorizar_diferenca
 from euler.formato import num, pct, plural
@@ -50,7 +50,10 @@ from euler.incerteza import (
     Orcamento,
     agregar_por_fonte,
     detectabilidade,
+    escalar_fonte,
+    fontes_diferenca,
     u_combinada,
+    u_diferenca,
 )
 from euler.indireto import ResultadoPerdaGases, perda_gases
 from euler.io import Pacote
@@ -651,6 +654,84 @@ def _hipotese(
 
 
 # ---------------------------------------------------------------- investigação
+
+
+def _rotulo_fonte(chave: str | None, nome: str) -> str:
+    """Nome de uma fonte de erro para a tela (as medições de estoque viram uma só)."""
+    if chave and chave.startswith("medicao:estoque"):
+        return "medições de estoque do pátio"
+    if chave and chave.startswith("instrumento:") and nome.startswith("pesagem"):
+        return f"balança {chave.split(':', 1)[1].split('@')[0]}"
+    return nome
+
+
+def _analise_incerteza(pacote: Pacote, g_ref, g_comp) -> dict | None:
+    """De onde vem a faixa da diferença de consumo e o que a estreitaria (D97).
+
+    Três respostas, todas com a regra de `u_diferenca` (GUM 5.2.2) e sem mudar a faixa
+    principal (erros de instrumento independentes, r = 0):
+    - parcela de cada fonte na variância da diferença (r = 0);
+    - U com r = 1: vale se cada instrumento repetir o mesmo erro nos dois períodos (D37);
+    - U se a incerteza declarada da fonte dominante caísse pela metade (cenário "se").
+    Sem orçamento completo nos dois períodos: None (nada é estimado).
+    """
+    a, b = _como_grandeza(g_ref), _como_grandeza(g_comp)
+    if a is None or b is None or a.orcamento is None or b.orcamento is None:
+        return None
+    if a.orcamento.faltam or b.orcamento.faltam:
+        return None
+    va, vb = float(a.valor), float(b.valor)
+    fontes = fontes_diferenca(va, a.orcamento, vb, b.orcamento, r_instrumento=0.0)
+    total = sum(f["variancia"] for f in fontes)
+    if total <= 0:
+        return None
+    por_rotulo: dict[str, dict] = {}
+    for f in fontes:
+        rot = _rotulo_fonte(f["chave"], f["nome"])
+        item = por_rotulo.setdefault(rot, {"nome": rot, "variancia": 0.0, "chave": f["chave"]})
+        item["variancia"] += f["variancia"]
+    lista = sorted(por_rotulo.values(), key=lambda x: -x["variancia"])
+    parcelas = [{"nome": x["nome"], "parcela_pct": 100 * x["variancia"] / total} for x in lista]
+    u_cor = u_diferenca(va, a.orcamento, vb, b.orcamento, r_instrumento=1.0)
+    chaves_a = {c.chave for c in a.orcamento.componentes if c.chave}
+    chaves_b = {c.chave for c in b.orcamento.componentes if c.chave}
+    dominante = lista[0]
+    melhor = None
+    chave = dominante["chave"]
+    if chave and chave.startswith("instrumento:"):
+        prefixo = chave.split("@")[0]
+        ident = prefixo.split(":", 1)[1]
+        u_melhor = u_diferenca(
+            va,
+            escalar_fonte(a.orcamento, prefixo, 0.5),
+            vb,
+            escalar_fonte(b.orcamento, prefixo, 0.5),
+            r_instrumento=0.0,
+        )
+        declarada = None
+        cadastro = pacote.dados("instrumentos")
+        if cadastro is not None and "instrumento_id" in cadastro:
+            linha = cadastro[cadastro["instrumento_id"] == ident]
+            if len(linha) and pd.notna(linha.iloc[0].get("incerteza_declarada")):
+                valor = float(linha.iloc[0]["incerteza_declarada"])
+                unidade = "%" if "pct" in str(linha.iloc[0].get("unidade", "")) else ""
+                declarada = (
+                    f"de ±{num(valor, 1)}{unidade} para ±{num(valor / 2, 1)}{unidade}"
+                    if unidade
+                    else "pela metade"
+                )
+        melhor = {
+            "fonte": dominante["nome"],
+            "U": 2 * u_melhor,
+            "descricao": declarada or "pela metade",
+        }
+    return {
+        "parcelas": parcelas,
+        "U_correlacionada": 2 * u_cor,
+        # o cadastro não registra troca nem recalibração da fonte dominante entre os períodos
+        "mesmo_instrumento": bool(chave and chave in chaves_a and chave in chaves_b),
+        "melhor": melhor,
+    }
 
 
 def investigar(
@@ -1520,6 +1601,9 @@ def investigar(
             horas_ref=ref.horas,
             horas=comp.horas,
             incerteza_consumo_t_t=c_cons.incerteza_delta,
+            analise_incerteza=_analise_incerteza(
+                pacote, b_ref.consumo_t_por_t, b_comp.consumo_t_por_t
+            ),
             efeito_condicao_vapor_pct=ef_dh,
             efeito_qualidade_pct=ef_w,
             cenarios_qualidade_pct=faixa_w,

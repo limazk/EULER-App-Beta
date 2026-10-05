@@ -197,6 +197,7 @@ select { background: var(--campo); color: var(--texto); border: 1px solid #3F3F3
 .link:focus-visible { outline: 2px solid #A8C7FA; outline-offset: 2px; }
 .link svg { width: 16px; height: 16px; }
 .titulo-uso { font-weight: 600; display: flex; gap: 8px; align-items: center; }
+.quebra td { white-space: normal; min-width: 8rem; }
 
 @media (max-width: 1180px) { .g6 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 960px) {
@@ -283,6 +284,8 @@ const ICONES = {
   atualizar: '<path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M5 20h14"/>',
   fechamentos: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16M9 15l2 2 4-4"/>',
   acoes: '<circle cx="12" cy="12" r="9"/><path d="m8 12.2 2.8 2.8L16 9.5"/>',
+  publicos: '<path d="M9 3h6M10 3v6l-5.6 9.8A1.5 1.5 0 0 0 5.7 21h12.6a1.5 1.5 0 0 0 1.3-2.2L14 9V3"/><path d="M7.5 15h9"/>',
+  diagnostico: '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h3M8 16h3m3-3 1.5 1.5L18 12"/>',
   plantas: '<ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3"/>',
 };
 const icone = (nome, extra = "") => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ${extra}>${ICONES[nome]}</svg>`;
@@ -304,6 +307,9 @@ const TELAS = [
   { id: "fechamentos", titulo: "Fechamentos", icone: "fechamentos" },
   { id: "acoes", titulo: "Investigações e ações", icone: "acoes" },
   { id: "plantas", titulo: "Plantas e histórico", icone: "plantas" },
+  { grupo: "Dados reais testados" },
+  { id: "publicos", titulo: "Testes com dados públicos", icone: "publicos" },
+  { id: "diagnostico", titulo: "Diagnóstico de evidências", icone: "diagnostico" },
   { grupo: "Referência" },
   { id: "calculadora", titulo: "Calculadora de referência", icone: "calculadora" },
 ];
@@ -344,6 +350,9 @@ function telaInicio() {
         <p class="legenda">Os dados ficam guardados por planta. A cada atualização a EULER fecha o período, abre investigações, acompanha as ações da equipe e verifica o resultado depois.</p>
         <p class="legenda">Atualizar dados → Fechamentos → Investigações e ações → Painel</p><div><button class="link" data-ir="atualizar">${icone("seta")} Cadastrar a planta ou criar a demonstração</button></div></div>
     </div>
+    <div class="cartao"><div class="sobrelinha">Dados reais testados</div><div class="titulo-uso">${icone("publicos", 'width="17" height="17"')} Além da demonstração: casos reais publicados por empresas, governos e universidades</div>
+      <p class="legenda">Registros horários de caldeiras nos EUA (EPA), estudos brasileiros de biomassa e de custo do vapor, uma caldeira a carvão em três cargas e uma série por minuto da China. Nenhum é de cliente; cada um mostra o que foi possível concluir e o que faltou.</p>
+      <div><button class="link" data-ir="publicos">${icone("seta")} Ver o que foi testado com dados reais</button></div></div>
     <h2>Em que pé está a EULER</h2>
     <div class="grade g3">${D.textos.estagios.map(([t, txt], i) => `<div class="cartao"><div class="passo titulo" style="font-weight:600;display:flex;gap:8px;align-items:center">${icone(icEst[i], 'width="17" height="17"')} ${e(t)}</div><p class="legenda">${e(txt)}</p></div>`).join("")}</div>
     <h2>O que a EULER não faz</h2>
@@ -654,7 +663,7 @@ function montarNav() {
   const campo = document.getElementById("autor");
   if (document.activeElement !== campo) campo.value = ac.autor || "";
 }
-const RENDER = { inicio: telaInicio, importar: telaImportar, saude: telaSaude, limites: telaLimites, investigacao: telaInvestigacao, financeiro: telaFinanceiro, oportunidades: telaOportunidades, extrato: telaExtrato, relatorio: telaRelatorio, painel: telaPainel, atualizar: telaAtualizar, fechamentos: telaFechamentos, acoes: telaAcoes, plantas: telaPlantas, calculadora: telaCalculadora };
+const RENDER = { inicio: telaInicio, importar: telaImportar, saude: telaSaude, limites: telaLimites, investigacao: telaInvestigacao, financeiro: telaFinanceiro, oportunidades: telaOportunidades, extrato: telaExtrato, relatorio: telaRelatorio, painel: telaPainel, atualizar: telaAtualizar, fechamentos: telaFechamentos, acoes: telaAcoes, plantas: telaPlantas, publicos: telaPublicos, diagnostico: telaDiagnostico, calculadora: telaCalculadora };
 
 function faixaPrevia() {
   document.getElementById("faixa-previa").innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center"><span><b>Prévia interativa</b> do app EULER com o caso de demonstração <b>sintético</b>. Os números são os calculados pelo motor da EULER (versão ${e(D.versao)}); nada é recalculado nesta página. O que você registrar em Acompanhar a planta fica guardado só neste navegador.</span>
@@ -722,6 +731,9 @@ document.addEventListener("change", (ev) => {
   const id = ev.target.id;
   if (id === "ver-fech") { ac.fechSel = Number(ev.target.value); ac.abriu = null; guardar(); return mostrar(); }
   if (id === "inv-sel") { ac.invSel = Number(ev.target.value); ac.erro = null; guardar(); return mostrar(); }
+  if (id === "pub-un") { estado.pubUn = ev.target.value; return mostrar(); }
+  if (id === "diag-un") { estado.diagUn = ev.target.value; estado.diagMes = 0; return mostrar(); }
+  if (id === "diag-mes") { estado.diagMes = Number(ev.target.value); return mostrar(); }
   if (id === "dias-ano") { const v = Number(ev.target.value); estado.diasAno = v >= 1 && v <= 366 ? v : null; return mostrar(); }
   if (id === "ref-ini") estado.r0 = +ev.target.value;
   else if (id === "ref-fim") estado.r = +ev.target.value;

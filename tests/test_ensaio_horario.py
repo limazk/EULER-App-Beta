@@ -72,7 +72,13 @@ def test_tela_executa_serie_e_preserva_limites():
     assert not at.exception
     assert any("Registros horários reais" in h.value for h in at.subheader)
     assert any("referência regional" in c.value for c in at.caption)
-    assert [t.label for t in at.tabs] == ["Resultado", "O que verificar", "Fontes e cálculo"]
+    abas = [t.label for t in at.tabs]
+    # um caso público por aba; dentro do caso EPA, as três abas do resultado
+    assert abas[0] == "Caldeiras EPA · EUA"
+    assert ["Resultado", "O que verificar", "Fontes e cálculo"] == [
+        a for a in abas if a in ("Resultado", "O que verificar", "Fontes e cálculo")
+    ]
+    assert any("O que já foi testado com dados reais" in m.value for m in at.markdown)
     at.selectbox[0].select("B08").run()
     assert not at.exception
     assert any("Sem aumento nos períodos" in m.value for m in at.markdown)

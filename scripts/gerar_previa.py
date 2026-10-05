@@ -44,6 +44,7 @@ from formatacao import (
 )
 from graficos import CORES
 from previa_acompanhamento import dados_acompanhamento
+from previa_publicos import dados_publicos
 
 from euler.capacidades import avaliar
 from euler.combustivel import (
@@ -344,6 +345,7 @@ def _financeiro(j: dict) -> dict:
         "separacao": separacao,
         "premissas": premissas,
         "notas": list(c["premissas"]),
+        "incerteza": d.get("incerteza"),
     }
 
 
@@ -664,6 +666,7 @@ def dados_da_previa() -> dict:
         },
         "atos": {ato: _ato(pasta, rotulo) for ato, (pasta, rotulo) in ATOS.items()},
         "acomp": dados_acompanhamento(),
+        "publicos": dados_publicos(),
         "padrao": [0, 3, 4, 5],
     }
 

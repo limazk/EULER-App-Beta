@@ -43,17 +43,20 @@ paginas = {
         st.Page("paginas/acoes.py", title="Investigações e ações", icon=":material/task_alt:"),
         st.Page("paginas/plantas.py", title="Plantas e histórico", icon=":material/database:"),
     ],
-    "Referência": [
-        st.Page(
-            "paginas/diagnostico.py",
-            title="Diagnóstico de evidências",
-            icon=":material/fact_check:",
-        ),
+    # casos públicos reais (EPA, universidades): o que já foi conferido fora da demonstração
+    "Dados reais testados": [
         st.Page(
             "paginas/dados_publicos.py",
             title="Testes com dados públicos",
             icon=":material/science:",
         ),
+        st.Page(
+            "paginas/diagnostico.py",
+            title="Diagnóstico de evidências",
+            icon=":material/fact_check:",
+        ),
+    ],
+    "Referência": [
         st.Page(
             "paginas/calculadora.py", title="Calculadora de referência", icon=":material/calculate:"
         ),

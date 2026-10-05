@@ -15,6 +15,7 @@ function telaFinanceiro() {
     const classe = { total: "fin-total", alerta: "fin-alerta" };
     h += `<h3>${e(f.frase)}</h3>
       <div class="grade g3">${f.cartoes.map(([r, v, l, cl]) => `<div class="cartao metrica ${classe[cl] || ""}"><div class="rotulo">${e(r)}</div><div class="valor">${e(v)}</div><p class="legenda">${e(l)}</p></div>`).join("")}</div>
+      ${incertezaHtml(f.incerteza)}
       <div class="cartao"><b>Parcela evitável: não apurada</b><p class="legenda">${e(f.evitavel)}</p>
         ${f.verificacao ? `<p>${md("**Próxima verificação:** " + f.verificacao)}</p><p class="legenda">${e(f.porque)}</p>` : ""}
         <div>${link("oportunidades", "Ver as oportunidades em ordem de prioridade", "oportunidades")}</div></div>
@@ -231,7 +232,7 @@ function telaFechamentos() {
       : `<p class="legenda">Nenhum período novo desde o último fechamento: importe dados novos para continuar.</p>`}
     <h2>Fechamento #${sel.id} · ${e(sel.periodo)}</h2>
     ${faixaSituacao(sel.situacao, sel.frase)}
-    ${sel.metricas ? `<div class="grade g3">${metrica("Custo do consumo observado", sel.metricas[0])}${metrica("Custo esperado (referência ajustada)", sel.metricas[1])}${metrica("Desvio monetizado", sel.metricas[2])}</div><p class="legenda">${e(sel.politica)}</p>` : ""}
+    ${sel.metricas ? `<div class="grade g3">${metrica("Custo do consumo observado", sel.metricas[0])}${metrica("Custo esperado (referência ajustada)", sel.metricas[1])}${metrica("Desvio monetizado", sel.metricas[2])}</div><p class="legenda">${e(sel.politica)}</p>${incertezaHtml(sel.incerteza, true)}` : ""}
     <p>${md("**O que mudou desde o fechamento anterior:** " + sel.mudanca)}</p>
     ${sel.persistencia ? `<p>${md("**Persistência:** " + sel.persistencia)}</p>` : ""}
     <p>${md("**Próxima verificação:** " + sel.proxima)}</p>
@@ -597,3 +598,169 @@ const ACOES = {
   serie: () => { estado.ato = "1"; toast("Série carregada: abra Investigação, Saúde ou Financeiro para analisar."); ir("saude"); },
   recomecar: () => { const autor = ac.autor; ac = novoAcomp(); ac.autor = autor; gravou("Demonstração apagada desta página."); },
 };
+
+/* ---------------------------------------------- incerteza da faixa (D97) */
+function incertezaHtml(inc, recolhido = false) {
+  if (!inc) return "";
+  const titulo = "Por que a faixa é larga e o que a estreita";
+  const corpo = `${inc.frase_origem ? `<p>${md(inc.frase_origem)}</p>` : ""}${["condicional", "melhor"].filter((k) => inc[k]).map((k) => `<p>• ${md(inc[k].frase)}</p>`).join("")}<p class="legenda">${e(inc.nota)}</p>`;
+  return recolhido
+    ? `<details><summary>${titulo}</summary><div class="grade" style="gap:8px">${corpo}</div></details>`
+    : `<div class="cartao"><b>${titulo}</b>${corpo}</div>`;
+}
+
+/* ---------------------------------------------- Dados reais testados (casos públicos) */
+const PUB = D.publicos;
+estado.pubAba = 0;
+estado.pubUn = "B10";
+estado.pubSub = 0;
+estado.diagUn = "B10";
+estado.diagMes = 0;
+const fonteLink = (href, rotulo) => `<a class="link" href="${e(href)}" target="_blank" rel="noopener">${icone("seta")} ${e(rotulo)}</a>`;
+const tabelaLonga = (cab, linhas) => `<div class="tabela-rolagem quebra">${tabela(cab, linhas).replace('<div class="tabela-rolagem">', "").replace(/<\/div>$/, "")}</div>`;
+
+function graficoDiario(pontos) {
+  const W = 760, H = 230, m = { l: 44, r: 10, t: 12, b: 26 };
+  const vals = pontos.map((p) => p[1]);
+  const hi = Math.max(1, ...vals) * 1.15, lo = Math.min(-1, ...vals) * 1.15;
+  const Y = (v) => m.t + ((hi - v) / (hi - lo)) * (H - m.t - m.b);
+  const larg = (W - m.l - m.r) / pontos.length;
+  const passo = passoBonito(hi - lo);
+  let grade = "";
+  for (let v = Math.ceil(lo / passo) * passo; v <= hi; v += passo) grade += `<line x1="${m.l}" x2="${W - m.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="#333333"/><text x="${m.l - 7}" y="${Y(v) + 4}" text-anchor="end" fill="#A3A3A3" font-size="12">${nf(Math.abs(v) < 1e-9 ? 0 : v, 0)}%</text>`;
+  const barras = pontos.map(([d, v], i) => {
+    const x = m.l + i * larg + 1, y0 = Y(0), y = Y(v);
+    return `<rect x="${x.toFixed(1)}" y="${Math.min(y, y0).toFixed(1)}" width="${Math.max(larg - 2, 1).toFixed(1)}" height="${Math.max(Math.abs(y - y0), 1).toFixed(1)}" rx="2" fill="${v >= 0 ? "#F6AD6B" : "#7FB2F0"}" data-dica="${e(d)} · ${nf(v, 1)}%"/>`;
+  }).join("");
+  const rotulos = pontos.map(([d], i) => (i % 7 === 0 ? `<text x="${m.l + i * larg + larg / 2}" y="${H - 6}" text-anchor="middle" fill="#A3A3A3" font-size="12">${e(d)}</text>` : "")).join("");
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Diferença de energia por dia, em %">${grade}<line x1="${m.l}" x2="${W - m.r}" y1="${Y(0)}" y2="${Y(0)}" stroke="#8A8A8A"/>${barras}${rotulos}</svg>`;
+}
+
+function abaEpa() {
+  const u = PUB.epa[estado.pubUn];
+  let sub = "";
+  if (estado.pubSub === 0) {
+    sub = `<div class="cartao metrica"><div class="rotulo">Valor estimado do desvio</div><div class="valor">${e(u.valor)}</div><p class="legenda">Estimativa a preço de referência regional do gás · somente horas comparáveis. Não é prejuízo confirmado nem economia garantida. Combustível efetivo e contrato da planta ainda precisam ser confirmados.</p></div>
+      <div class="grade g2">${u.meses.map(([n, v]) => metrica(n, v)).join("")}</div>
+      <p class="legenda">Diferença de energia frente à referência, ajustada à produção de vapor. Janeiro = referência.</p>
+      <p>${md(`**${u.energia} de diferença energética** nas ${u.horas} horas comparadas.`)}</p>
+      <div class="cartao"><b style="font-size:15px">O resultado ao longo dos dias (diferença de energia, %)</b><div class="grafico">${graficoDiario(u.diario)}</div>
+        <p class="legenda">Acima de zero: mais energia que a referência para aquela produção. Abaixo: menos energia. Dias sem horas comparáveis não são preenchidos.</p></div>
+      <div class="cartao"><b>O que já sabemos — e o que continua em aberto</b><p>${md("**Calculado:** diferença de consumo ajustada à carga e seu valor a preço declarado.")}</p><p>${md("**Em aberto:** se há perda térmica, qual é a causa e quanto seria recuperável. As incertezas dos instrumentos ainda não foram informadas.")}</p></div>
+      <b>Cobertura da comparação</b>${u.cobertura.map(([n, c, v]) => `<div class="grade" style="gap:4px"><span class="legenda">${e(n)}: ${c} de ${v} horas válidas comparadas</span><div style="height:8px;border-radius:4px;background:var(--campo)"><div style="height:8px;border-radius:4px;width:${(100 * c) / v}%;background:var(--serie)"></div></div></div>`).join("")}
+      <p class="legenda">${u.fora_faixa} horas válidas ficaram fora da faixa de carga de janeiro e foram excluídas. Os resultados não cobrem essas horas nem devem ser extrapolados para o ano.</p>`;
+  } else if (estado.pubSub === 1) {
+    sub = `<h3>O que fazer com este resultado</h3>
+      <div class="alerta info">${icone("busca")}<div>${u.investigar ? md("**Verificação indicada.** Encaminhar o desvio ao responsável técnico e conferir os registros abaixo antes de decidir uma intervenção.") : md("**Acompanhar e conferir a comparação.** Este resultado não sustenta uma intervenção por aumento persistente de consumo.")}</div></div>
+      <p class="legenda">Orientação de investigação para este caso histórico; não é um alarme ao vivo. Não altera setpoints nem substitui os procedimentos de segurança da planta.</p>
+      ${u.verificacoes.map(([onde, conferir, para], i) => `<div class="cartao"><b>${i + 1}. ${e(onde)}</b><p>${e(conferir)}</p><p class="legenda">${e(para)}</p></div>`).join("")}
+      <details><summary>Se o desvio persistir: onde aprofundar a investigação</summary><div class="grade" style="gap:8px"><p class="legenda">Frentes possíveis, sem causa atribuída nem ordem de prioridade. O responsável técnico escolhe a próxima verificação conforme os registros disponíveis.</p>${PUB.investigacoes.map(([o, d, r]) => `<div><b>${e(o)}</b><p>${e(d)}</p><p class="legenda">${e(r)}</p></div>`).join("")}</div></details>
+      <p>${md("**Quando uma intervenção poderá ser indicada?** Quando as verificações sustentarem uma causa e uma avaliação técnica justificar a ação. Depois, comparar antes e depois sob condições equivalentes para medir a economia efetiva. Este ensaio ainda não chegou a essa etapa.")}</p>`;
+  } else {
+    sub = `<h3>Um resultado que pode ser conferido</h3>
+      <p>${md("**Origem:** registros horários públicos EPA/CAMPD, preservados pela PUDL. Recorte de 8.034 registros com vapor informado, em quatro caldeiras.")}</p>
+      <p>${md("**Integridade:** o arquivo é conferido por uma verificação de integridade a cada execução. Isso verifica se o recorte mudou; não certifica os instrumentos da planta.")}</p>
+      <p>${md("**Comparação:** referência ajustada em janeiro; fevereiro e março somente na faixa de produção já observada. Dados ausentes, substituídos e horas parciais não são completados.")}</p>
+      ${u.sensibilidade ? `<div class="alerta info">${icone("busca")}<div>O aumento também aparece usando faixas de produção de 5 e 10 t/h. É uma conferência de consistência; não é intervalo de confiança nem prova de causa.</div></div>` : ""}
+      <b>Como o dinheiro foi calculado</b><p>Diferença de energia × preço por unidade de energia = valor estimado do desvio.</p>
+      ${tabela(["Mês", "Diferença (GJ)", "Preço (US$/GJ)", "Valor (US$)"], u.tabela.map((l) => l.map(e)), [1, 2, 3])}
+      <p class="legenda">Preço médio industrial do gás em Illinois: US$ 8,02 por mil pés cúbicos em fevereiro e US$ 6,54 em março de 2023. Poder calorífico regional anual: 1,040 MMBtu por mil pés cúbicos.</p>
+      <div class="alerta aviso">${icone("mao")}<div>A B10 registra carvão secundário no cadastro EPA, sem participação horária disponível. A valorização integral como gás é condicional. Não temos a fatura nem o contrato da planta.</div></div>
+      <p class="legenda">Janeiro não é uma operação certificada como ideal. Faltam condições da água e do vapor, eventos e incertezas. A B10 foi destacada depois de examinar as quatro unidades: estudo retrospectivo, sem validação prospectiva nem endosso da empresa.</p>
+      <div class="lado-a-lado">${fonteLink(PUB.epa_fonte.url, "Registros originais · EPA/PUDL")}${fonteLink(PUB.epa_fonte.preco_fonte, "Preço publicado · EIA")}${fonteLink(PUB.epa_fonte.calor_fonte, "Poder calorífico · EIA")}</div>
+      <details><summary>Detalhes técnicos · método</summary><p class="legenda">${e(u.referencia)} Referência E(V) = a + b·V ajustada só em janeiro; ΔE = soma de (E observada − E referência) nas horas comparáveis. Não é balanço térmico de eficiência.</p></details>`;
+  }
+  return `<h3>Registros horários reais · do consumo à investigação</h3>
+    <p class="legenda">CASO PÚBLICO · Ingredion Argo, EUA · janeiro a março de 2023 · sem vínculo com a instalação</p>
+    <label class="campo" style="max-width:320px">Caldeira do conjunto público<select id="pub-un">${Object.keys(PUB.epa).map((k) => `<option ${k === estado.pubUn ? "selected" : ""}>${k}</option>`).join("")}</select></label>
+    <div class="cartao"><h3>${e(estado.pubUn)} · ${e(u.titulo)}</h3><p>${e(u.conclusao)}</p><div><button class="link" data-acao="abrir-diag">${icone("ok")} Abrir Diagnóstico de evidências</button></div></div>
+    ${abas(["Resultado", "O que verificar", "Fontes e cálculo"], estado.pubSub, "pub-sub")}<div class="grade">${sub}</div>`;
+}
+
+function abaUtfpr() {
+  const x = PUB.utfpr;
+  return `<h3>Consumo aumentou: teste real com biomassa</h3><p class="legenda">Diniz · UTFPR, 2014 · indústria de papel · comparação de médias entre seca e chuva.</p>
+    <p>${md("**Este é um caso de aumento publicado, sem inverter os períodos.** Os valores entram no motor de comparação e valorização da EULER.")}</p>
+    ${tabela(["Entrada publicada", "Valor"], [["Consumo na seca", "0,30 t de biomassa por t de vapor"], ["Consumo na chuva", "0,35 t de biomassa por t de vapor"], ["Vapor produzido", "1.200 t/dia"], ["Preço histórico", "US$ 26,53 por t de biomassa"]].map((l) => l.map(e)))}
+    <div class="grade g3">${x.metricas.map(([r, v]) => metrica(r, v)).join("")}</div>
+    <p class="legenda">Valores com sinal: positivo = aumento; negativo = redução. Não há conversão cambial.</p><p>${e(x.conta)}</p>
+    <div class="alerta ok">${icone("ok")}<div>Conferência independente: (0,35 − 0,30) × 1.200 × 26,53 = US$ 1.591,80/dia. O motor reproduz essa conta. O texto publicado dá US$ 1.591/dia pela diferença de custos sem casas decimais: a divergência é de US$ 0,80/dia (0,05%).</div></div>
+    <div class="alerta info">${icone("busca")}<div>O número acima é uma diferença aritmética a preço constante. Sem incertezas dos instrumentos, a mudança não é confirmada metrologicamente. A fonte associa o aumento à chuva e à umidade, mas este recorte não permite à EULER separar umidade, carga e outras causas. Não é economia garantida.</div></div>
+    <details><summary>Rastreabilidade, limites e próxima verificação</summary><ul><li>O preço é histórico, em dólares; a unidade por tonelada é inferida da aritmética da fonte.</li><li>São médias publicadas, sem séries brutas. Não criamos estoques, horários ou leituras.</li><li>Esta rota testa comparação de consumo e valorização (E13); não faz balanço térmico completo, atribuição de causa nem comprovação de recuperação.</li><li>Próxima verificação: conferir o medidor de vapor, as incertezas, a carga e as condições do vapor; medir a umidade dos lotes queimados nos dois períodos.</li></ul>${fonteLink(x.url, "Fonte do aumento · UTFPR, página 33 do PDF")}</details>
+    <p class="legenda">No app, as entradas podem ser editadas para um cenário separado.</p>`;
+}
+
+function abaUnisanta() {
+  const x = PUB.unisanta;
+  return `<h3>Quanto isso representa em dinheiro?</h3><p class="legenda">Caso brasileiro publicado pela Unisanta (2015) · médias de 2010 e 2011 · gás natural.</p>
+    <p>${md("A publicação adota **R$ 1,10/kg** nos dois períodos: assim dá para comparar o custo de combustível por tonelada de vapor sem buscar preço de outro mercado. É um preço histórico da publicação, não uma cotação atual nem uma fatura auditada.")}</p>
+    <div class="grade g3">${x.metricas.map(([r, v]) => metrica(r, v)).join("")}</div>
+    <div class="alerta ok">${icone("ok")}<div>Diferença de ${e(x.diferenca)} por tonelada de vapor. É uma redução calculada a partir das médias publicadas; não é economia gerada pela EULER.</div></div>
+    <details><summary>Ver a conta e o que ela permite concluir</summary><div class="grade" style="gap:8px">${tabela(["Período", "Combustível (kg/h)", "Vapor (t/h)", "Consumo (kg/t vapor)", "Combustível (R$/h)"], x.tabela.map((l) => l.map(e)), [1, 2, 3, 4])}
+      <p>${md(`**Diferença bruta:** R$ ${x.bruta}/h, mas a produção aumentou. **À mesma produção de 123,85 t/h:** a diferença seria R$ ${x.normalizada}/h se a intensidade anterior permanecesse constante; projeção linear para comparação, não dinheiro recuperado.`)}</p>
+      <div class="alerta info">${icone("busca")}<div>Há uma intervenção relatada (retirada de pré-aquecedor ar/vapor), mas também mudou o combustível de partida. Sem registros brutos e incertezas, não dá para isolar a contribuição de cada mudança. Médias não são anualizadas sem as horas efetivas.</div></div>
+      ${fonteLink(x.url, "Consultar dissertação · tabelas 6, 7, 14 e 15")}</div></details>
+    <p class="legenda">No app, dá para refazer a comparação com outro preço.</p>`;
+}
+
+function abaCargas() {
+  const x = PUB.cargas;
+  return `<h3>Caldeira a carvão em três condições de carga</h3><p class="legenda">Médias operacionais publicadas por Ohijeagbon e colaboradores (2026), caldeira subcrítica a carvão. Não são três dias nem um histórico antes/depois.</p>
+    <div class="alerta aviso">${icone("mao")}<div>Cálculos térmicos condicionais: a fonte informa pressão estática em MPa sem dizer se é absoluta ou manométrica. A conferência interpreta os valores como absolutos. Não há preços nem incerteza instrumental documentados.</div></div>
+    <div class="grade g3">${metrica("Estados de água e vapor conferidos", "15")}${metrica("Maior diferença entre bibliotecas", x.maior)}${metrica("Economia comprovada", "Não apurada")}</div>
+    <p class="legenda">Comparação numérica: EULER/IAPWS-IF97 contra CoolProp/HEOS (IAPWS-95). A concordância verifica a implementação para estes pontos; não certifica os sensores da planta.</p>
+    ${tabela(["Carga publicada", "Vapor (t/h)", "Combustível por vapor (kg/t)", "Potência transferida ao vapor (MW)*"], x.tabela.map((l) => l.map(e)), [1, 2, 3])}
+    <p class="legenda">*Estimativa a partir das médias publicadas de vazão e das entalpias calculadas pela EULER.</p>
+    <div class="alerta info">${icone("busca")}<div>O consumo específico varia de 126,74 a 128,04 kg/t entre cargas diferentes. A EULER devolve a diferença, mas não confirma mudança detectável sem incerteza. Essa variação não demonstra desperdício nem justifica intervenção.</div></div>
+    <details><summary>Conferir cálculos, referências e divergências</summary>${tabela(["Carga (%)", "Ponto", "EULER (kJ/kg)", "Fonte (kJ/kg)", "HEOS (kJ/kg)", "Diferença EULER/fonte (%)"], x.estados.map((l) => l.map(e)), [2, 3, 4, 5])}
+      <p class="legenda">Pontos a revisar na fonte: divergência de até 0,99% em entalpias; oxigênio do combustível escrito como 7,9% e fração 0,078; pressões crescentes ao longo do economizador. Os dados ficam preservados, sem correção silenciosa. O poder calorífico publicado é PCS e não foi usado como PCI.</p>${fonteLink(x.url, "Consultar a fonte e o manual")}</details>`;
+}
+
+function abaZhejiang() {
+  const x = PUB.zhejiang;
+  return `<h3>Série de uma caldeira em uma indústria química</h3>
+    <p>${md(`**${x.linhas} registros originais**, de 27/03 a 01/04/2022, Zhejiang, China. A EULER usa o arquivo com as lacunas preservadas, sem preenchimento por modelo.`)}</p>
+    <div class="grade g3">${metrica("Menor temperatura do vapor", x.tmin)}${metrica("Maior temperatura do vapor", x.tmax)}${metrica("Registros prontos para importar", x.importados)}</div>
+    <p>${md("**A importação real passou:** leituras por minuto com os valores de temperatura preservados. O recorte seleciona uma em cada 12 linhas; não cria médias nem preenche lacunas. O fuso +08:00 foi inferido da localização e está declarado no arquivo.")}</p>
+    <p class="legenda">Pressão e vazão não foram mapeadas por falta de confirmação das unidades. Sem combustível, preço, água de entrada e pressão confirmada, eficiência e perdas financeiras ficam bloqueadas.</p>
+    <div class="cartao"><b>Experimente no aplicativo</b><p class="legenda">No app, um botão carrega esse recorte público nas telas de análise; depois, Dados e limites mostra o que ficou bloqueado e por quê.</p></div>
+    <details><summary>O que este ensaio comprova — e o que falta</summary><ul><li>${md("**Verificado:** origem pública rastreável, importação, preservação das temperaturas, cálculos termodinâmicos condicionais e bloqueios por falta de dados.")}</li><li>${md("**Ainda não demonstrado:** causa de perda, economia recuperável, custo por fornecedor e desempenho completo em uma planta brasileira a biomassa.")}</li><li>${md("**Próxima evidência necessária:** histórico sincronizado de combustível, vapor, condições da água e do vapor, qualidade do combustível, preços e eventos, com unidades e incertezas.")}</li></ul>${fonteLink(x.url, "Fonte original de Zhejiang · CC0")}</details>`;
+}
+
+function telaPublicos() {
+  const topo = cabecalho("Dados reais testados", "Testes com dados públicos", "Dados reais publicados por empresas, governos e universidades, executados no motor atual. Medições ausentes continuam ausentes.", false);
+  const corpo = [abaEpa, abaUtfpr, abaUnisanta, abaCargas, abaZhejiang][estado.pubAba]();
+  return `${topo}<h2>O que já foi testado com dados reais</h2>
+    ${tabelaLonga(["Caso", "Dados", "O que a EULER fez", "Resultado", "O que falta"], PUB.resumo.map((l) => [l.Caso, l.Dados, l["O que a EULER fez"], l.Resultado, l["O que falta"]].map(e)))}
+    <p class="legenda">${e(PUB.aviso)}</p>
+    ${abas(["Caldeiras EPA · EUA", "Biomassa · UTFPR", "Custo do vapor · Unisanta", "Três cargas · carvão", "Série · Zhejiang"], estado.pubAba, "pub-aba")}
+    <div class="grade">${corpo}</div>`;
+}
+
+function telaDiagnostico() {
+  const topo = cabecalho("Dados reais testados", "Diagnóstico de evidências", "O que foi observado, o que os dados sustentam e qual verificação vem a seguir.", false);
+  const u = PUB.epa[estado.diagUn];
+  const d = u.diagnosticos[estado.diagMes];
+  return `${topo}<p class="legenda">DADOS PÚBLICOS · Ingredion Argo, EUA · 2023 · análise histórica, sem vínculo com a instalação</p>
+    <div class="grade g2"><label class="campo">Equipamento<select id="diag-un">${Object.keys(PUB.epa).map((k) => `<option ${k === estado.diagUn ? "selected" : ""}>${k}</option>`).join("")}</select></label>
+      <label class="campo">Período comparado<select id="diag-mes">${u.diagnosticos.map((x, i) => `<option value="${i}" ${i === estado.diagMes ? "selected" : ""}>${e(x.periodo)}</option>`).join("")}</select></label></div>
+    <div class="alerta info">${icone("busca")}<div>${e(d.conclusao)}</div></div>
+    <div class="grade g3">${d.metricas.map(([r, v]) => metrica(r, v)).join("")}</div>
+    <p class="legenda">Causa confirmada: não · Avaliações qualitativas independentes, sem nota global de confiança.</p>
+    ${d.proximas.length ? `<div class="cartao"><b>Próxima verificação recomendada</b><p>${e(d.proximas[0][0])}</p><p class="legenda">${e(d.proximas[0][1])}</p></div>` : ""}
+    <details><summary>Por que a EULER recomenda isso?</summary><div class="grade" style="gap:8px">${d.dimensoes.map(([n, nv, ms]) => `<div><b>${e(n)} · ${e(nv)}</b>${ms.map((x) => `<p>${e(x)}</p>`).join("")}</div>`).join("")}<p class="legenda">${e(d.escopo)}</p></div></details>
+    <div class="grade g3">${d.observacao.map(([r, v]) => metrica(r, v)).join("")}</div>
+    <p class="legenda">Comparação restrita às condições e horas declaradas; referência não significa operação ideal.</p>
+    <h3>Explicações a investigar</h3>${tabela(["Hipótese", "Situação"], d.hipoteses.map(([t, s]) => [t, s].map(e)))}
+    <details><summary>Evidências e próximas medições</summary><div class="grade" style="gap:8px">${d.hipoteses.map(([t, , ev]) => `<div><b>${e(t)}</b>${ev.map((x) => `<p>${e(x)}</p>`).join("")}</div>`).join("")}${d.proximas.map(([a, p], i) => `<div><b>${i + 1}. ${e(a)}</b><p>${e(p)}</p></div>`).join("")}</div></details>
+    <h3>O que o dinheiro significa</h3>${metrica("Valorização do desvio observado", d.valor)}
+    <p class="legenda">Oportunidade recuperável: não apurada · Economia verificada: não apurada</p>${d.premissas.map((x) => `<p class="legenda">${e(x)}</p>`).join("")}
+    <details><summary>Limitações</summary>${d.limitacoes.map((x) => `<p>${e(x)}</p>`).join("")}</details>
+    <p class="legenda">${e(d.analise)}</p>`;
+}
+
+Object.assign(ACOES, {
+  "pub-aba": (el) => { estado.pubAba = Number(el.dataset.i); mostrar(); },
+  "pub-sub": (el) => { estado.pubSub = Number(el.dataset.i); mostrar(); },
+  "abrir-diag": () => { estado.diagUn = estado.pubUn; estado.diagMes = 0; ir("diagnostico"); },
+});

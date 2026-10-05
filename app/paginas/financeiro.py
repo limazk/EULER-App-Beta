@@ -5,7 +5,7 @@ from html import escape
 import estado
 import pandas as pd
 import streamlit as st
-from componentes import cabecalho, md
+from componentes import cabecalho, incerteza_explicada, md
 from financeiro import nao_negativo
 
 from euler.formato import num
@@ -77,6 +77,7 @@ def explicar(j):
             ),
             classe,
         )
+    incerteza_explicada(d.get("incerteza"))
     with st.container(border=True):
         st.markdown("**Parcela evitável: não apurada**")
         motivo = c["evitavel"]["motivo"].removeprefix("Parcela evitável não apurada: ")

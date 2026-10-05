@@ -58,8 +58,8 @@ com dados reais de uma caldeira (é a próxima fase).
 
 ## 4. Como usar, tela por tela
 
-Abra com `ABRIR-EULER.cmd` (Windows) ou `streamlit run app/main.py`. Menu à esquerda em três
-grupos: **Analisar um período**, **Acompanhar a planta** e **Referência**; as telas de análise
+Abra com `ABRIR-EULER.cmd` (Windows) ou `streamlit run app/main.py`. Menu à esquerda em quatro
+grupos: **Analisar um período**, **Acompanhar a planta**, **Dados reais testados** e **Referência**; as telas de análise
 têm o botão **Próximo** no fim. Passeio detalhado: `docs/demonstracao/PASSEIO_PELAS_TELAS.md`.
 
 | Tela | Para que serve | O que fazer |

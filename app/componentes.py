@@ -194,3 +194,26 @@ def rodape() -> None:
 def md(texto: str) -> str:
     """Protege o "$" para o Markdown do Streamlit não confundir "R$ … R$" com fórmula."""
     return texto.replace("$", r"\$")
+
+
+def incerteza_explicada(inc: dict | None, *, recolhido: bool = False) -> None:
+    """De onde vem a faixa do desvio e o que a estreitaria (D97): texto do motor, sem conta nova."""
+    if not inc:
+        return
+    titulo = "Por que a faixa é larga e o que a estreita"
+
+    def corpo():
+        if inc.get("frase_origem"):
+            st.markdown(md(inc["frase_origem"]))
+        for chave in ("condicional", "melhor"):
+            if inc.get(chave):
+                st.markdown(md(f"- {inc[chave]['frase']}"))
+        st.caption(inc["nota"])
+
+    if recolhido:
+        with st.expander(titulo):
+            corpo()
+    else:
+        with st.container(border=True):
+            st.markdown(f"**{titulo}**")
+            corpo()

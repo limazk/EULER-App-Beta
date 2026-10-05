@@ -16,7 +16,7 @@ from acompanhamento_ui import (
     planta_e_equipamento,
     recarregar,
 )
-from componentes import cabecalho, md
+from componentes import cabecalho, incerteza_explicada, md
 
 from euler.acompanhamento import ESTADOS, abrir_do_fechamento
 from euler.evidencias import ROTULOS
@@ -133,6 +133,7 @@ def mostrar_fechamento(a, f, nome_autor) -> None:
             f"custo: {n['politica_custo']['descricao']}"
             + (f" ({n['politica_custo']['motivo']})" if n["politica_custo"].get("motivo") else "")
         )
+        incerteza_explicada((conta.get("desvio") or {}).get("incerteza"), recolhido=True)
     st.markdown(
         md(f"**O que mudou desde o fechamento anterior:** {r['comparacao_anterior']['frase']}")
     )

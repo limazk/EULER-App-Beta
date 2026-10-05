@@ -8,10 +8,10 @@ inventados para teste). Para a apresentação com cliques e números exatos, use
 
 - No seu computador: dois cliques em `ABRIR-EULER.cmd`. O navegador abre sozinho em
   http://localhost:8501 (ou 127.0.0.1:8501). Para fechar a EULER, feche a janela preta.
-- À esquerda fica o **menu** (faixa escura com o logo EULER), em três grupos:
+- À esquerda fica o **menu** (faixa escura com o logo EULER), em quatro grupos:
   **Analisar um período** (as telas da investigação de um período), **Acompanhar a planta**
-  (os dados guardados de cada planta, período após período) e **Referência** (ferramentas de
-  consulta). No fim de cada tela de análise, o botão **Próximo** leva à tela seguinte.
+  (os dados guardados de cada planta, período após período), **Dados reais testados** (casos
+  públicos reais) e **Referência** (calculadora). No fim de cada tela de análise, o botão **Próximo** leva à tela seguinte.
 - A linha "Dados em uso" com o selo laranja **DADOS SINTÉTICOS** mostra quais dados estão
   carregados. Recarregar a página (F5) apaga os dados e volta ao começo.
 - Se abrir uma tela sem dados, ela oferece os botões **Ato 1 · caso completo** e
@@ -110,12 +110,22 @@ cadastro de instrumentos:
   **Imprimir ou salvar como PDF** funciona no Windows sem instalar nada.
 - O relatório usa os períodos escolhidos na Investigação e nunca mostra um relatório antigo.
 
-## 8. Calculadora de referência (menu "Referência")
+## 8. Dados reais testados (menu "Dados reais testados")
+
+- **Testes com dados públicos:** começa pelo quadro **O que já foi testado com dados reais**
+  (caso, dados, o que a EULER fez, resultado e o que falta) e mostra um caso por aba:
+  caldeiras da EPA nos EUA (registros horários de 2023), biomassa (UTFPR), custo do vapor
+  (Unisanta), caldeira a carvão em três cargas e a série por minuto de Zhejiang. Nenhum é de
+  cliente; ainda falta o histórico bruto de uma planta brasileira.
+- **Diagnóstico de evidências:** para cada caldeira da EPA e cada mês, o que os dados
+  sustentam, a força da evidência e a próxima verificação.
+
+## 9. Calculadora de referência (menu "Referência")
 
 - Simulação da perda de calor pela chaminé (em revisão científica; não use para decisões).
   Mexa nos três controles e veja os números mudarem.
 
-## 9. Acompanhar a planta (menu "Acompanhar a planta")
+## 10. Acompanhar a planta (menu "Acompanhar a planta")
 
 Aqui os dados ficam **guardados por planta** e a EULER acompanha período após período. Para
 conhecer sem dados reais: **Atualizar dados** → digite **Seu nome** na barra lateral → abra

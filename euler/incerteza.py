@@ -246,3 +246,49 @@ def detectabilidade_parcial(
     if abs(delta) <= k * u_conhecida:
         return "nao"
     return "condicional" if all(f.sistematica for f in faltam) else None
+
+
+def fontes_diferenca(
+    valor_a: float,
+    orc_a: Orcamento,
+    valor_b: float,
+    orc_b: Orcamento,
+    r_instrumento: float = 0.0,
+) -> list[dict]:
+    """De onde vem a incerteza de Δ = b − a (GUM 5.2.2): a variância de cada fonte de erro.
+
+    Mesma regra de `u_diferenca`, então a soma das variâncias é u_diferenca². A mesma chave
+    nos dois períodos é a mesma fonte ("medicao:" com r = 1; "instrumento:" com
+    r = r_instrumento); componentes sem chave são independentes. Saída: chave, nome (da
+    primeira componente) e variância absoluta (unidade de Δ ao quadrado).
+    """
+    nomes: dict[str, str] = {}
+    grupos: dict[str, list[float]] = {}
+    soltas: list[dict] = []
+    for valor, orc, fator in ((valor_a, orc_a, -1.0), (valor_b, orc_b, 1.0)):
+        com_chave = []
+        for c in orc.componentes:
+            if c.chave is None:
+                soltas.append({"chave": None, "nome": c.nome, "variancia": (c.u_rel * valor) ** 2})
+            else:
+                nomes.setdefault(c.chave, c.nome)
+                com_chave.append((fator * c.u_rel * valor, c.chave))
+        for u, chave in agregar_por_fonte(com_chave):
+            grupos.setdefault(chave, []).append(u)
+    saida = []
+    for chave, us in grupos.items():
+        r = 1.0 if chave.startswith("medicao:") else r_instrumento
+        variancia = r * sum(us) ** 2 + (1 - r) * sum(u * u for u in us)
+        saida.append({"chave": chave, "nome": nomes[chave], "variancia": variancia})
+    return saida + soltas
+
+
+def escalar_fonte(orc: Orcamento, prefixo: str, fator: float) -> Orcamento:
+    """O mesmo orçamento com as componentes de uma fonte (chave começando por `prefixo`)
+    multiplicadas por `fator`. Serve ao cenário "se esta medição tivesse outra incerteza";
+    nada mais muda e o orçamento original fica intacto."""
+    return Orcamento(
+        [c.escalado(fator) if (c.chave or "").startswith(prefixo) else c for c in orc.componentes],
+        list(orc.nao_incluidos),
+        list(orc.faltam),
+    )

@@ -70,6 +70,23 @@ with dois, cartao("uso-acompanhar"):
         icon=":material/arrow_forward:",
     )
 
+with cartao("dados-reais"):
+    st.html('<div class="euler-sobrelinha">Dados reais testados</div>')
+    st.markdown(
+        ":material/science: **Além da demonstração: casos reais publicados por empresas, "
+        "governos e universidades**"
+    )
+    st.caption(
+        "Registros horários de caldeiras nos EUA (EPA), estudos brasileiros de biomassa e de custo "
+        "do vapor, uma caldeira a carvão em três cargas e uma série por minuto da China. Nenhum é "
+        "de cliente; cada um mostra o que foi possível concluir e o que faltou."
+    )
+    st.page_link(
+        "paginas/dados_publicos.py",
+        label="Ver o que foi testado com dados reais",
+        icon=":material/arrow_forward:",
+    )
+
 st.markdown("### Em que pé está a EULER")
 icones = (":material/verified:", ":material/rate_review:", ":material/hourglass_empty:")
 for n, ((titulo, texto), icone, coluna) in enumerate(

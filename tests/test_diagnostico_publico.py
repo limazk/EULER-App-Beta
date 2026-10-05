@@ -63,7 +63,7 @@ def test_pagina_diagnostico_abre_e_troca_periodo():
 
     at = abrir("diagnostico.py")
     assert not at.exception
-    assert any("Diagnóstico EULER" in t.value for t in at.title)
+    assert any("Diagnóstico de evidências" in t.value for t in at.title)
     assert any("menos conclusivo" in m.value for m in at.info)
     at.selectbox[2].select("2023-03").run()
     assert not at.exception

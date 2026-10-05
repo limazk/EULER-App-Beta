@@ -76,6 +76,7 @@ def explicar_conta(
     cenarios_qualidade_pct: tuple[float, float] | None = None,
     motivo_qualidade: str = "umidade e PCI medidos não disponíveis nos dois períodos",
     verificacao: str | None = None,
+    analise_incerteza: dict | None = None,
 ) -> dict:
     """Conta do período analisado (comparação) contra o esperado nas mesmas condições.
 
@@ -98,6 +99,11 @@ def explicar_conta(
     Faixa do desvio: ± U × vapor, só das medições de consumo e vapor; não inclui a
     incerteza dos ajustes. Estado "acima"/"abaixo" só quando a faixa exclui zero em todos
     os cenários do pátio; senão "nao_estabelecido". Sem U: "sem_faixa".
+
+    `analise_incerteza` (D97, de investigacao._analise_incerteza): parcela de cada fonte na
+    faixa, U da diferença se cada instrumento repetir o mesmo erro nos dois períodos (r = 1)
+    e U se a fonte dominante tivesse metade da incerteza. Viram faixas e frases em
+    desvio["incerteza"]; a faixa e o estado principais continuam os de r = 0.
     """
     # entradas guardadas no resultado: permitem recalcular com outra política de preço (D93)
     entradas = {k: list(v) if isinstance(v, tuple) else v for k, v in locals().items()}
@@ -204,6 +210,7 @@ def explicar_conta(
             "saber se a diferença é maior que o erro de medição."
         )
 
+    incerteza = _incerteza_explicada(analise_incerteza, v, desvio, centros, p, estado)
     var = _variacao(m_r, m, e0, e1, e2, desvio, p_r, p, ef_dh, ef_w)
     var["componentes"] = _componentes(
         var,
@@ -242,6 +249,7 @@ def explicar_conta(
             "cenarios_preco_brl": cen_p,
             "estado": estado,
             "frase": frase,
+            "incerteza": incerteza,
         },
         "evitavel": {
             "custo_brl": None,
@@ -254,6 +262,105 @@ def explicar_conta(
         },
         "variacao": var,
         "premissas": _premissas(horas_ref, horas, preco_ref_brl_gj, preco_brl_gj, p),
+    }
+
+
+def _incerteza_explicada(analise, v, desvio, centros, p, estado) -> dict | None:
+    """De onde vem a faixa do desvio e o que a estreitaria (D97).
+
+    Mesma faixa em toneladas que a principal (U da diferença de consumo × vapor), só que com
+    outros U: r = 1 (cada instrumento repete o mesmo erro nos dois períodos) e a fonte
+    dominante com metade da incerteza. São cenários com condição explícita; não substituem
+    a faixa principal nem mudam o estado do desvio.
+    """
+    if not analise or estado == "sem_faixa":
+        return None
+
+    def faixa(u_t_t):
+        u = _f(u_t_t)
+        return None if u is None else [desvio - u * v, desvio + u * v]
+
+    def estado_de(f):
+        meia = (f[1] - f[0]) / 2
+        if min(c - meia for c in centros) > 0:
+            return "acima"
+        if max(c + meia for c in centros) < 0:
+            return "abaixo"
+        return "nao_estabelecido"
+
+    def texto(f):
+        return (
+            f"{_brl(f[0] * p)} a {_brl(f[1] * p)}"
+            if p is not None
+            else f"{'−' if f[0] < 0 else ''}{_t(f[0])} a {'−' if f[1] < 0 else ''}{_t(f[1])}"
+        )
+
+    estabelecido = estado in ("acima", "abaixo")
+    parcelas = analise.get("parcelas") or []
+    principal = parcelas[0] if parcelas else None
+    origem = None
+    if principal:
+        outras = [x for x in parcelas[1:] if x["parcela_pct"] >= 1]
+        origem = (
+            f"{principal['nome'][:1].upper()}{principal['nome'][1:]} responde por {num(principal['parcela_pct'], 0)}% da incerteza da faixa"
+            + (
+                " (" + "; ".join(f"{x['nome']} {num(x['parcela_pct'], 0)}%" for x in outras) + ")."
+                if outras
+                else "."
+            )
+        )
+    cond = None
+    f_cor = faixa(analise.get("U_correlacionada"))
+    if f_cor:
+        e_cor = estado_de(f_cor)
+        nota = (
+            f" (o cadastro não registra troca nem recalibração do {principal['nome']} entre eles)"
+            if principal and analise.get("mesmo_instrumento")
+            else ""
+        )
+        muda = e_cor in ("acima", "abaixo") and not estabelecido
+        cond = {
+            "faixa_t": f_cor,
+            "faixa_brl": None if p is None else [x * p for x in f_cor],
+            "estado": e_cor,
+            "frase": (
+                f"Se cada instrumento repetir o mesmo erro nos dois períodos{nota}, a faixa "
+                f"estreita para {texto(f_cor)}"
+                + (": o desvio ficaria estabelecido." if muda else ".")
+                + " Para usar essa faixa, confirme com a manutenção que não houve troca nem "
+                "recalibração e registre a repetibilidade informada pelo fabricante."
+            ),
+        }
+    melhor = None
+    m = analise.get("melhor")
+    f_m = faixa(m.get("U")) if m else None
+    if f_m:
+        e_m = estado_de(f_m)
+        melhor = {
+            "fonte": m["fonte"],
+            "faixa_t": f_m,
+            "faixa_brl": None if p is None else [x * p for x in f_m],
+            "estado": e_m,
+            "frase": (
+                f"Se a incerteza declarada do {m['fonte']} caísse {m['descricao']} (por "
+                f"exemplo, com uma verificação contra um padrão melhor), a faixa seria de "
+                f"{texto(f_m)}"
+                + (
+                    " e o desvio ficaria estabelecido."
+                    if e_m in ("acima", "abaixo") and not estabelecido
+                    else "."
+                )
+            ),
+        }
+    return {
+        "parcelas": parcelas,
+        "frase_origem": origem,
+        "condicional": cond,
+        "melhor": melhor,
+        "nota": (
+            "Cenários com condição explícita: a faixa e a conclusão principais continuam as "
+            "de erros de instrumento independentes (D37, D97)."
+        ),
     }
 
 

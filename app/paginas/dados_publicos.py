@@ -1,23 +1,21 @@
-"""Casos públicos executados no motor atual, com origem e limites explícitos."""
+"""Testes com dados reais publicados: o que foi conferido, com origem e limites explícitos.
+
+Nenhum destes dados é de cliente. Cada caso roda no motor atual; medições ausentes continuam
+ausentes. A tela começa pelo resumo do que foi testado e mostra um caso por aba.
+"""
 
 import estado
 import pandas as pd
 import streamlit as st
 from blocos.ensaio_horario import renderizar as renderizar_ensaio_horario
+from componentes import cabecalho
+from ensaio_horario import executar as executar_horario
 from ensaio_publico import DADOS, comparar_custo_publicado, executar
+from resumo_publico import AVISO, linhas_resumo
 
 from euler.economia import comparar_consumos
 from euler.formato import num
 from euler.tipos import Grandeza
-
-st.title("Testes com dados públicos")
-st.caption(
-    "Fontes industriais publicadas · análise separada dos arquivos ativos · sem dados sintéticos"
-)
-st.markdown(
-    "Resultados com fontes rastreáveis e orientação para a próxima verificação. "
-    "As contas abaixo usam os módulos atuais da EULER; medições ausentes continuam ausentes."
-)
 
 
 @st.cache_data(show_spinner="Conferindo as fontes e executando o motor…")
@@ -25,9 +23,20 @@ def resultado():
     return executar()
 
 
-renderizar_ensaio_horario()
-with st.expander("Outros estudos públicos · biomassa, cálculos térmicos e importação"):
-    r = resultado()
+@st.cache_data(show_spinner="Executando o ensaio horário…")
+def resultado_horario():
+    return executar_horario()
+
+
+def resumo(r: dict, h: dict) -> None:
+    """O que já foi testado com dados reais, num quadro só (números do próprio motor)."""
+    st.markdown("### O que já foi testado com dados reais")
+    st.dataframe(pd.DataFrame(linhas_resumo(r, h)), hide_index=True, width="stretch")
+    st.caption(AVISO)
+
+
+def biomassa_utfpr(r: dict) -> None:
+    """Aumento de consumo publicado (Diniz, UTFPR, 2014)."""
     st.subheader("Consumo aumentou: teste real com biomassa")
     st.caption(
         "Diniz · UTFPR, 2014 · indústria de papel · comparação de médias entre seca e chuva."
@@ -109,7 +118,10 @@ with st.expander("Outros estudos públicos · biomassa, cálculos térmicos e im
         )
         st.json(aumento, expanded=False)
         st.link_button("Fonte do aumento · UTFPR, página 33 do PDF", fonte_aumento["pdf_url"])
-    st.divider()
+
+
+def custo_unisanta(r: dict) -> None:
+    """Custo do combustível por tonelada de vapor (Unisanta, 2015)."""
     st.subheader("Quanto isso representa em dinheiro?")
     st.caption(
         "Caso brasileiro publicado pela Unisanta (2015) · médias de 2010 e 2011 · gás natural. "
@@ -187,7 +199,10 @@ with st.expander("Outros estudos públicos · biomassa, cálculos térmicos e im
             "Não substitui o preço publicado nem representa o gasto de uma empresa atual."
         )
 
-    st.subheader("1. Caldeira em três condições de carga")
+
+def tres_cargas(r: dict) -> None:
+    """Cálculos térmicos em três cargas (Ohijeagbon e colaboradores, 2026)."""
+    st.subheader("Caldeira a carvão em três condições de carga")
     st.caption(
         "Médias operacionais publicadas por Ohijeagbon e colaboradores (2026), "
         "caldeira subcrítica a carvão. Não são três dias nem um histórico antes/depois."
@@ -268,7 +283,10 @@ with st.expander("Outros estudos públicos · biomassa, cálculos térmicos e im
             "caldeira_subcritica_original.xlsx",
         )
 
-    st.subheader("2. Série de uma caldeira em uma indústria química")
+
+def serie_zhejiang(r: dict) -> None:
+    """Importação de uma série real por minuto (Zhejiang, 2022)."""
+    st.subheader("Série de uma caldeira em uma indústria química")
     z = r["zhejiang"]
     st.markdown(
         f"**{num(z['linhas'], 0)} registros originais**, de 27/03 a 01/04/2022, Zhejiang, China. "
@@ -324,3 +342,33 @@ with st.expander("Outros estudos públicos · biomassa, cálculos térmicos e im
         )
         st.link_button("Fonte original de Zhejiang · CC0", z["url"])
         st.link_button("Ler artigo da série", "https://doi.org/10.1038/s41597-025-05096-4")
+
+
+cabecalho(
+    "Testes com dados públicos",
+    "Dados reais publicados por empresas, governos e universidades, executados no motor atual. "
+    "Medições ausentes continuam ausentes.",
+    "Dados reais testados",
+)
+r = resultado()
+resumo(r, resultado_horario())
+abas = st.tabs(
+    [
+        "Caldeiras EPA · EUA",
+        "Biomassa · UTFPR",
+        "Custo do vapor · Unisanta",
+        "Três cargas · carvão",
+        "Série · Zhejiang",
+    ],
+    key="publicos_aba",
+)
+with abas[0]:
+    renderizar_ensaio_horario()
+with abas[1]:
+    biomassa_utfpr(r)
+with abas[2]:
+    custo_unisanta(r)
+with abas[3]:
+    tres_cargas(r)
+with abas[4]:
+    serie_zhejiang(r)

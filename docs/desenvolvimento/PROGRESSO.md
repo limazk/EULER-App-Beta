@@ -319,3 +319,12 @@ Pedido do Adryan: acessar o software pela internet, em vez de uma prévia refeit
 - A prévia (página que abre no navegador sem instalar nada) passou a ter o menu em três grupos, Financeiro, Oportunidades e todas as telas de **Acompanhar a planta**. Gerada por `scripts/gerar_previa.py`; dados do acompanhamento em `scripts/previa_acompanhamento.py`; telas novas em `scripts/previa_telas_novas.js`.
 - Os números vêm do motor: os três fechamentos da planta de demonstração, a investigação aberta a partir de cada um e a avaliação de uma ação para cada data de 03/08 a 29/09. O que o visitante registra (evidência, ação, encerramento, preço, custo) fica só no navegador dele.
 - Conferida no navegador: o ciclo completo, as telas de análise e a largura de celular, sem rolagem lateral nem erro. Publicada num link novo, que substitui a prévia de 01/10.
+
+## Incerteza explicada e dados reais organizados — 05/10/2026
+
+Pedidos do Adryan: "cadê a parte dos dados reais que foram testados?" e "busque melhorar essas incertezas que são muito altas".
+
+- **Incerteza (D97).** A faixa larga do desvio vinha, no caso de demonstração, 90% do medidor de vapor (±2%), combinado como erro independente nos dois períodos. A conta agora mostra de onde vem a faixa, a faixa se o instrumento repetir o mesmo erro (no primeiro fechamento: R$ 3.182 a R$ 9.120 em vez de −R$ 3.473 a R$ 15.775, e o desvio ficaria estabelecido) e a faixa se o medidor tivesse metade da incerteza. A conclusão principal continua a cautelosa; os cenários trazem a condição e o que confirmar. Telas Financeiro e Fechamentos. Testes novos em `tests/test_incerteza_explicada.py` (a decomposição fecha exatamente com a incerteza total).
+- **Dados reais (D98).** Grupo próprio no menu, quadro do que foi testado no topo da tela e um caso por aba; atalho no Início; Diagnóstico de evidências com o cabeçalho padrão. Resumo calculado em `app/resumo_publico.py`, usado pelo app e pela prévia.
+- **Prévia** republicada no mesmo link com as telas de dados reais e a explicação da faixa.
+- 622 testes passando; nenhum golden ou tolerância alterado.

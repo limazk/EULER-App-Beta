@@ -3,11 +3,15 @@
 import estado
 import streamlit as st
 from blocos.diagnostico import renderizar
+from componentes import cabecalho
 from diagnostico_publico import diagnosticos
 from ensaio_horario import executar
 
-st.title("Diagnóstico EULER")
-st.caption("O que foi observado, o que os dados sustentam e qual verificação vem a seguir.")
+cabecalho(
+    "Diagnóstico de evidências",
+    "O que foi observado, o que os dados sustentam e qual verificação vem a seguir.",
+    "Dados reais testados",
+)
 origem = st.selectbox(
     "Conjunto de dados", ["Caso público EPA/PUDL", "Investigação dos arquivos ativos"]
 )
