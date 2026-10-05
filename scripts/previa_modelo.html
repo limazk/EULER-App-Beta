@@ -175,6 +175,29 @@ select { background: var(--campo); color: var(--texto); border: 1px solid #3F3F3
 .relatorio-quadro { width: 100%; height: 1400px; border: 0; border-radius: 6px; background: #FFFFFF; }
 .rodape { border-top: 1px solid var(--linha); padding-top: 16px; color: var(--fraco); font-size: 13.5px; }
 
+/* Formulários e acompanhamento */
+.form { display: grid; gap: 12px; border: 1px solid var(--linha); border-radius: 10px; padding: 14px 16px; min-width: 0; }
+.campo { display: grid; gap: 5px; font-size: 14px; color: var(--suave); min-width: 0; }
+.campo input, .campo textarea, .campo select, .nome-lateral input { width: 100%; background: var(--campo); color: var(--texto);
+  border: 1px solid #3F3F3F; border-radius: 7px; padding: 7px 10px; font: inherit; font-size: 15px; }
+.campo select[disabled] { opacity: .85; }
+.campo textarea { min-height: 76px; resize: vertical; }
+.campo input:focus-visible, .campo textarea:focus-visible, .nome-lateral input:focus-visible { outline: 2px solid #A8C7FA; outline-offset: 1px; }
+.nome-lateral { display: grid; gap: 6px; font-size: 13.5px; color: var(--suave); padding: 0 8px; }
+.alerta.erro { background: var(--s-red); color: var(--t-red); }
+.cartao.fin-total { background: linear-gradient(130deg, #283944, #20272c); border-color: #45545f; }
+.cartao.fin-alerta { background: linear-gradient(130deg, #3b3023, #292725); border-color: #705431; }
+.cartao.fin-alerta .valor { color: #ffd39b; }
+.toast { position: fixed; right: 20px; bottom: 20px; z-index: 20; background: var(--s-green); color: var(--t-green);
+  border: 1px solid #2F5A43; border-radius: 10px; padding: 10px 14px; font-size: 14.5px;
+  max-width: min(420px, calc(100vw - 40px)); box-shadow: 0 6px 24px rgba(0, 0, 0, .35); }
+.lado-a-lado { display: flex; flex-wrap: wrap; gap: 10px 24px; align-items: center; }
+.link { all: unset; cursor: pointer; color: var(--t-blue); display: inline-flex; gap: 6px; align-items: center; font-size: 15px; }
+.link:hover { text-decoration: underline; }
+.link:focus-visible { outline: 2px solid #A8C7FA; outline-offset: 2px; }
+.link svg { width: 16px; height: 16px; }
+.titulo-uso { font-weight: 600; display: flex; gap: 8px; align-items: center; }
+
 @media (max-width: 1180px) { .g6 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 960px) {
   .g5, .g6 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -204,6 +227,7 @@ select { background: var(--campo); color: var(--texto); border: 1px solid #3F3F3
       <span>EULER</span>
     </div>
     <nav class="nav" id="nav" aria-label="Telas"></nav>
+    <div class="nome-lateral" id="nome-lateral" hidden><label for="autor">Seu nome (vai para o histórico)</label><input type="text" id="autor" placeholder="obrigatório para registrar" autocomplete="name"></div>
     <div class="rodape-lateral" id="rodape-lateral"></div>
   </aside>
   <main class="principal">
@@ -215,13 +239,14 @@ select { background: var(--campo); color: var(--texto); border: 1px solid #3F3F3
   </main>
 </div>
 <div class="dica" id="dica" hidden></div>
+<div class="toast" id="toast" role="status" hidden></div>
 
 <script type="application/json" id="dados">/*DADOS*/{}</script>
 <script>
 "use strict";
 const D = JSON.parse(document.getElementById("dados").textContent);
 const estado = { tela: "inicio", ato: "1", r0: D.padrao[0], r: D.padrao[1], a: D.padrao[2], b: D.padrao[3], aba: 0,
-  serie: null, filtro: new Set(["Erro", "Atenção", "Informação"]), gerado: new Set() };
+  serie: null, diasAno: null, filtro: new Set(["Erro", "Atenção", "Informação"]), gerado: new Set() };
 // os dois atos têm os mesmos registros de operação (D62): mesmos períodos e séries
 const A = () => D.atos[estado.ato];
 const N = D.atos["1"].periodos.length;
@@ -252,18 +277,33 @@ const ICONES = {
   bloqueio: '<circle cx="12" cy="12" r="9"/><path d="M5.7 5.7 18.3 18.3"/>',
   ciencia: '<path d="M9 3h6M10 3v6l-5.6 9.8A1.5 1.5 0 0 0 5.7 21h12.6a1.5 1.5 0 0 0 1.3-2.2L14 9V3"/><path d="M7.5 15h9"/>',
   cima: '<path d="M12 19V5M6 11l6-6 6 6"/>',
+  financeiro: '<rect x="3" y="6" width="18" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6.5 9.5h.01M17.5 14.5h.01"/>',
+  oportunidades: '<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>',
+  painel: '<rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="5" rx="1.5"/><rect x="13" y="10" width="8" height="11" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/>',
+  atualizar: '<path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M5 20h14"/>',
+  fechamentos: '<rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16M9 15l2 2 4-4"/>',
+  acoes: '<circle cx="12" cy="12" r="9"/><path d="m8 12.2 2.8 2.8L16 9.5"/>',
+  plantas: '<ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v12c0 1.7 3.1 3 7 3s7-1.3 7-3V6M5 12c0 1.7 3.1 3 7 3s7-1.3 7-3"/>',
 };
 const icone = (nome, extra = "") => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ${extra}>${ICONES[nome]}</svg>`;
 
 const TELAS = [
   { id: "inicio", titulo: "Início", icone: "inicio" },
-  { grupo: "Investigar" },
-  { id: "importar", titulo: "1. Importar dados", icone: "importar" },
-  { id: "saude", titulo: "2. Saúde da caldeira", icone: "saude" },
-  { id: "limites", titulo: "3. Dados e limites", icone: "limites" },
-  { id: "investigacao", titulo: "4. Investigação", icone: "investigacao" },
-  { id: "extrato", titulo: "5. Extrato por fornecedor", icone: "extrato" },
-  { id: "relatorio", titulo: "6. Relatório", icone: "relatorio" },
+  { grupo: "Analisar um período" },
+  { id: "importar", titulo: "Importar dados", icone: "importar" },
+  { id: "saude", titulo: "Saúde da caldeira", icone: "saude" },
+  { id: "limites", titulo: "Dados e limites", icone: "limites" },
+  { id: "investigacao", titulo: "Investigação", icone: "investigacao" },
+  { id: "financeiro", titulo: "Financeiro", icone: "financeiro" },
+  { id: "oportunidades", titulo: "Oportunidades", icone: "oportunidades" },
+  { id: "extrato", titulo: "Extrato por fornecedor", icone: "extrato" },
+  { id: "relatorio", titulo: "Relatório", icone: "relatorio" },
+  { grupo: "Acompanhar a planta" },
+  { id: "painel", titulo: "Painel", icone: "painel" },
+  { id: "atualizar", titulo: "Atualizar dados", icone: "atualizar" },
+  { id: "fechamentos", titulo: "Fechamentos", icone: "fechamentos" },
+  { id: "acoes", titulo: "Investigações e ações", icone: "acoes" },
+  { id: "plantas", titulo: "Plantas e histórico", icone: "plantas" },
   { grupo: "Referência" },
   { id: "calculadora", titulo: "Calculadora de referência", icone: "calculadora" },
 ];
@@ -283,14 +323,6 @@ function tabela(cab, linhas, numericas = []) {
 
 /* ------------------------------------------------------------------ telas */
 function telaInicio() {
-  const passos = [
-    ["importar", "Importar", "Os registros que a fábrica já tem (CSV ou planilha). Nada é corrigido em silêncio."],
-    ["saude", "Saúde da caldeira", "O consumo por tonelada de vapor semana a semana: mudou ou ficou estável?"],
-    ["limites", "Dados e limites", "O que dá e o que não dá para concluir com esses dados, e por quê."],
-    ["investigacao", "Investigação", "Dois períodos lado a lado: o que mudou, o que explica e o que verificar."],
-    ["extrato", "Extrato", "Quanto custa a energia de cada fornecedor (R$/GJ), não só a tonelada."],
-    ["relatorio", "Relatório", "Linguagem simples, 5 blocos fixos, pronto para compartilhar."],
-  ];
   const icEst = ["ok", "busca", "bloqueio"];
   return `<section class="abertura">
       <div class="sobrelinha">Investigação física de caldeiras industriais</div>
@@ -303,8 +335,15 @@ function telaInicio() {
       <button class="botao" data-ir="importar">${icone("importar")} Importar meus dados</button></div>
     </section>
     <div class="alerta info">${icone("ciencia")}<div>${e(D.textos.aviso)} O caso de demonstração é uma caldeira <b>sintética</b> (dados inventados para teste) de 20 t/h a cavaco, com 8 semanas de registros e 3 fornecedores. Os dois atos têm os mesmos registros de operação; muda só o cadastro de instrumentos.</div></div>
-    <h2>Como funciona, em 6 passos</h2>
-    <div class="grade g6">${passos.map(([id, t, txt], i) => `<div class="cartao passo"><div class="sobrelinha">Passo ${i + 1}</div><div class="titulo">${icone(id, 'width="17" height="17"')} ${e(t)}</div><p class="legenda">${e(txt)}</p><button class="botao" data-ir="${id}">Abrir ${icone("seta")}</button></div>`).join("")}</div>
+    <h2>Duas formas de usar</h2>
+    <div class="grade g2">
+      <div class="cartao"><div class="sobrelinha">Analisar um período</div><div class="titulo-uso">${icone("investigacao", 'width="17" height="17"')} O consumo mudou: o que explica e o que verificar?</div>
+        <p class="legenda">Com os arquivos desta sessão (demonstração ou enviados): saúde da caldeira, investigação de dois períodos, a conta em reais, as oportunidades e o relatório.</p>
+        <p class="legenda">Importar dados → Saúde → Investigação → Financeiro → Relatório</p><div><button class="link" data-ir="importar">${icone("seta")} Começar pelos dados</button></div></div>
+      <div class="cartao"><div class="sobrelinha">Acompanhar a planta</div><div class="titulo-uso">${icone("fechamentos", 'width="17" height="17"')} A cada período: o que mudou, o que fazer e o que deu certo</div>
+        <p class="legenda">Os dados ficam guardados por planta. A cada atualização a EULER fecha o período, abre investigações, acompanha as ações da equipe e verifica o resultado depois.</p>
+        <p class="legenda">Atualizar dados → Fechamentos → Investigações e ações → Painel</p><div><button class="link" data-ir="atualizar">${icone("seta")} Cadastrar a planta ou criar a demonstração</button></div></div>
+    </div>
     <h2>Em que pé está a EULER</h2>
     <div class="grade g3">${D.textos.estagios.map(([t, txt], i) => `<div class="cartao"><div class="passo titulo" style="font-weight:600;display:flex;gap:8px;align-items:center">${icone(icEst[i], 'width="17" height="17"')} ${e(t)}</div><p class="legenda">${e(txt)}</p></div>`).join("")}</div>
     <h2>O que a EULER não faz</h2>
@@ -316,7 +355,7 @@ function telaImportar() {
   const cor = { "Erro": "red", "Atenção": "orange", "Informação": "gray" };
   const visiveis = imp.avisos.filter((a) => estado.filtro.has(a[0]));
   const cartaoAto = (ato, txt) => `<div class="cartao"><b>${e(NOME_ATO[ato])}</b><p class="legenda">${e(txt)}</p><span>${estado.ato === ato ? selo("green", "Carregado") : `<button class="botao" data-ato="${ato}">Carregar</button>`}</span></div>`;
-  return `${cabecalho("Passo 1 de 6", "Importar dados", "Envie os registros da caldeira (diário do operador, recebimentos de combustível, amostras, eventos e cadastro de instrumentos), um arquivo CSV por registro, ou a <b>planilha modelo</b> preenchida. A EULER guarda o original e lista o que encontrou. <b>Nada é corrigido sem avisar.</b>", false)}
+  return `${cabecalho("Analisar um período", "Importar dados", "Envie os registros da caldeira (diário do operador, recebimentos de combustível, amostras, eventos e cadastro de instrumentos), um arquivo CSV por registro, ou a <b>planilha modelo</b> preenchida. A EULER guarda o original e lista o que encontrou. <b>Nada é corrigido sem avisar.</b>", false)}
     <div class="grade" style="grid-template-columns:minmax(0,1fr) minmax(0,2fr)">
       <div class="cartao"><b>1. Local da caldeira</b><div class="controle">Altitude do local (m)<div class="linha"><select disabled><option>1.000</option></select></div></div><p class="legenda">Pressão atmosférica estimada pela altitude (atmosfera padrão).</p></div>
       <div class="cartao"><b>2. Arquivos da fábrica</b><div class="linha-botoes"><button class="botao" disabled>${icone("importar")} Escolher arquivos</button><span class="legenda">ou arraste para cá · CSV ou planilha .xlsx</span></div><p class="legenda">Na prévia, o envio de arquivos fica desligado: use o caso de demonstração. No app, os arquivos da fábrica entram aqui.</p>
@@ -336,7 +375,7 @@ function telaImportar() {
     <div class="atalhos">Mostrar: ${["Erro", "Atenção", "Informação"].map((g) => `<button class="chip" data-filtro="${g}" aria-pressed="${estado.filtro.has(g)}">${g}</button>`).join("")}</div>
     ${visiveis.length ? tabela(["Gravidade", "Tabela", "Linha", "Aviso"], visiveis.map(([g, t, l, a]) => [selo(cor[g], g), e(t), e(l), e(a)]), [2]) : '<p class="legenda">Nenhum aviso com esse filtro.</p>'}
     <p class="legenda"><b>Erro:</b> a tabela não pôde ser usada. <b>Atenção:</b> pode afetar as análises. <b>Informação:</b> registro do que foi interpretado. Os números de linha são os do arquivo (cabeçalho = linha 1).</p>
-    ${proximo("saude", "2. Saúde da caldeira")}`;
+    ${proximo("saude", "Saúde da caldeira")}`;
 }
 
 function telaLimites() {
@@ -347,7 +386,7 @@ function telaLimites() {
   const imp = A().importacao.contagem;
   const pp = A().por_periodo;
   const resumo = pp.resumo.map((l) => l.map((v, i) => (i === 3 ? selo(pp.cores[v] || "gray", v) : e(v))));
-  return `${cabecalho("Passo 3 de 6", "Dados e limites", "O que dá e o que não dá para concluir com os dados enviados, <b>e por quê</b>. Quando falta um dado, a análise fica bloqueada: a EULER não completa nada com porcentagens inventadas.")}
+  return `${cabecalho("Analisar um período", "Dados e limites", "O que dá e o que não dá para concluir com os dados enviados, <b>e por quê</b>. Quando falta um dado, a análise fica bloqueada: a EULER não completa nada com porcentagens inventadas.")}
     <div class="grade g3">${metrica("Análises liberadas", String(n("habilitada")))}${metrica("Com limites", String(n("parcial")))}${metrica("Bloqueadas", String(n("bloqueada")))}</div>
     <div class="cartao"><p><b>Qualidade dos registros:</b> ${plural(imp["Erro"], "erro", "erros")} · ${plural(imp["Atenção"], "aviso de atenção", "avisos de atenção")} · ${plural(imp["Informação"], "informação", "informações")}. Nada foi corrigido nem preenchido em silêncio.</p>
       <ul>${A().qualidade.map((q) => `<li>${e(q)}</li>`).join("")}</ul>
@@ -366,7 +405,7 @@ function telaLimites() {
     ${tabela(pp.colunas_resumo, resumo)}
     <details><summary>Ver detalhes de cada período</summary>${tabela(pp.colunas_detalhe, pp.detalhe.map((l) => l.map(e)))}
       <p class="legenda"><b>Como ler as colunas de eficiência.</b> A <b>eficiência direta</b> supõe que o combustível queimado tem a qualidade do recebido no período. A coluna <b>Eficiência conforme o pátio</b> mostra os limites possíveis conforme o uso do pátio (quanto maior o estoque perto do consumido, mais larga a faixa). São cenários de contabilidade do pátio, não intervalo de confiança nem desempenho validado. Os limites não são cortados.</p></details>
-    ${proximo("investigacao", "4. Investigação")}`;
+    ${proximo("investigacao", "Investigação")}`;
 }
 
 function telaSaude() {
@@ -375,7 +414,7 @@ function telaSaude() {
   const kpis = s.kpi_ref ? `<div class="grade g2">${metrica(`Referência · ${p[s.ref[0]].ini} a ${p[s.ref[1]].fim}`, s.kpi_ref)}${s.kpi_mud ? metrica(`Mudança · ${p[s.mudanca[0]].ini} a ${p[s.mudanca[1]].fim}`, s.kpi_mud.valor, `<span class="delta ${s.kpi_mud.sobe ? "s-red" : "s-green"}">${icone("cima", `width="13" height="13" ${s.kpi_mud.sobe ? "" : 'style="transform:rotate(180deg)"'}`)} ${e(s.kpi_mud.delta)}</span>`) : ""}</div>` : "";
   const botao = s.mudanca ? `<div><button class="botao primario" data-investigar="1">${icone("investigacao")} Investigar esta mudança</button></div>` : `<div><button class="botao" data-ir="investigacao">${icone("investigacao")} Escolher os períodos na Investigação</button></div>`;
   const linhas = s.periodos.map((x, i) => [e(`${p[i].ini} a ${p[i].fim}`), e(x.texto), e(x.variacao), selo(x.situacao[0], x.situacao[1]) + (x.motivo ? ` <span class="legenda">${e(x.motivo)}</span>` : "")]);
-  return `${cabecalho("Passo 2 de 6", "Saúde da caldeira", "Quanto combustível a caldeira gastou para cada tonelada de vapor, período a período, com os eventos registrados. Se o consumo mudou, um clique leva direto à investigação.")}
+  return `${cabecalho("Analisar um período", "Saúde da caldeira", "Quanto combustível a caldeira gastou para cada tonelada de vapor, período a período, com os eventos registrados. Se o consumo mudou, um clique leva direto à investigação.")}
     <div class="cartao"><div>${selo(s.selo[0], s.selo[1])}</div><p><b>${e(s.frase)}</b></p>${kpis}${botao}</div>
     <div class="cartao"><b style="font-size:15px">Combustível por tonelada de vapor (t/t), período a período</b><div class="grafico">${graficoSaude(s)}</div>
       <p class="legenda">Traço azul: consumo médio de cada período (combustível queimado ÷ vapor produzido), origem <b>estimado</b> a partir das medições; traço vertical: incerteza (k = 2). Linha pontilhada: a referência. Linhas tracejadas numeradas: eventos registrados. Período sem traço: não dá para calcular (motivo na tabela).</p></div>
@@ -384,7 +423,7 @@ function telaSaude() {
     <h3>Período a período</h3>
     ${tabela(["Período", "Consumo (t/t)", "Em relação à referência", "Situação"], linhas)}
     <p class="legenda">Mudou = a diferença para a referência é maior que a incerteza das medições; estável = fica dentro dela; não dá para dizer = falta o consumo do período ou a incerteza. Referência: a primeira metade dos períodos (a mesma escolha inicial da Investigação). O selo diz se o consumo mudou, não por quê: a causa é o que a investigação examina.</p>
-    ${proximo("limites", "3. Dados e limites")}`;
+    ${proximo("limites", "Dados e limites")}`;
 }
 
 function periodosHtml() {
@@ -419,7 +458,7 @@ function foraDaPrevia() {
 
 function telaInvestigacao() {
   const c = combo();
-  if (!c) return `${cabecalho("Passo 4 de 6", "Investigação", e(D.textos.pergunta))}${periodosHtml()}${foraDaPrevia()}`;
+  if (!c) return `${cabecalho("Analisar um período", "Investigação", e(D.textos.pergunta))}${periodosHtml()}${foraDaPrevia()}`;
   const kc = c.kpi_consumo, kv = c.kpi_valor;
   const abas = ["1. O que mudou", `2. O que os dados sustentam (${c.sustentadas.length + c.opostas.length})`, `3. Explicações possíveis (${c.abertas.length})`, `4. O que falta saber (${c.falta_cadastrar.length + c.falta_outros.length})`];
   let detalhe = "";
@@ -444,7 +483,7 @@ function telaInvestigacao() {
       + (!c.falta_cadastrar.length && !c.falta_outros.length ? '<p class="legenda">Nada essencial faltando para esta comparação.</p>' : "")
       + `<p class="legenda">${e(c.independencia)}</p>`;
   }
-  return `${cabecalho("Passo 4 de 6", "Investigação", e(D.textos.pergunta))}
+  return `${cabecalho("Analisar um período", "Investigação", e(D.textos.pergunta))}
     ${periodosHtml()}
     <div class="secao">Resultado</div>
     <div class="alerta ${c.conclusao.abstencao ? "aviso" : "ok"}">${icone(c.conclusao.abstencao ? "mao" : "ok")}<div>${c.resumo.map(e).join("<br>")}</div></div>
@@ -459,7 +498,7 @@ function telaInvestigacao() {
     <div class="abas" role="tablist">${abas.map((t, i) => `<button class="aba" role="tab" data-aba="${i}" aria-selected="${i === estado.aba}">${e(t)}</button>`).join("")}</div>
     <div class="grade">${detalhe}</div>
     <div class="linha-botoes"><button class="botao" data-ir="relatorio">${icone("relatorio")} Gerar o relatório desta comparação</button></div>
-    ${proximo("extrato", "5. Extrato por fornecedor")}`;
+    ${proximo("financeiro", "Financeiro")}`;
 }
 
 function telaExtrato() {
@@ -469,7 +508,7 @@ function telaExtrato() {
     const max = Math.max(...lista.map((b) => b[campo])) * 1.25;
     return `<div class="cartao"><b style="font-size:15px">${e(titulo)}</b><div class="barras">${lista.map((b) => `<div class="barra"><span>${e(b.f)}</span><div class="trilho"><div class="cheia" style="width:${(100 * b[campo]) / max}%;background:${x.cores[b.f]}" data-dica="${e(b.f)} · ${e(b[rot])}"></div><span>${e(b[rot])}</span></div></div>`).join("")}</div></div>`;
   };
-  return `${cabecalho("Passo 5 de 6", "Extrato de energia por fornecedor", "<b>O fornecedor mais barato por tonelada nem sempre é o mais barato por energia.</b> A caldeira compra energia, não toneladas: quanto mais úmido o cavaco, menos energia cada tonelada entrega. Aqui cada lote vira energia (GJ) e custo por energia (R$/GJ).")}
+  return `${cabecalho("Analisar um período", "Extrato de energia por fornecedor", "<b>O fornecedor mais barato por tonelada nem sempre é o mais barato por energia.</b> A caldeira compra energia, não toneladas: quanto mais úmido o cavaco, menos energia cada tonelada entrega. Aqui cada lote vira energia (GJ) e custo por energia (R$/GJ).")}
     <p class="legenda">Período (data de recebimento): ${e(x.periodo)}</p>
     ${x.frase ? `<div class="alerta info">${icone("busca")}<div>${e(x.frase)}</div></div>` : ""}
     <div class="grade g3">${x.metricas.map(([r, v]) => metrica(r, v)).join("")}</div>
@@ -484,14 +523,14 @@ function telaExtrato() {
     <h3>Energia não determinada · ${plural(x.nao_determinados.length, "lote", "lotes")}</h3>
     <p class="legenda">A EULER não assume umidade: sem medição, a energia do lote fica em aberto.</p>
     ${tabela(["Data", "Fornecedor", "Lote", "Massa (t)", "Motivo"], x.nao_determinados.map((l) => l.map(e)), [3])}
-    ${proximo("relatorio", "6. Relatório")}`;
+    ${proximo("relatorio", "Relatório")}`;
 }
 
 function telaRelatorio() {
   const c = combo();
-  if (!c) return `${cabecalho("Passo 6 de 6", "Relatório", "")}${foraDaPrevia()}`;
+  if (!c) return `${cabecalho("Analisar um período", "Relatório", "")}${foraDaPrevia()}`;
   const gerado = estado.gerado.has(estado.ato + ":" + chave());
-  return `${cabecalho("Passo 6 de 6", "Relatório", "Relatório em linguagem simples, com os 5 blocos fixos: <b>O que mudou · O que os dados sustentam · Explicações possíveis · O que falta saber · Próxima verificação</b>.")}
+  return `${cabecalho("Analisar um período", "Relatório", "Relatório em linguagem simples, com os 5 blocos fixos: <b>O que mudou · O que os dados sustentam · Explicações possíveis · O que falta saber · Próxima verificação</b>.")}
     <p class="legenda">Comparação em uso: <b>${e(c.rotulo_ref)}</b> (referência) × <b>${e(c.rotulo_comp)}</b> (comparação). Para trocar, volte à Investigação.</p>
     <div class="linha-botoes"><button class="botao primario" id="gerar">${icone("relatorio")} Gerar relatório</button>${gerado ? '<span class="legenda">No app, aqui aparecem Baixar HTML, Baixar PDF e Imprimir ou salvar como PDF.</span>' : ""}</div>
     ${gerado ? `<h3>Prévia</h3><div class="cartao" style="padding:10px"><iframe class="relatorio-quadro" title="Relatório de investigação" sandbox="" srcdoc="${e(c.relatorio)}"></iframe></div>` : '<p class="legenda">Clique em <b>Gerar relatório</b> para montar o relatório desta comparação.</p>'}`;
@@ -502,6 +541,8 @@ function telaCalculadora() {
     <div class="alerta aviso">${icone("ciencia")}<div><b>Simulação.</b> Valores de referência em revisão científica. Não use para decisões.</div></div>
     <div class="cartao"><p>A calculadora faz contas na hora a cada ajuste, por isso fica só no app (abra com <b>ABRIR-EULER.cmd</b>). No ponto de referência (180 °C, 8% de O₂, 40% de umidade), a perda nos gases é <b>11,77% do PCI</b>.</p></div>`;
 }
+
+/*TELAS_NOVAS*/
 
 /* ------------------------------------------------------------------ gráficos */
 function passoBonito(amplitude, alvo = 4) {
@@ -608,11 +649,15 @@ function graficoSemanal() {
 /* ------------------------------------------------------------------ montagem */
 function montarNav() {
   document.getElementById("nav").innerHTML = TELAS.map((t) => t.grupo ? `<h6>${e(t.grupo)}</h6>` : `<button data-ir="${t.id}" ${t.id === estado.tela ? 'aria-current="page"' : ""}>${icone(t.icone)}${e(t.titulo)}</button>`).join("");
+  // nome de quem registra: só nas telas que gravam algo, como no app
+  document.getElementById("nome-lateral").hidden = !ACOMP.includes(estado.tela);
+  const campo = document.getElementById("autor");
+  if (document.activeElement !== campo) campo.value = ac.autor || "";
 }
-const RENDER = { inicio: telaInicio, importar: telaImportar, saude: telaSaude, limites: telaLimites, investigacao: telaInvestigacao, extrato: telaExtrato, relatorio: telaRelatorio, calculadora: telaCalculadora };
+const RENDER = { inicio: telaInicio, importar: telaImportar, saude: telaSaude, limites: telaLimites, investigacao: telaInvestigacao, financeiro: telaFinanceiro, oportunidades: telaOportunidades, extrato: telaExtrato, relatorio: telaRelatorio, painel: telaPainel, atualizar: telaAtualizar, fechamentos: telaFechamentos, acoes: telaAcoes, plantas: telaPlantas, calculadora: telaCalculadora };
 
 function faixaPrevia() {
-  document.getElementById("faixa-previa").innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center"><span><b>Prévia interativa</b> do app EULER com o caso de demonstração <b>sintético</b>. Os números são os calculados pelo motor da EULER (versão ${e(D.versao)}); nada é recalculado nesta página.</span>
+  document.getElementById("faixa-previa").innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center"><span><b>Prévia interativa</b> do app EULER com o caso de demonstração <b>sintético</b>. Os números são os calculados pelo motor da EULER (versão ${e(D.versao)}); nada é recalculado nesta página. O que você registrar em Acompanhar a planta fica guardado só neste navegador.</span>
     <span class="atalhos"><span>Dados:</span>${["1", "2"].map((a) => `<button class="chip" data-ato="${a}" aria-pressed="${estado.ato === a}">${e(NOME_ATO[a])}</button>`).join("")}</span></div>`;
 }
 
@@ -627,6 +672,8 @@ function mostrar(rolarParaTopo = false) {
 
 function ir(tela) {
   estado.tela = tela;
+  ac.erro = null;
+  ac.abriu = null;
   try { history.replaceState(null, "", "#" + tela); } catch (_) { /* sem histórico na prévia */ }
   mostrar(true);
 }
@@ -637,6 +684,21 @@ function ajustarComparacao() {
   if (estado.b < estado.a) estado.b = estado.a;
 }
 
+document.addEventListener("click", (ev) => {
+  const alvo = ev.target.closest("[data-acao]");
+  if (!alvo || alvo.disabled) return;
+  ev.preventDefault();
+  ACOES[alvo.dataset.acao]?.(alvo);
+});
+document.addEventListener("submit", (ev) => {
+  const form = ev.target.closest("form[data-form]");
+  if (!form) return;
+  ev.preventDefault();
+  FORMS[form.dataset.form]?.(form);
+});
+document.addEventListener("input", (ev) => {
+  if (ev.target.id === "autor") { ac.autor = ev.target.value; guardar(); }
+});
 document.addEventListener("click", (ev) => {
   const alvo = ev.target.closest("[data-ato],[data-investigar],[data-ir],[data-aba],[data-serie],[data-atalho],[data-celula],[data-filtro],#gerar");
   if (!alvo) return;
@@ -658,6 +720,9 @@ document.addEventListener("click", (ev) => {
 });
 document.addEventListener("change", (ev) => {
   const id = ev.target.id;
+  if (id === "ver-fech") { ac.fechSel = Number(ev.target.value); ac.abriu = null; guardar(); return mostrar(); }
+  if (id === "inv-sel") { ac.invSel = Number(ev.target.value); ac.erro = null; guardar(); return mostrar(); }
+  if (id === "dias-ano") { const v = Number(ev.target.value); estado.diasAno = v >= 1 && v <= 366 ? v : null; return mostrar(); }
   if (id === "ref-ini") estado.r0 = +ev.target.value;
   else if (id === "ref-fim") estado.r = +ev.target.value;
   else if (id === "comp-ini") estado.a = +ev.target.value;

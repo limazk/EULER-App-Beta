@@ -187,7 +187,7 @@ def mostrar(pacote) -> None:
 cabecalho(
     "Oportunidades",
     "Onde vale colocar tempo e dinheiro primeiro — sem passar do que os dados sustentam.",
-    "Prioridade de investigação",
+    "Analisar um período",
 )
 pacote = estado.exigir_pacote()
 if pacote is not None:

@@ -233,7 +233,7 @@ def mostrar(pacote):
 
 
 cabecalho(
-    "Financeiro", "Quanto o consumo pesa no caixa — e o que vale investigar.", "Visão econômica"
+    "Financeiro", "Quanto o consumo pesa no caixa — e o que vale investigar.", "Analisar um período"
 )
 st.html("""<style>
 .fin-card {border:1px solid #3c4145;border-radius:16px;padding:24px 26px;

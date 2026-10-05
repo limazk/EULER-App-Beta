@@ -2,7 +2,9 @@
 
 A página mostra as telas com o visual do app e os resultados **calculados pelo motor** para os
 dois atos do caso de demonstração sintético (D62): nada é recalculado nem inventado no
-navegador. A investigação é calculada para as combinações de períodos que a prévia oferece
+navegador. As telas de "Acompanhar a planta" usam a planta de demonstração calculada em
+scripts/previa_acompanhamento.py; o que o visitante registra fica só no navegador dele.
+Telas novas da página: scripts/previa_telas_novas.js. A investigação é calculada para as combinações de períodos que a prévia oferece
 (referência começando em 03/08 e comparação depois dela, mais o antes × depois da limpeza).
 
 Uso:
@@ -22,6 +24,7 @@ from pathlib import Path
 
 RAIZ = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(RAIZ / "app"))
+sys.path.insert(0, str(RAIZ / "scripts"))
 
 import pandas as pd
 from formatacao import (
@@ -40,6 +43,7 @@ from formatacao import (
     variacao_referencia,
 )
 from graficos import CORES
+from previa_acompanhamento import dados_acompanhamento
 
 from euler.capacidades import avaliar
 from euler.combustivel import (
@@ -221,6 +225,232 @@ def _extrato(pacote) -> dict:
     }
 
 
+# ------------------------------------------------------------ Financeiro e Oportunidades
+ESTADOS_DESVIO = {
+    "acima": ("Acima do esperado", "alerta"),
+    "abaixo": ("Abaixo do esperado", "total"),
+    "nao_estabelecido": ("Não ficou bem estabelecido", ""),
+    "sem_faixa": ("Faixa não determinada", ""),
+}
+NIVEL = {"INSUFICIENTE": "Insuficiente", "FRACA": "Fraca", "MODERADA": "Moderada", "FORTE": "Forte"}
+COMPLEXIDADE = {"baixa": "Baixa", "media": "Média", "alta": "Alta", None: "Não classificada"}
+
+
+def _rs(v) -> str:
+    return "—" if v is None else ("−" if v < 0 else "") + f"R$ {num(abs(v), 0)}"
+
+
+def _t(v) -> str:
+    return "—" if v is None else ("−" if v < 0 else "") + f"{num(abs(v), 1)} t"
+
+
+def _cab_periodos(j: dict) -> tuple[str, dict]:
+    p = j["periodos"]
+    datas = {k: (pd.Timestamp(v["inicio"]), pd.Timestamp(v["fim"])) for k, v in p.items()}
+    dias = {k: (b - a).total_seconds() / 86400 for k, (a, b) in datas.items()}
+    (ci, cf), (ri, rf) = datas["comparacao"], datas["referencia"]
+    return (
+        f"Período analisado: {ci:%d/%m/%Y} a {cf:%d/%m/%Y} · Referência: {ri:%d/%m/%Y} a {rf:%d/%m/%Y}",
+        dias,
+    )
+
+
+def _financeiro(j: dict) -> dict:
+    """O que a tela Financeiro mostra (app/paginas/financeiro.py), já em texto."""
+    cab, dias = _cab_periodos(j)
+    c = j.get("explicacao_conta") or {}
+    if not c.get("disponivel"):
+        return {"cab": cab, "motivo": c.get("motivo") or j["o_que_mudou"]["frase"]}
+    d, e = c["desvio"], c["esperado"]
+    rotulo, classe = ESTADOS_DESVIO[d["estado"]]
+    faixa = d["faixa_brl"]
+    v = c["variacao"]
+    vj = j.get("valor_em_jogo")
+    separacao = None
+    if vj and v["disponivel"]:
+        b = {x["id"]: x["custo_brl"] for x in v["componentes"]}
+        separacao = (
+            f"Na Investigação, o valor em jogo é {_rs(vj['valor_brl'])}: consumo acima da "
+            "referência para o mesmo vapor. Aqui ele se divide em condição do vapor "
+            f"({_rs(b['condicao_vapor'])}), qualidade do combustível ({_rs(b['qualidade'])}) e "
+            f"desvio não explicado ({_rs(b['nao_explicado'])})."
+        )
+    motivo = c["evitavel"]["motivo"].removeprefix("Parcela evitável não apurada: ")
+    premissas = [f"**{x['titulo']}:** {x['base']}" for x in v["componentes"]]
+    premissas += list(e["nao_ajustado"])
+    if d["cenarios_preco_brl"]:
+        a, b = d["cenarios_preco_brl"]
+        premissas.append(
+            "Cenários de preço (menor e maior preço por tonelada dos lotes do período): "
+            f"desvio de {_rs(a)} a {_rs(b)}."
+        )
+    if d["cenarios_qualidade_brl"]:
+        a, b = d["cenarios_qualidade_brl"]
+        premissas.append(
+            "Cenários do pátio (combustível queimado = recebido ou o mais antigo do estoque): "
+            f"desvio de {_rs(a)} a {_rs(b)}."
+        )
+    return {
+        "cab": cab,
+        "frase": d["frase"],
+        "cartoes": [
+            [
+                "Combustível consumido",
+                _rs(c["consumido"]["custo_brl"]),
+                f"{_t(c['consumido']['combustivel_t'])} queimadas no período, ao preço médio dos recebimentos.",
+                "total",
+            ],
+            [
+                "Esperado nas mesmas condições",
+                _rs(e["custo_brl"]),
+                f"{_t(e['combustivel_t'])}: consumo por tonelada de vapor da referência, ajustado por: "
+                + ", ".join(e["ajustado_por"])
+                + ".",
+                "",
+            ],
+            [
+                f"Desvio ainda não explicado · {rotulo.lower()}",
+                _rs(d["custo_brl"]),
+                f"{_t(d['combustivel_t'])} ({num(d['pct_do_esperado'], 1)}% do esperado)"
+                + (
+                    f". Faixa das medições: {_rs(faixa[0])} a {_rs(faixa[1])}."
+                    if faixa
+                    else ". Faixa não determinada."
+                ),
+                classe,
+            ],
+        ],
+        "evitavel": motivo[:1].upper() + motivo[1:],
+        "verificacao": c["evitavel"]["verificacao"],
+        "porque": j["proxima_verificacao"]["porque"],
+        "variacao": (
+            f"Conta da referência ({num(dias['referencia'], 0)} dias) {_rs(v['custo_referencia_brl'])} "
+            f"→ conta do período ({num(dias['comparacao'], 0)} dias) {_rs(v['custo_brl'])}: variação "
+            f"de {_rs(v['variacao_brl'])}. As parcelas somam exatamente a variação."
+            if v["disponivel"]
+            else v["motivo"]
+        ),
+        "parcelas": [
+            [
+                x["titulo"],
+                x["pergunta"],
+                _t(x["combustivel_t"]) if x["separado"] or x["id"] == "preco" else "no desvio",
+                _rs(x["custo_brl"])
+                if x["custo_brl"] is not None
+                else ("no desvio" if not x["separado"] else "—"),
+            ]
+            for x in v["componentes"]
+        ],
+        "separacao": separacao,
+        "premissas": premissas,
+        "notas": list(c["premissas"]),
+    }
+
+
+def _oportunidades(j: dict) -> dict:
+    """O que a tela Oportunidades mostra (app/paginas/oportunidades.py), já em texto."""
+    cab, _ = _cab_periodos(j)
+    o = j.get("oportunidades")
+    if o is None:
+        return {
+            "cab": cab,
+            "vazio": "Refaça a investigação para ver as oportunidades desta versão.",
+        }
+    r = o["resumo"]
+    assoc = r["associado"]
+
+    def cartao(x):
+        i, v = x["impacto"], x["verificacao"]
+        legenda = []
+        if i["combustivel_t"] is not None:
+            legenda.append(f"{num(i['combustivel_t'], 1)} t de combustível no período")
+        if i["faixa_brl"]:
+            legenda.append(f"faixa {_rs(i['faixa_brl'][0])} a {_rs(i['faixa_brl'][1])}")
+        detalhes = []
+        if v["distingue"]:
+            detalhes.append(f"Distingue: {v['distingue']}.")
+        if v["etapa_seguinte"]:
+            detalhes.append(v["etapa_seguinte"])
+        detalhes.append(f"{x['natureza_rotulo']}. Intervenção: {x['intervencao']['motivo']}")
+        return {
+            "ordem": x["ordem"],
+            "titulo": x["titulo"],
+            "prioridade": [x["prioridade_rotulo"], "blue" if x["prioridade"] == "alta" else "gray"],
+            "impacto": _rs(i["custo_brl"]),
+            "custo": i["custo_brl"],
+            "faixa": i["faixa_brl"],
+            "legenda": legenda,
+            "motivo": i.get("motivo") if i["custo_brl"] is None else None,
+            "evidencia": [NIVEL[x["evidencia"]["nivel"]], x["evidencia"]["motivo"]],
+            "complexidade": [
+                COMPLEXIDADE[v["complexidade"]],
+                ("Sem parada. " if v["exige_parada"] is False else "")
+                + (f"{v['recurso'][:1].upper()}{v['recurso'][1:]}." if v["recurso"] else "")
+                + f" Fonte: {v['origem_complexidade']}.",
+            ],
+            "acao": v["acao"],
+            "detalhes": detalhes,
+        }
+
+    ativos = [x for x in o["oportunidades"] if x["prioridade"] in ("alta", "media")]
+    outros = [x for x in o["oportunidades"] if x not in ativos]
+    return {
+        "cab": cab,
+        "frase": r["frase"],
+        "dias": assoc["dias"],
+        "assoc": {
+            "rotulo": f"Associado ao desvio no período ({num(assoc['dias'], 0)} dias)"
+            if assoc["dias"]
+            else "No período",
+            "valor": _rs(assoc["custo_brl"]),
+            "custo": assoc["custo_brl"],
+            "legenda": (
+                f"Incerteza ±{_rs(assoc['incerteza_brl'])} (k = 2). "
+                if assoc["incerteza_brl"] is not None
+                else ""
+            )
+            + assoc["base"],
+        },
+        "primeira": r["primeira"],
+        "sobreposicao": list(o["sobreposicao"]),
+        "ativos": [cartao(x) for x in ativos],
+        "outros": [[x["titulo"], x["prioridade_rotulo"], " ".join(x["porque"])] for x in outros],
+        "intervencao": o["intervencao"]["motivo"],
+        "cadeia": " → ".join(("✓ " if c["disponivel"] else "○ ") + c["etapa"] for c in o["cadeia"]),
+        "objetivos": list(o["regras"]["objetivos"]),
+        "propostos": list(o["regras"]["propostos"]),
+    }
+
+
+def _compras(pacote) -> dict | None:
+    """Compras registradas (fim da tela Financeiro): todos os recebimentos carregados."""
+    from financeiro import nao_negativo
+
+    combustivel = pacote.dados("combustivel")
+    receb = combustivel[combustivel["tipo"] == "recebimento"].copy()
+    if receb.empty:
+        return None
+    receb["valor_valido"] = receb["preco_brl"].map(nao_negativo)
+    validos = receb.dropna(subset=["valor_valido"])
+    grupos = (
+        validos.assign(fornecedor=validos["fornecedor_id"].fillna("Sem identificação"))
+        .groupby("fornecedor")["valor_valido"]
+        .sum()
+        .sort_values(ascending=False)
+    )
+    return {
+        "periodo": f"{receb['data'].min():%d/%m/%Y} a {receb['data'].max():%d/%m/%Y}",
+        "rotulo": "Valor dos recebimentos"
+        if len(validos) == len(receb)
+        else "Valor parcial dos recebimentos",
+        "total": f"R$ {num(float(validos['valor_valido'].sum()), 2)}"
+        if len(validos)
+        else "Não calculado",
+        "contagem": f"{len(validos)} de {len(receb)} recebimentos com preço.",
+        "grupos": [[f, float(v), f"R$ {num(float(v), 0)}"] for f, v in grupos.items()],
+    }
+
+
 def _hipotese(h: dict) -> dict:
     rotulo, cor, _ = STATUS[h["status"]]
     efeito = h["efeito"]["consumo_pct"]
@@ -312,6 +542,8 @@ def _investigacao(j: dict) -> dict:
         "resumo": j["resumo"]["frases"],
         "independencia": j["independencia"]["nota"],
         "relatorio": gerar_html(j),
+        "fin": _financeiro(j),
+        "op": _oportunidades(j),
     }  # fmt: skip
 
 
@@ -415,6 +647,7 @@ def _ato(pasta: str, rotulo: str) -> dict:
         "saude": _saude(pacote),
         "series": _series(pacote),
         "extrato": _extrato(pacote),
+        "compras": _compras(pacote),
         "combos": combos,
     }
 
@@ -430,6 +663,7 @@ def dados_da_previa() -> dict:
             "estagios": [list(e) for e in ESTAGIOS_MODELO],
         },
         "atos": {ato: _ato(pasta, rotulo) for ato, (pasta, rotulo) in ATOS.items()},
+        "acomp": dados_acompanhamento(),
         "padrao": [0, 3, 4, 5],
     }
 
@@ -438,7 +672,12 @@ def gerar(destino: Path) -> Path:
     dados = dados_da_previa()
     texto = json.dumps(dados, ensure_ascii=False, separators=(",", ":"))
     texto = texto.replace("</", "<\\/")  # o JSON vai dentro de <script>
-    html = MODELO.read_text(encoding="utf-8").replace("/*DADOS*/{}", texto)
+    telas = (RAIZ / "scripts" / "previa_telas_novas.js").read_text(encoding="utf-8")
+    html = (
+        MODELO.read_text(encoding="utf-8")
+        .replace("/*TELAS_NOVAS*/", telas)
+        .replace("/*DADOS*/{}", texto)
+    )
     destino.parent.mkdir(parents=True, exist_ok=True)
     destino.write_text(html, encoding="utf-8")
     return destino

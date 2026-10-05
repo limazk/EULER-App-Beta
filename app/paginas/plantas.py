@@ -12,7 +12,7 @@ from euler.armazem import CLASSES
 cabecalho(
     "Plantas e histórico",
     "Guarde os dados no computador e retome a análise em outra sessão.",
-    "Biblioteca local",
+    "Acompanhar a planta",
 )
 
 
