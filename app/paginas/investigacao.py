@@ -1,7 +1,7 @@
 """Tela Investigação: o consumo mudou? O que os dados sustentam? O que verificar? (T13).
 
-Organização (D59): no topo, o resultado em resumo (conclusão, próxima verificação e os
-números principais); abaixo, os quatro blocos de detalhe em abas. Os textos vêm prontos do
+Organização: no topo, resultado, próxima verificação e números principais; abaixo,
+detalhes e evidências em seções recolhidas. Os textos vêm prontos do
 JSON da investigação: a tela só arruma, não calcula nem reescreve conclusões.
 """
 
@@ -278,9 +278,6 @@ def mostrar(pacote) -> None:
     estado.guardar_investigacao(j)
     from blocos.diagnostico import renderizar as renderizar_diagnostico
 
-    renderizar_diagnostico(j["diagnostico_evidencias"], completo=False)
-    st.page_link("paginas/diagnostico.py", label="Ver diagnóstico completo e rastreabilidade")
-
     # ---------------------------------------------------------------- resultado em resumo
     secao("Resultado")
     # até três frases curtas (D63): o consumo; o que explica e o que foi descartado; a
@@ -312,15 +309,7 @@ def mostrar(pacote) -> None:
     opostas = [h for h in hips if h["status"] == "oposta"]
     abertas = [h for h in hips if h["status"] in ("possivel", "nao_avaliavel")]
     secao("Detalhes")
-    aba1, aba2, aba3, aba4 = st.tabs(
-        [
-            "1. O que mudou",
-            f"2. O que os dados sustentam ({len(sustentadas) + len(opostas)})",
-            f"3. Explicações possíveis ({len(abertas)})",
-            f"4. O que falta saber ({len(j['o_que_falta'])})",
-        ]
-    )
-    with aba1:
+    with st.expander("O que mudou · gráfico e indicadores"):
         st.markdown(f"**{md(j['o_que_mudou']['frase'])}**")
         if j["o_que_mudou"]["custo_vapor"]:
             st.markdown(md(j["o_que_mudou"]["custo_vapor"]["frase"]))
@@ -328,7 +317,7 @@ def mostrar(pacote) -> None:
         with st.expander("Ver todos os indicadores e suas incertezas"):
             _indicadores(j)
 
-    with aba2:
+    with st.expander(f"O que os dados sustentam ({len(sustentadas) + len(opostas)})"):
         st.markdown(f"**Conclusão:** {md(j['conclusao']['texto'])}")
         _hipoteses(sustentadas, "Nenhuma explicação é sustentada pelos dados.")
         if opostas:
@@ -347,12 +336,16 @@ def mostrar(pacote) -> None:
             with st.expander(f"Hipóteses enfraquecidas e por quê ({len(descartadas)})"):
                 _hipoteses(descartadas, "")
 
-    with aba3:
+    with st.expander(f"Outras explicações possíveis ({len(abertas)})"):
         _hipoteses(abertas, "Nenhuma outra explicação continua em aberto.")
 
-    with aba4:
+    with st.expander(f"Dados que faltam para concluir ({len(j['o_que_falta'])})"):
         _o_que_falta(j["o_que_falta"])
         st.caption(md(j["independencia"]["nota"]))
+
+    with st.expander("Qualidade das evidências e rastreabilidade"):
+        renderizar_diagnostico(j["diagnostico_evidencias"], completo=False)
+        st.page_link("paginas/diagnostico.py", label="Ver diagnóstico completo e rastreabilidade")
 
     with st.container(horizontal=True, vertical_alignment="center"):
         st.page_link(

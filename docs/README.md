@@ -12,6 +12,8 @@
 
 ## Desenvolvimento
 
+- [Assinatura recorrente: hipótese comercial e perguntas para o piloto](produto/assinatura_recorrente_2026-10-05.md).
+
 - [Guia dos desenvolvedores](desenvolvimento/README.md): instalação, arquitetura e verificações.
 - [Banco unificado](desenvolvimento/unificacao_banco_2026-10-04.md): plantas, registros, fechamentos, backup e passagem para o Claude.
 - [Progresso](desenvolvimento/PROGRESSO.md): registro cronológico das entregas.

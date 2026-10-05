@@ -129,11 +129,11 @@ def mostrar() -> None:
     st.markdown("### O que olhar primeiro")
     if not fila:
         st.caption("Nada pendente: sem desvio estabelecido, ação sem verificação ou dado faltando.")
-    for i in fila[:5]:
+    for i in fila[:3]:
         item_fila(i)
-    if len(fila) > 5:
-        with st.expander(f"Ver todos ({len(fila)})"):
-            for i in fila[5:]:
+    if len(fila) > 3:
+        with st.expander(f"Outros itens para acompanhar ({len(fila) - 3})"):
+            for i in fila[3:]:
                 item_fila(i)
     if any(i["categoria"] == "oportunidade" for i in fila):
         st.caption(
@@ -183,9 +183,9 @@ def mostrar() -> None:
             for x in acoes:
                 st.markdown(md(f"- {data(x['data'])} · {x['descricao']}: {x['frase']}"))
     if p["pendencias"]:
-        st.markdown("### Pendências")
-        for x in p["pendencias"]:
-            st.markdown(md(f"- {x}"))
+        with st.expander(f"Pendências dos registros ({len(p['pendencias'])})"):
+            for x in p["pendencias"]:
+                st.markdown(md(f"- {x}"))
     st.caption(
         "Desvio monetizado não é economia; oportunidade não confirmada não é ganho; só a "
         "economia verificada pelo protocolo entra como resultado. O benefício é das ações da planta."

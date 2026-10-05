@@ -77,7 +77,8 @@ def explicar(j):
             ),
             classe,
         )
-    incerteza_explicada(d.get("incerteza"))
+    with st.expander("Entender a faixa de incerteza"):
+        incerteza_explicada(d.get("incerteza"))
     with st.container(border=True):
         st.markdown("**Parcela evitável: não apurada**")
         motivo = c["evitavel"]["motivo"].removeprefix("Parcela evitável não apurada: ")
@@ -91,77 +92,77 @@ def explicar(j):
             icon=":material/flag:",
         )
 
-    st.markdown("### Por que a conta mudou em relação à referência")
-    v = c["variacao"]
-    if v["disponivel"]:
-        st.caption(
-            md(
-                f"Conta da referência ({num(dias['referencia'], 0)} dias) "
-                f"{dinheiro_sinal(v['custo_referencia_brl'])} → conta do período "
-                f"({num(dias['comparacao'], 0)} dias) {dinheiro_sinal(v['custo_brl'])}: variação "
-                f"de {dinheiro_sinal(v['variacao_brl'])}. As parcelas somam exatamente a variação."
-            )
-        )
-    else:
-        st.caption(v["motivo"])
-    st.dataframe(
-        pd.DataFrame(
-            [
-                {
-                    "Parcela": x["titulo"],
-                    "Pergunta": x["pergunta"],
-                    "Combustível": toneladas(x["combustivel_t"])
-                    if x["separado"] or x["id"] == "preco"
-                    else "no desvio",
-                    "Valor": dinheiro_sinal(x["custo_brl"])
-                    if x["custo_brl"] is not None
-                    else ("no desvio" if not x["separado"] else "—"),
-                }
-                for x in v["componentes"]
-            ]
-        ),
-        hide_index=True,
-        width="stretch",
-    )
-    vj = j.get("valor_em_jogo")
-    if vj and v["disponivel"]:
-        b = {x["id"]: x["custo_brl"] for x in v["componentes"]}
-        st.caption(
-            md(
-                f"Na Investigação, o valor em jogo é {dinheiro_sinal(vj['valor_brl'])}: consumo "
-                "acima da referência para o mesmo vapor. Aqui ele se divide em condição do vapor "
-                f"({dinheiro_sinal(b['condicao_vapor'])}), qualidade do combustível "
-                f"({dinheiro_sinal(b['qualidade'])}) e desvio não explicado "
-                f"({dinheiro_sinal(b['nao_explicado'])})."
-            )
-        )
-    with st.expander("Premissas, faixas e cenários"):
-        for x in v["componentes"]:
-            st.markdown(md(f"**{x['titulo']}:** {x['base']}"))
-        for x in e["nao_ajustado"]:
-            st.write(x)
-        if d["cenarios_preco_brl"]:
-            a, b = d["cenarios_preco_brl"]
-            st.markdown(
+    with st.expander("Por que a conta mudou · composição e premissas"):
+        v = c["variacao"]
+        if v["disponivel"]:
+            st.caption(
                 md(
-                    "Cenários de preço (menor e maior preço por tonelada dos lotes do período): "
-                    f"desvio de {dinheiro_sinal(a)} a {dinheiro_sinal(b)}."
+                    f"Conta da referência ({num(dias['referencia'], 0)} dias) "
+                    f"{dinheiro_sinal(v['custo_referencia_brl'])} → conta do período "
+                    f"({num(dias['comparacao'], 0)} dias) {dinheiro_sinal(v['custo_brl'])}: variação "
+                    f"de {dinheiro_sinal(v['variacao_brl'])}. As parcelas somam exatamente a variação."
                 )
             )
-        if d["cenarios_qualidade_brl"]:
-            a, b = d["cenarios_qualidade_brl"]
-            st.markdown(
+        else:
+            st.caption(v["motivo"])
+        st.dataframe(
+            pd.DataFrame(
+                [
+                    {
+                        "Parcela": x["titulo"],
+                        "Pergunta": x["pergunta"],
+                        "Combustível": toneladas(x["combustivel_t"])
+                        if x["separado"] or x["id"] == "preco"
+                        else "no desvio",
+                        "Valor": dinheiro_sinal(x["custo_brl"])
+                        if x["custo_brl"] is not None
+                        else ("no desvio" if not x["separado"] else "—"),
+                    }
+                    for x in v["componentes"]
+                ]
+            ),
+            hide_index=True,
+            width="stretch",
+        )
+        vj = j.get("valor_em_jogo")
+        if vj and v["disponivel"]:
+            b = {x["id"]: x["custo_brl"] for x in v["componentes"]}
+            st.caption(
                 md(
-                    "Cenários do pátio (combustível queimado = recebido ou o mais antigo do "
-                    f"estoque): desvio de {dinheiro_sinal(a)} a {dinheiro_sinal(b)}."
+                    f"Na Investigação, o valor em jogo é {dinheiro_sinal(vj['valor_brl'])}: consumo "
+                    "acima da referência para o mesmo vapor. Aqui ele se divide em condição do vapor "
+                    f"({dinheiro_sinal(b['condicao_vapor'])}), qualidade do combustível "
+                    f"({dinheiro_sinal(b['qualidade'])}) e desvio não explicado "
+                    f"({dinheiro_sinal(b['nao_explicado'])})."
                 )
             )
-        for x in c["premissas"]:
-            st.caption(md(x))
-        st.caption(
-            "Economia comprovada: ainda não apurada. Depende de intervenção registrada e "
-            "comparação posterior com a referência ajustada."
-        )
+        with st.expander("Premissas, faixas e cenários"):
+            for x in v["componentes"]:
+                st.markdown(md(f"**{x['titulo']}:** {x['base']}"))
+            for x in e["nao_ajustado"]:
+                st.write(x)
+            if d["cenarios_preco_brl"]:
+                a, b = d["cenarios_preco_brl"]
+                st.markdown(
+                    md(
+                        "Cenários de preço (menor e maior preço por tonelada dos lotes do período): "
+                        f"desvio de {dinheiro_sinal(a)} a {dinheiro_sinal(b)}."
+                    )
+                )
+            if d["cenarios_qualidade_brl"]:
+                a, b = d["cenarios_qualidade_brl"]
+                st.markdown(
+                    md(
+                        "Cenários do pátio (combustível queimado = recebido ou o mais antigo do "
+                        f"estoque): desvio de {dinheiro_sinal(a)} a {dinheiro_sinal(b)}."
+                    )
+                )
+            for x in c["premissas"]:
+                st.caption(md(x))
+            st.caption(
+                "Economia comprovada: ainda não apurada. Depende de intervenção registrada e "
+                "comparação posterior com a referência ajustada."
+            )
 
 
 def mostrar(pacote):

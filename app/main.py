@@ -8,6 +8,7 @@ import os
 import estado
 import streamlit as st
 from componentes import ICONE, LOGO, MARCA, aplicar_estilo, rodape
+from navegacao import menu_lateral, todas_as_paginas
 
 import euler
 
@@ -20,51 +21,12 @@ st.set_page_config(
 st.logo(str(LOGO), icon_image=str(MARCA), size="large")
 aplicar_estilo()
 
-paginas = {
-    "": [st.Page("paginas/inicio.py", title="Início", icon=":material/home:", default=True)],
-    # um período: os arquivos desta sessão (demonstração ou enviados)
-    "Analisar um período": [
-        st.Page("paginas/importar.py", title="Importar dados", icon=":material/upload_file:"),
-        st.Page("paginas/saude.py", title="Saúde da caldeira", icon=":material/monitor_heart:"),
-        st.Page("paginas/limites.py", title="Dados e limites", icon=":material/rule:"),
-        st.Page("paginas/investigacao.py", title="Investigação", icon=":material/troubleshoot:"),
-        st.Page("paginas/financeiro.py", title="Financeiro", icon=":material/payments:"),
-        st.Page("paginas/oportunidades.py", title="Oportunidades", icon=":material/flag:"),
-        st.Page(
-            "paginas/extrato.py", title="Extrato por fornecedor", icon=":material/receipt_long:"
-        ),
-        st.Page("paginas/relatorio.py", title="Relatório", icon=":material/description:"),
-    ],
-    # ao longo do tempo: dados, fechamentos e ações guardados no banco de cada planta
-    "Acompanhar a planta": [
-        st.Page("paginas/painel.py", title="Painel", icon=":material/space_dashboard:"),
-        st.Page("paginas/acompanhamento.py", title="Atualizar dados", icon=":material/upload:"),
-        st.Page("paginas/fechamentos.py", title="Fechamentos", icon=":material/event_available:"),
-        st.Page("paginas/acoes.py", title="Investigações e ações", icon=":material/task_alt:"),
-        st.Page("paginas/plantas.py", title="Plantas e histórico", icon=":material/database:"),
-    ],
-    # casos públicos reais (EPA, universidades): o que já foi conferido fora da demonstração
-    "Dados reais testados": [
-        st.Page(
-            "paginas/dados_publicos.py",
-            title="Testes com dados públicos",
-            icon=":material/science:",
-        ),
-        st.Page(
-            "paginas/diagnostico.py",
-            title="Diagnóstico de evidências",
-            icon=":material/fact_check:",
-        ),
-    ],
-    "Referência": [
-        st.Page(
-            "paginas/calculadora.py", title="Calculadora de referência", icon=":material/calculate:"
-        ),
-    ],
-}
-
-# expanded: com muitas telas o Streamlit esconde parte do menu em 'ver mais'
-navegacao = st.navigation(paginas, expanded=True)
+paginas = [
+    st.Page(caminho, title=titulo, icon=f":material/{icone}:", default=i == 0)
+    for i, (caminho, titulo, icone) in enumerate(todas_as_paginas())
+]
+navegacao = st.navigation(paginas, position="hidden")
+menu_lateral(st)
 # As telas não usam st.stop(): o rodapé de segurança precisa aparecer sempre.
 navegacao.run()
 rodape()

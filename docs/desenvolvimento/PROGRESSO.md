@@ -1,5 +1,15 @@
 # PROGRESSO da construção
 
+## 05/10/2026 - Navegação simplificada e hipótese de assinatura
+
+Pedido de Adryan: menos abas e texto, mais clareza para uso recorrente. Menu com seis entradas
+principais, mantendo as 17 rotas; início curto, investigação e financeiro com detalhes recolhidos,
+painel com três prioridades. Motor, dados e critérios científicos preservados. **59 testes de
+interface e acompanhamento passaram**, além de Ruff nos arquivos alterados. Revisão visual e
+responsiva manual pendente por bloqueio do navegador integrado; prévia estática não regenerada.
+Ver [registro da implementação](interface_recorrencia_2026-10-05.md) e
+[pesquisa da assinatura](../produto/assinatura_recorrente_2026-10-05.md).
+
 | Etapa | Status | Data | O que funciona | Pendências |
 |---|---|---|---|---|
 | 0 · Preparar | concluída | 2026-10-01 | 17 arquivos da Parte 3 criados idênticos ao arquivo mestre (conferido por script); `.venv` com Python 3.11; dependências instaladas (`pip install -e ".[dev]"`); `pytest -q` → testes golden *skipped*; `ruff check .` sem erros. Checagem extra: `lab/referencia_perda_gases.py` e IAPWS reproduzem todos os valores golden (G01–G12, V01, P01–P05). | Spec v0.3 não está no repositório (citada por T02, T11, T12, T13): pedir ao Adryan antes da Etapa 3. |
