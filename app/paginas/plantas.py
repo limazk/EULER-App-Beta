@@ -77,7 +77,12 @@ def mostrar():
                     "Não unimos linhas nem misturamos caldeiras. As versões anteriores permanecem."
                 )
                 with st.form("salvar_versao"):
-                    autor = st.text_input("Responsável pelo registro", key="salvar_autor")
+                    autor = st.text_input(
+                        "Responsável pelo registro",
+                        # o mesmo nome digitado nas telas de acompanhamento, se houver
+                        value=st.session_state.get("acomp_autor_salvo", ""),
+                        key="salvar_autor",
+                    )
                     motivo = st.text_input("Motivo ou descrição da versão", key="salvar_motivo")
                     if st.form_submit_button("Salvar versão nesta planta", type="primary"):
                         v = arm.salvar_sessao(planta, autor=autor, motivo=motivo)
