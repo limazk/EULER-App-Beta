@@ -21,7 +21,8 @@ def _rodape_ok(at: AppTest) -> bool:
 def test_fluxo_completo_do_caso_de_demonstracao():
     inicio = time.perf_counter()
     at = AppTest.from_file(str(APP), default_timeout=60).run()
-    next(b for b in at.button if b.label.startswith("Ato 2")).click().run()
+    # Início (navegação simplificada): o ato 2 fica em "Sobre a demonstração e os limites"
+    at.button(key="ato2").click().run()
     assert not at.exception, at.exception
     # o botão leva à Saúde da caldeira (D65): o consumo das semanas de setembro mudou
     assert any("Mudança detectada" in m.value for m in at.markdown)
@@ -61,7 +62,7 @@ def test_ato_1_caso_completo_conclui():
     """Ato 1 (D62): os mesmos registros, com a incerteza de todos os instrumentos cadastrada.
     A investigação principal conclui; purga/UA continuam sem as medições opcionais."""
     at = AppTest.from_file(str(APP), default_timeout=60).run()
-    next(b for b in at.button if b.label.startswith("Ato 1")).click().run()
+    at.button(key="ato1").click().run()  # "Explorar demonstração" no Início
     assert not at.exception, at.exception
     at.switch_page("paginas/limites.py").run()
     assert {m.label: m.value for m in at.metric}.get("Bloqueadas") == "2"

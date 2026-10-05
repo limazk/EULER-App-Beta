@@ -44,6 +44,11 @@ button, select { font-family: inherit; }
 .nav button:focus-visible, .botao:focus-visible, .chip:focus-visible, .aba:focus-visible,
 .celula:focus-visible, select:focus-visible { outline: 2px solid #A8C7FA; outline-offset: 2px; }
 .nav svg { width: 17px; height: 17px; flex: none; color: var(--suave); }
+.nav details.mais { border: 1px solid #3A3A3A; border-radius: 8px; padding: 2px; margin-top: 10px; display: flex; flex-direction: column; gap: 2px; }
+.nav details.mais summary { padding: 7px 10px; border-radius: 7px; font-size: 14.5px; color: var(--suave); }
+.nav details.mais summary:hover { background: #222222; }
+.nav details.mais summary:focus-visible { outline: 2px solid #A8C7FA; outline-offset: 2px; }
+.nav details.mais[open] summary { margin-bottom: 0; }
 .lateral .rodape-lateral { margin-top: auto; font-size: 13px; color: var(--fraco);
   border-top: 1px solid #262626; padding: 14px 8px 0; }
 .principal { min-width: 0; padding-inline: 32px; padding-block: 26px 40px; }
@@ -184,6 +189,7 @@ select { background: var(--campo); color: var(--texto); border: 1px solid #3F3F3
 .campo textarea { min-height: 76px; resize: vertical; }
 .campo input:focus-visible, .campo textarea:focus-visible, .nome-lateral input:focus-visible { outline: 2px solid #A8C7FA; outline-offset: 1px; }
 .nome-lateral { display: grid; gap: 6px; font-size: 13.5px; color: var(--suave); padding: 0 8px; }
+.nome-lateral[hidden] { display: none; }
 .alerta.erro { background: var(--s-red); color: var(--t-red); }
 .cartao.fin-total { background: linear-gradient(130deg, #283944, #20272c); border-color: #45545f; }
 .cartao.fin-alerta { background: linear-gradient(130deg, #3b3023, #292725); border-color: #705431; }
@@ -209,6 +215,9 @@ select { background: var(--campo); color: var(--texto); border: 1px solid #3F3F3
   .lateral { position: static; height: auto; padding: 16px; }
   .nav { flex-direction: row; flex-wrap: wrap; }
   .nav h6 { display: none; }
+  .nav details.mais { flex-basis: 100%; }
+  .nav details.mais[open] { flex-direction: row; flex-wrap: wrap; }
+  .nav details.mais[open] summary { flex-basis: 100%; }
   .lateral .rodape-lateral { display: none; }
   .principal { padding-inline: 16px; }
   .g2, .g3 { grid-template-columns: minmax(0, 1fr); }
@@ -246,8 +255,9 @@ select { background: var(--campo); color: var(--texto); border: 1px solid #3F3F3
 <script>
 "use strict";
 const D = JSON.parse(document.getElementById("dados").textContent);
-const estado = { tela: "inicio", ato: "1", r0: D.padrao[0], r: D.padrao[1], a: D.padrao[2], b: D.padrao[3], aba: 0,
-  serie: null, diasAno: null, filtro: new Set(["Erro", "Atenção", "Informação"]), gerado: new Set() };
+const estado = { tela: "inicio", ato: "1", r0: D.padrao[0], r: D.padrao[1], a: D.padrao[2], b: D.padrao[3],
+  serie: null, diasAno: null, filtro: new Set(["Erro", "Atenção", "Informação"]), gerado: new Set(),
+  maisAberto: false };
 // os dois atos têm os mesmos registros de operação (D62): mesmos períodos e séries
 const A = () => D.atos[estado.ato];
 const N = D.atos["1"].periodos.length;
@@ -290,28 +300,33 @@ const ICONES = {
 };
 const icone = (nome, extra = "") => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ${extra}>${ICONES[nome]}</svg>`;
 
-const TELAS = [
+// mesmo menu do app (app/navegacao.py): seis entradas e o resto em "Mais ferramentas"
+const PRINCIPAIS = [
   { id: "inicio", titulo: "Início", icone: "inicio" },
-  { grupo: "Analisar um período" },
-  { id: "importar", titulo: "Importar dados", icone: "importar" },
-  { id: "saude", titulo: "Saúde da caldeira", icone: "saude" },
-  { id: "limites", titulo: "Dados e limites", icone: "limites" },
-  { id: "investigacao", titulo: "Investigação", icone: "investigacao" },
+  { id: "painel", titulo: "Minha planta", icone: "painel" },
+  { id: "saude", titulo: "Análise", icone: "saude" },
   { id: "financeiro", titulo: "Financeiro", icone: "financeiro" },
-  { id: "oportunidades", titulo: "Oportunidades", icone: "oportunidades" },
-  { id: "extrato", titulo: "Extrato por fornecedor", icone: "extrato" },
-  { id: "relatorio", titulo: "Relatório", icone: "relatorio" },
-  { grupo: "Acompanhar a planta" },
-  { id: "painel", titulo: "Painel", icone: "painel" },
-  { id: "atualizar", titulo: "Atualizar dados", icone: "atualizar" },
-  { id: "fechamentos", titulo: "Fechamentos", icone: "fechamentos" },
-  { id: "acoes", titulo: "Investigações e ações", icone: "acoes" },
-  { id: "plantas", titulo: "Plantas e histórico", icone: "plantas" },
-  { grupo: "Dados reais testados" },
-  { id: "publicos", titulo: "Testes com dados públicos", icone: "publicos" },
-  { id: "diagnostico", titulo: "Diagnóstico de evidências", icone: "diagnostico" },
-  { grupo: "Referência" },
-  { id: "calculadora", titulo: "Calculadora de referência", icone: "calculadora" },
+  { id: "acoes", titulo: "Ações", icone: "acoes" },
+  { id: "atualizar", titulo: "Dados", icone: "atualizar" },
+];
+const COMPLEMENTARES = [
+  ["Aprofundar a análise", [
+    { id: "investigacao", titulo: "Investigar uma mudança", icone: "investigacao" },
+    { id: "oportunidades", titulo: "Oportunidades", icone: "oportunidades" },
+    { id: "extrato", titulo: "Fornecedores", icone: "extrato" },
+    { id: "limites", titulo: "Qualidade e limites dos dados", icone: "limites" },
+    { id: "relatorio", titulo: "Relatório da análise", icone: "relatorio" },
+  ]],
+  ["Histórico e cadastro", [
+    { id: "fechamentos", titulo: "Fechamentos", icone: "fechamentos" },
+    { id: "plantas", titulo: "Plantas e histórico", icone: "plantas" },
+    { id: "importar", titulo: "Analisar um arquivo avulso", icone: "importar" },
+  ]],
+  ["Validação e referências", [
+    { id: "publicos", titulo: "Testes com dados reais", icone: "publicos" },
+    { id: "diagnostico", titulo: "Diagnóstico de evidências", icone: "diagnostico" },
+    { id: "calculadora", titulo: "Calculadora de referência", icone: "calculadora" },
+  ]],
 ];
 
 function cabecalho(sobre, titulo, resumo, comDados = true) {
@@ -329,34 +344,33 @@ function tabela(cab, linhas, numericas = []) {
 
 /* ------------------------------------------------------------------ telas */
 function telaInicio() {
-  const icEst = ["ok", "busca", "bloqueio"];
+  // mesma organização da tela do app (app/paginas/inicio.py): dois caminhos, demonstração e testes reais
   return `<section class="abertura">
-      <div class="sobrelinha">Investigação física de caldeiras industriais</div>
+      <div class="sobrelinha">Consumo · custo · próximas verificações</div>
       <div class="marca-grande">EULER</div>
-      <div class="frase">${e(D.textos.frase)}</div>
-      <p>${e(D.textos.pergunta)} Às vezes a resposta certa é <b>“não dá para concluir”</b>, junto com a próxima medição que resolveria a dúvida. Isso é uma funcionalidade, não uma falha.</p>
-      <p><b>A demonstração tem dois atos, com a mesma caldeira sintética.</b> No ato 1 a fábrica cadastrou a incerteza de todos os instrumentos e a EULER conclui. No ato 2 falta esse cadastro e a EULER explica por que não conclui.</p>
-      <div class="linha-botoes"><button class="botao primario" data-ato="1" data-ir="saude">${icone("seta")} Ato 1 · a EULER conclui</button>
-      <button class="botao" data-ato="2" data-ir="saude">${icone("seta")} Ato 2 · a EULER explica por que não conclui</button>
-      <button class="botao" data-ir="importar">${icone("importar")} Importar meus dados</button></div>
+      <div class="frase">Entenda o que mudou. Saiba o que verificar.</div>
+      <p>Acompanhe combustível e vapor, investigue diferenças e registre o resultado das ações.</p>
     </section>
-    <div class="alerta info">${icone("ciencia")}<div>${e(D.textos.aviso)} O caso de demonstração é uma caldeira <b>sintética</b> (dados inventados para teste) de 20 t/h a cavaco, com 8 semanas de registros e 3 fornecedores. Os dois atos têm os mesmos registros de operação; muda só o cadastro de instrumentos.</div></div>
-    <h2>Duas formas de usar</h2>
     <div class="grade g2">
-      <div class="cartao"><div class="sobrelinha">Analisar um período</div><div class="titulo-uso">${icone("investigacao", 'width="17" height="17"')} O consumo mudou: o que explica e o que verificar?</div>
-        <p class="legenda">Com os arquivos desta sessão (demonstração ou enviados): saúde da caldeira, investigação de dois períodos, a conta em reais, as oportunidades e o relatório.</p>
-        <p class="legenda">Importar dados → Saúde → Investigação → Financeiro → Relatório</p><div><button class="link" data-ir="importar">${icone("seta")} Começar pelos dados</button></div></div>
-      <div class="cartao"><div class="sobrelinha">Acompanhar a planta</div><div class="titulo-uso">${icone("fechamentos", 'width="17" height="17"')} A cada período: o que mudou, o que fazer e o que deu certo</div>
-        <p class="legenda">Os dados ficam guardados por planta. A cada atualização a EULER fecha o período, abre investigações, acompanha as ações da equipe e verifica o resultado depois.</p>
-        <p class="legenda">Atualizar dados → Fechamentos → Investigações e ações → Painel</p><div><button class="link" data-ir="atualizar">${icone("seta")} Cadastrar a planta ou criar a demonstração</button></div></div>
+      <div class="cartao"><div class="titulo-uso">Minha planta</div>
+        <p class="legenda">Reúna os registros, veja pendências e acompanhe as ações ao longo do tempo.</p>
+        <div>${link("painel", "Abrir painel da planta", "painel")}</div>
+        <div>${link("atualizar", "Cadastrar ou atualizar dados", "atualizar")}</div></div>
+      <div class="cartao"><div class="titulo-uso">Analisar um período</div>
+        <p class="legenda">Use um arquivo ou explore uma demonstração com dados sintéticos.</p>
+        <div>${link("importar", "Importar um arquivo", "importar")}</div>
+        <div><button class="botao primario" data-ato="1" data-ir="saude">${icone("seta")} Explorar demonstração</button></div></div>
     </div>
-    <div class="cartao"><div class="sobrelinha">Dados reais testados</div><div class="titulo-uso">${icone("publicos", 'width="17" height="17"')} Além da demonstração: casos reais publicados por empresas, governos e universidades</div>
-      <p class="legenda">Registros horários de caldeiras nos EUA (EPA), estudos brasileiros de biomassa e de custo do vapor, uma caldeira a carvão em três cargas e uma série por minuto da China. Nenhum é de cliente; cada um mostra o que foi possível concluir e o que faltou.</p>
-      <div><button class="link" data-ir="publicos">${icone("seta")} Ver o que foi testado com dados reais</button></div></div>
-    <h2>Em que pé está a EULER</h2>
-    <div class="grade g3">${D.textos.estagios.map(([t, txt], i) => `<div class="cartao"><div class="passo titulo" style="font-weight:600;display:flex;gap:8px;align-items:center">${icone(icEst[i], 'width="17" height="17"')} ${e(t)}</div><p class="legenda">${e(txt)}</p></div>`).join("")}</div>
-    <h2>O que a EULER não faz</h2>
-    <p>A EULER <b>soma</b> aos registros que a fábrica já tem: diário do operador, recebimentos de combustível, amostras e eventos. Ela <b>não muda nada na caldeira</b> e não emite comandos: investiga e indica <b>verificações</b>.</p>`;
+    <div class="cartao"><b>Testado com registros públicos de uma planta brasileira · 660 dias</b>
+      <p class="legenda">Veja os resultados, a origem dos dados e o que ainda não foi possível concluir.</p>
+      <div>${link("publicos", "Conhecer os testes reais", "publicos")}</div></div>
+    <details><summary>Sobre a demonstração e os limites</summary><div class="grade" style="gap:10px">
+      <div class="alerta info">${icone("ciencia")}<div>${e(D.textos.aviso)}</div></div>
+      <p>A demonstração usa uma caldeira <b>sintética</b>, de 20 t/h a cavaco, com oito semanas de registros e três fornecedores. O caso público brasileiro é separado dela.</p>
+      <p class="legenda">Compare também os mesmos registros sem o cadastro completo de instrumentos: a EULER explica quais conclusões ficam limitadas.</p>
+      <div><button class="botao" data-ato="2" data-ir="saude">Ver demonstração com dados incompletos</button></div>
+      ${D.textos.estagios.map(([t, txt]) => `<div><b>${e(t)}</b><p class="legenda">${e(txt)}</p></div>`).join("")}
+      <p class="legenda">A EULER investiga e recomenda verificações. Não comanda nem avalia a segurança da caldeira.</p></div></details>`;
 }
 
 function telaImportar() {
@@ -469,29 +483,24 @@ function telaInvestigacao() {
   const c = combo();
   if (!c) return `${cabecalho("Analisar um período", "Investigação", e(D.textos.pergunta))}${periodosHtml()}${foraDaPrevia()}`;
   const kc = c.kpi_consumo, kv = c.kpi_valor;
-  const abas = ["1. O que mudou", `2. O que os dados sustentam (${c.sustentadas.length + c.opostas.length})`, `3. Explicações possíveis (${c.abertas.length})`, `4. O que falta saber (${c.falta_cadastrar.length + c.falta_outros.length})`];
-  let detalhe = "";
-  if (estado.aba === 0) {
-    const s = A().series[estado.serie];
-    detalhe = `<p><b>${e(c.frase)}</b></p>${c.custo ? `<p>${e(c.custo)}</p>` : ""}
+  const s = A().series[estado.serie];
+  // detalhes em seções recolhidas, na mesma ordem do app (app/paginas/investigacao.py)
+  const mudou = `<p><b>${e(c.frase)}</b></p>${c.custo ? `<p>${e(c.custo)}</p>` : ""}
       <div class="atalhos"><span class="legenda">Ver no gráfico:</span>${SERIES.map((k) => `<button class="chip" data-serie="${k}" aria-pressed="${k === estado.serie}">${e(A().series[k].botao)}</button>`).join("")}</div>
       <div><b style="font-size:15px">${e(s.titulo)}</b><div class="grafico" id="grafico-serie">${graficoSerie(s)}</div></div>
+      <details><summary>Ver todos os indicadores e suas incertezas</summary>
       ${tabela(["Indicador", "Referência", "Comparação", "Diferença", "Mudou de forma detectável?"], c.indicadores.map((i) => [e(i.nome), e(i.ref), e(i.comp), e(i.dif), seloDeteccao(i.selo)]))}
-      <p class="legenda">Diferença = comparação − referência; entre parênteses, a incerteza da diferença. p.p. = pontos percentuais.</p>`;
-  } else if (estado.aba === 1) {
-    detalhe = `<p><b>Conclusão:</b> ${e(c.conclusao.texto)}</p>` + hipoteses(c.sustentadas, "Nenhuma explicação é sustentada pelos dados.") + (c.opostas.length ? hipoteses(c.opostas, "") : "")
+      <p class="legenda">Diferença = comparação − referência; entre parênteses, a incerteza da diferença. p.p. = pontos percentuais.</p></details>`;
+  const sustentam = `<p><b>Conclusão:</b> ${e(c.conclusao.texto)}</p>` + hipoteses(c.sustentadas, "Nenhuma explicação é sustentada pelos dados.") + (c.opostas.length ? hipoteses(c.opostas, "") : "")
       + c.fechamento.map((f) => `<p class="legenda">${e(f)}</p>`).join("")
       + `<p class="legenda">"Compatível com os dados" não é causa comprovada: cada explicação precisa da verificação indicada.</p>`
-      + (c.descartadas.length ? `<details><summary>O que foi descartado e por quê (${c.descartadas.length})</summary><div class="grade">${hipoteses(c.descartadas, "")}</div></details>` : "");
-  } else if (estado.aba === 2) {
-    detalhe = hipoteses(c.abertas, "Nenhuma outra explicação continua em aberto.");
-  } else {
-    const lista = (l) => `<ul>${l.map((x) => `<li>${e(x[0].toUpperCase() + x.slice(1))}</li>`).join("")}</ul>`;
-    detalhe = (c.falta_cadastrar.length ? `<div class="cartao"><p><b>Completar o cadastro de instrumentos</b> · ${plural(c.falta_cadastrar.length, "incerteza", "incertezas")}, cada uma com o tipo da incerteza</p>${lista(c.falta_cadastrar)}</div>` : "")
+      + (c.descartadas.length ? `<details><summary>Hipóteses enfraquecidas e por quê (${c.descartadas.length})</summary><div class="grade">${hipoteses(c.descartadas, "")}</div></details>` : "");
+  const lista = (l) => `<ul>${l.map((x) => `<li>${e(x[0].toUpperCase() + x.slice(1))}</li>`).join("")}</ul>`;
+  const falta = (c.falta_cadastrar.length ? `<div class="cartao"><p><b>Completar o cadastro de instrumentos</b> · ${plural(c.falta_cadastrar.length, "incerteza", "incertezas")}, cada uma com o tipo da incerteza</p>${lista(c.falta_cadastrar)}</div>` : "")
       + (c.falta_outros.length ? `<div class="cartao"><p><b>Medir, registrar ou conferir</b> · ${plural(c.falta_outros.length, "item", "itens")}</p>${lista(c.falta_outros)}</div>` : "")
       + (!c.falta_cadastrar.length && !c.falta_outros.length ? '<p class="legenda">Nada essencial faltando para esta comparação.</p>' : "")
       + `<p class="legenda">${e(c.independencia)}</p>`;
-  }
+  const secaoRecolhida = (titulo, corpo) => `<details><summary>${e(titulo)}</summary><div class="grade">${corpo}</div></details>`;
   return `${cabecalho("Analisar um período", "Investigação", e(D.textos.pergunta))}
     ${periodosHtml()}
     <div class="secao">Resultado</div>
@@ -502,10 +511,14 @@ function telaInvestigacao() {
       <div class="cartao metrica"><div class="rotulo">${kv.valor ? "Valor em jogo (estimado)" : "Valor em jogo"}</div><div class="valor">${kv.valor ? e(kv.valor) : "não estimado"}</div><p class="legenda">${e(kv.legenda)}</p></div>
       <div class="cartao metrica"><div class="rotulo">Explicações compatíveis com os dados</div><div class="valor">${c.kpi_expl.n}</div><p class="legenda">${e(c.kpi_expl.legenda)}</p></div>
     </div>
+    <div>${link("financeiro", "Ver impacto em reais e simular recuperação", "financeiro")}</div>
     <div class="alerta info">${icone("busca")}<div><b>Próxima verificação, em detalhe:</b> ${e(c.proxima.acao)}<br>${e(c.proxima.porque)}</div></div>
     <div class="secao">Detalhes</div>
-    <div class="abas" role="tablist">${abas.map((t, i) => `<button class="aba" role="tab" data-aba="${i}" aria-selected="${i === estado.aba}">${e(t)}</button>`).join("")}</div>
-    <div class="grade">${detalhe}</div>
+    ${secaoRecolhida("O que mudou · gráfico e indicadores", mudou)}
+    ${secaoRecolhida(`O que os dados sustentam (${c.sustentadas.length + c.opostas.length})`, sustentam)}
+    ${secaoRecolhida(`Outras explicações possíveis (${c.abertas.length})`, hipoteses(c.abertas, "Nenhuma outra explicação continua em aberto."))}
+    ${secaoRecolhida(`Dados que faltam para concluir (${c.falta_cadastrar.length + c.falta_outros.length})`, falta)}
+    ${secaoRecolhida("Qualidade das evidências e rastreabilidade", `<p class="legenda">Na prévia, o diagnóstico completo fica na tela Diagnóstico de evidências.</p><div>${link("diagnostico", "Ver diagnóstico completo e rastreabilidade", "diagnostico")}</div>`)}
     <div class="linha-botoes"><button class="botao" data-ir="relatorio">${icone("relatorio")} Gerar o relatório desta comparação</button></div>
     ${proximo("financeiro", "Financeiro")}`;
 }
@@ -657,7 +670,10 @@ function graficoSemanal() {
 
 /* ------------------------------------------------------------------ montagem */
 function montarNav() {
-  document.getElementById("nav").innerHTML = TELAS.map((t) => t.grupo ? `<h6>${e(t.grupo)}</h6>` : `<button data-ir="${t.id}" ${t.id === estado.tela ? 'aria-current="page"' : ""}>${icone(t.icone)}${e(t.titulo)}</button>`).join("");
+  const botao = (t) => `<button data-ir="${t.id}" ${t.id === estado.tela ? 'aria-current="page"' : ""}>${icone(t.icone)}${e(t.titulo)}</button>`;
+  document.getElementById("nav").innerHTML = PRINCIPAIS.map(botao).join("")
+    + `<details class="mais" id="mais-ferramentas" ${estado.maisAberto ? "open" : ""}><summary>Mais ferramentas</summary>`
+    + COMPLEMENTARES.map(([g, l]) => `<h6>${e(g)}</h6>${l.map(botao).join("")}`).join("") + "</details>";
   // nome de quem registra: só nas telas que gravam algo, como no app
   document.getElementById("nome-lateral").hidden = !ACOMP.includes(estado.tela);
   const campo = document.getElementById("autor");
@@ -666,21 +682,29 @@ function montarNav() {
 const RENDER = { inicio: telaInicio, importar: telaImportar, saude: telaSaude, limites: telaLimites, investigacao: telaInvestigacao, financeiro: telaFinanceiro, oportunidades: telaOportunidades, extrato: telaExtrato, relatorio: telaRelatorio, painel: telaPainel, atualizar: telaAtualizar, fechamentos: telaFechamentos, acoes: telaAcoes, plantas: telaPlantas, publicos: telaPublicos, diagnostico: telaDiagnostico, calculadora: telaCalculadora };
 
 function faixaPrevia() {
-  document.getElementById("faixa-previa").innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center"><span><b>Prévia interativa</b> do app EULER com o caso de demonstração <b>sintético</b>. Os números são os calculados pelo motor da EULER (versão ${e(D.versao)}); nada é recalculado nesta página. O que você registrar em Acompanhar a planta fica guardado só neste navegador.</span>
+  document.getElementById("faixa-previa").innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center"><span><b>Prévia interativa</b> do app EULER com o caso de demonstração <b>sintético</b>. Os números são os calculados pelo motor da EULER (versão ${e(D.versao)}); nada é recalculado nesta página. O que você registrar (dados, fechamentos e ações) fica guardado só neste navegador.</span>
     <span class="atalhos"><span>Dados:</span>${["1", "2"].map((a) => `<button class="chip" data-ato="${a}" aria-pressed="${estado.ato === a}">${e(NOME_ATO[a])}</button>`).join("")}</span></div>`;
 }
 
+let ultimaTela = null;
 function mostrar(rolarParaTopo = false) {
   montarNav();
   faixaPrevia();
   const tela = document.getElementById("tela");
+  // as seções recolhidas que a pessoa abriu continuam abertas quando a mesma tela é redesenhada
+  const abertas = estado.tela === ultimaTela
+    ? new Set([...tela.querySelectorAll("details[open] > summary")].map((s) => s.textContent)) : new Set();
   tela.innerHTML = `<div class="conteudo tela-nova">${RENDER[estado.tela]()}</div>`;
+  tela.querySelectorAll("details > summary").forEach((s) => { if (abertas.has(s.textContent)) s.parentElement.open = true; });
+  ultimaTela = estado.tela;
   if (rolarParaTopo) window.scrollTo({ top: 0 });
   ligarGraficoSerie();
 }
 
 function ir(tela) {
   estado.tela = tela;
+  // ao chegar numa tela de "Mais ferramentas", o grupo aparece aberto no menu
+  if (COMPLEMENTARES.some(([, l]) => l.some((t) => t.id === tela))) estado.maisAberto = true;
   ac.erro = null;
   ac.abriu = null;
   try { history.replaceState(null, "", "#" + tela); } catch (_) { /* sem histórico na prévia */ }
@@ -708,19 +732,20 @@ document.addEventListener("submit", (ev) => {
 document.addEventListener("input", (ev) => {
   if (ev.target.id === "autor") { ac.autor = ev.target.value; guardar(); }
 });
+document.addEventListener("toggle", (ev) => {
+  if (ev.target.id === "mais-ferramentas") estado.maisAberto = ev.target.open;
+}, true);
 document.addEventListener("click", (ev) => {
-  const alvo = ev.target.closest("[data-ato],[data-investigar],[data-ir],[data-aba],[data-serie],[data-atalho],[data-celula],[data-filtro],#gerar");
+  const alvo = ev.target.closest("[data-ato],[data-investigar],[data-ir],[data-serie],[data-atalho],[data-celula],[data-filtro],#gerar");
   if (!alvo) return;
   if (alvo.dataset.ato) { estado.ato = alvo.dataset.ato; return alvo.dataset.ir ? ir(alvo.dataset.ir) : mostrar(); }
   if (alvo.dataset.investigar) {
     // "Investigar esta mudança": a referência e os períodos da mudança, já escolhidos (D65)
     const sd = A().saude;
     [estado.r0, estado.r, estado.a, estado.b] = [sd.ref[0], sd.ref[1], sd.mudanca[0], sd.mudanca[1]];
-    estado.aba = 0;
     return ir("investigacao");
   }
   if (alvo.dataset.ir) return ir(alvo.dataset.ir);
-  if (alvo.dataset.aba) { estado.aba = +alvo.dataset.aba; return mostrar(); }
   if (alvo.dataset.serie) { estado.serie = alvo.dataset.serie; return mostrar(); }
   if (alvo.dataset.atalho) { [estado.r0, estado.r, estado.a, estado.b] = alvo.dataset.atalho.split(",").map(Number); return mostrar(); }
   if (alvo.dataset.celula) { const i = +alvo.dataset.celula; if (i > estado.r) { estado.a = estado.b = i; mostrar(); } return; }
@@ -784,5 +809,6 @@ document.getElementById("rodape").textContent = D.textos.rodape;
 document.getElementById("rodape-lateral").textContent = "EULER · prévia interativa · dados sintéticos em uso";
 const inicial = (location.hash || "").slice(1);
 if (RENDER[inicial]) estado.tela = inicial;
+if (COMPLEMENTARES.some(([, l]) => l.some((t) => t.id === estado.tela))) estado.maisAberto = true;
 mostrar();
 </script>

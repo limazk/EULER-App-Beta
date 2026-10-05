@@ -26,7 +26,8 @@ def test_tela_explica_a_conta_sem_percentual_de_recuperacao():
     assert not at.slider, "nenhum percentual de recuperação escolhido na tela"
     textos = " ".join(m.value for m in at.markdown)
     assert "Parcela evitável: não apurada" in textos
-    assert "Por que a conta mudou em relação à referência" in textos
+    # a explicação da variação fica numa seção recolhida (navegação simplificada)
+    assert any(x.label.startswith("Por que a conta mudou") for x in at.expander)
     assert "referência ajustada" in textos
     tabela = at.dataframe[0].value
     assert list(tabela["Parcela"]) == [

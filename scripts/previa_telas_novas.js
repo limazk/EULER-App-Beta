@@ -15,14 +15,14 @@ function telaFinanceiro() {
     const classe = { total: "fin-total", alerta: "fin-alerta" };
     h += `<h3>${e(f.frase)}</h3>
       <div class="grade g3">${f.cartoes.map(([r, v, l, cl]) => `<div class="cartao metrica ${classe[cl] || ""}"><div class="rotulo">${e(r)}</div><div class="valor">${e(v)}</div><p class="legenda">${e(l)}</p></div>`).join("")}</div>
-      ${incertezaHtml(f.incerteza)}
+      <details><summary>Entender a faixa de incerteza</summary><div class="grade">${incertezaHtml(f.incerteza)}</div></details>
       <div class="cartao"><b>Parcela evitável: não apurada</b><p class="legenda">${e(f.evitavel)}</p>
         ${f.verificacao ? `<p>${md("**Próxima verificação:** " + f.verificacao)}</p><p class="legenda">${e(f.porque)}</p>` : ""}
         <div>${link("oportunidades", "Ver as oportunidades em ordem de prioridade", "oportunidades")}</div></div>
-      <h3>Por que a conta mudou em relação à referência</h3><p class="legenda">${e(f.variacao)}</p>
+      <details><summary>Por que a conta mudou · composição e premissas</summary><div class="grade"><p class="legenda">${e(f.variacao)}</p>
       ${tabela(["Parcela", "Pergunta", "Combustível", "Valor"], f.parcelas.map((l) => l.map(e)), [2, 3])}
       ${f.separacao ? `<p class="legenda">${e(f.separacao)}</p>` : ""}
-      <details><summary>Premissas, faixas e cenários</summary><div class="grade" style="gap:8px">${f.premissas.map((x) => `<p>${md(x)}</p>`).join("")}${f.notas.map((x) => `<p class="legenda">${md(x)}</p>`).join("")}<p class="legenda">Economia comprovada: ainda não apurada. Depende de intervenção registrada e comparação posterior com a referência ajustada.</p></div></details>`;
+      <details><summary>Premissas, faixas e cenários</summary><div class="grade" style="gap:8px">${f.premissas.map((x) => `<p>${md(x)}</p>`).join("")}${f.notas.map((x) => `<p class="legenda">${md(x)}</p>`).join("")}<p class="legenda">Economia comprovada: ainda não apurada. Depende de intervenção registrada e comparação posterior com a referência ajustada.</p></div></details></div></details>`;
   }
   const cp = A().compras;
   if (cp) {
@@ -465,13 +465,13 @@ function telaPainel() {
     <div class="grade g4">${metrica("Investigações abertas", String(abertas.length))}${metrica("Encerradas", String(encerradas.length))}${metrica("Ações acompanhadas", String(ac.acoes.length))}${metrica("Economia verificada", "nenhuma", '<p class="legenda">Só entra aqui o resultado de ação avaliada pelo protocolo de verificação.</p>')}</div>
     <div class="lado-a-lado">${link("atualizar", "Atualizar dados", "atualizar")}${link("fechamentos", "Fechamentos", "fechamentos")}${link("acoes", "Investigações e ações", "acoes")}</div>
     <h2>O que olhar primeiro</h2>
-    ${fila.length ? fila.slice(0, 5).map(itemFila).join("") : '<p class="legenda">Nada pendente: sem desvio estabelecido, ação sem verificação ou dado faltando.</p>'}
-    ${fila.length > 5 ? `<details><summary>Ver todos (${fila.length})</summary><div class="grade">${fila.slice(5).map(itemFila).join("")}</div></details>` : ""}
+    ${fila.length ? fila.slice(0, 3).map(itemFila).join("") : '<p class="legenda">Nada pendente: sem desvio estabelecido, ação sem verificação ou dado faltando.</p>'}
+    ${fila.length > 3 ? `<details><summary>Outros itens para acompanhar (${fila.length - 3})</summary><div class="grade">${fila.slice(3).map(itemFila).join("")}</div></details>` : ""}
     ${fila.some((i) => i.categoria === "oportunidade") ? '<p class="legenda">Oportunidades aparecem uma a uma, sem soma: podem representar a mesma perda e nenhuma é ganho antes de verificada.</p>' : ""}
     <details><summary>Como a ordem é definida</summary><p class="legenda">${e(AC.criterios)}</p></details>
     ${outras.length ? `<details><summary>Outras oportunidades ainda não confirmadas (${outras.length})</summary><p class="legenda">Uma a uma, sem soma: podem representar a mesma perda.</p><ul>${outras.map((o) => `<li>${md(`**${o.titulo}** · evidência ${o.evidencia.toLowerCase()} · ${rs(o.impacto_brl)} associado`)}</li>`).join("")}</ul></details>` : ""}
     ${ac.acoes.length ? `<details><summary>Ações acompanhadas (${ac.acoes.length})</summary><ul>${ac.acoes.map((x) => `<li>${quando(x.data)} · ${e(x.descricao)}: ${e(x.avaliacao ? x.avaliacao.frase : "Ainda não avaliada.")}</li>`).join("")}</ul></details>` : ""}
-    ${pend.length ? `<h3>Pendências</h3><ul>${pend.map((x) => `<li>${e(x)}</li>`).join("")}</ul>` : ""}
+    ${pend.length ? `<details><summary>Pendências dos registros (${pend.length})</summary><ul>${pend.map((x) => `<li>${e(x)}</li>`).join("")}</ul></details>` : ""}
     <p class="legenda">Desvio monetizado não é economia; oportunidade não confirmada não é ganho; só a economia verificada pelo protocolo entra como resultado. O benefício é das ações da planta.</p>`;
 }
 

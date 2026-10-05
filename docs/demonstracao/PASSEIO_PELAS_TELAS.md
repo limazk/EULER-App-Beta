@@ -8,10 +8,14 @@ inventados para teste). Para a apresentação com cliques e números exatos, use
 
 - No seu computador: dois cliques em `ABRIR-EULER.cmd`. O navegador abre sozinho em
   http://localhost:8501 (ou 127.0.0.1:8501). Para fechar a EULER, feche a janela preta.
-- À esquerda fica o **menu** (faixa escura com o logo EULER), em quatro grupos:
-  **Analisar um período** (as telas da investigação de um período), **Acompanhar a planta**
-  (os dados guardados de cada planta, período após período), **Dados reais testados** (casos
-  públicos reais) e **Referência** (calculadora). No fim de cada tela de análise, o botão **Próximo** leva à tela seguinte.
+- À esquerda fica o **menu** (faixa escura com o logo EULER), com seis entradas: **Início**,
+  **Minha planta** (abre o Painel), **Análise** (abre a Saúde da caldeira), **Financeiro**,
+  **Ações** (Investigações e ações) e **Dados** (Atualizar dados). As outras telas ficam em
+  **Mais ferramentas**, em três grupos: **Aprofundar a análise** (Investigar uma mudança,
+  Oportunidades, Fornecedores, Qualidade e limites dos dados, Relatório da análise),
+  **Histórico e cadastro** (Fechamentos, Plantas e histórico, Analisar um arquivo avulso) e
+  **Validação e referências** (Testes com dados reais, Diagnóstico de evidências, Calculadora
+  de referência). No fim de cada tela de análise, o botão **Próximo** leva à tela seguinte.
 - A linha "Dados em uso" com o selo laranja **DADOS SINTÉTICOS** mostra quais dados estão
   carregados. Recarregar a página (F5) apaga os dados e volta ao começo.
 - Se abrir uma tela sem dados, ela oferece os botões **Ato 1 · caso completo** e
@@ -30,12 +34,15 @@ cadastro de instrumentos:
 
 ## 1. Início
 
-- O que é: a apresentação da EULER, o aviso de que é um protótipo e o quadro **Em que pé
-  está a EULER** (o que está verificado, o que está em revisão e o que ainda não foi feito).
-- Onde clicar: **Ato 1 · a EULER conclui** ou **Ato 2 · a EULER explica por que não
-  conclui**. Os dois carregam os dados e levam à tela **Saúde da caldeira**.
+- O que é: a frase da EULER e dois caminhos: **Minha planta** (painel e cadastro dos dados
+  da planta) e **Analisar um período** (importar um arquivo ou explorar a demonstração).
+  Embaixo, o cartão dos **testes com registros públicos de uma planta brasileira**.
+- Onde clicar: **Explorar demonstração** (ato 1). Para o ato 2, abra **Sobre a demonstração e
+  os limites** e clique em **Ver demonstração com dados incompletos**; o mesmo quadro traz o
+  aviso de protótipo e em que pé está a EULER. Os dois atos levam à tela **Saúde da
+  caldeira** (menu **Análise**).
 
-## 2. Importar dados (menu "Analisar um período")
+## 2. Importar dados (Mais ferramentas › Analisar um arquivo avulso)
 
 - O que é: onde a fábrica envia os registros (CSV ou planilha).
 - O que dá para fazer: informar a altitude; **Escolher arquivos** (ou arrastar) e depois
@@ -47,7 +54,7 @@ cadastro de instrumentos:
 - Os nomes técnicos dos arquivos e das colunas ficam no quadro **Detalhes técnicos: nomes
   dos arquivos e das colunas**.
 
-## 3. Saúde da caldeira
+## 3. Saúde da caldeira (menu "Análise")
 
 - O que é: o primeiro olhar depois de carregar os dados. Quanto combustível a caldeira gastou
   para cada tonelada de vapor, semana a semana.
@@ -64,7 +71,7 @@ cadastro de instrumentos:
 - Onde clicar: **Investigar esta mudança**. A Investigação abre com os períodos já
   escolhidos (agosto × 31/08 a 14/09).
 
-## 4. Dados e limites
+## 4. Dados e limites (Mais ferramentas › Qualidade e limites dos dados)
 
 - O que é: o que dá e o que não dá para concluir com esses dados, e por quê.
 - O que olhar, de cima para baixo:
@@ -78,7 +85,7 @@ cadastro de instrumentos:
     vapor e situação (**Dá para concluir**, **Com limites** ou **Não dá para concluir**). O
     resto fica em **Ver detalhes de cada período**.
 
-## 5. Investigação, a tela principal
+## 5. Investigação, a tela principal (Mais ferramentas › Investigar uma mudança)
 
 - **Períodos comparados:** dois controles deslizantes. A faixa colorida embaixo mostra as
   semanas: cinza-azulado = referência (como era), laranja = comparação (como ficou).
@@ -91,26 +98,27 @@ cadastro de instrumentos:
   - três cartões: consumo por tonelada de vapor, valor em jogo (estimado, com incerteza) e
     quantas explicações são compatíveis; embaixo, em azul, a **Próxima verificação, em
     detalhe**.
-- **Detalhes**, em abas: **1. O que mudou** (gráfico e tabela com a incerteza de cada
-  diferença), **2. O que os dados sustentam**, **3. Explicações possíveis** e **4. O que
-  falta saber** (dois grupos: **Completar o cadastro de instrumentos** e **Medir, registrar
-  ou conferir**).
+- **Detalhes**, em seções recolhidas (clique para abrir): **O que mudou · gráfico e
+  indicadores** (gráfico e tabela com a incerteza de cada diferença), **O que os dados
+  sustentam**, **Outras explicações possíveis**, **Dados que faltam para concluir** (dois
+  grupos: **Completar o cadastro de instrumentos** e **Medir, registrar ou conferir**) e
+  **Qualidade das evidências e rastreabilidade**.
 - Os números técnicos ficam em **Detalhes técnicos da investigação (JSON)**, no fim.
 
-## 6. Extrato por fornecedor
+## 6. Extrato por fornecedor (Mais ferramentas › Fornecedores)
 
 - O que é: quanto custa a **energia** de cada fornecedor, não só a tonelada.
 - O que olhar: a frase azul (o F3 é o mais barato por tonelada e o mais caro por energia), os
   dois gráficos lado a lado, a tabela e a umidade por semana (o F3 vai ficando mais úmido).
 
-## 7. Relatório
+## 7. Relatório (Mais ferramentas › Relatório da análise)
 
 - Onde clicar: **Gerar relatório**. O topo do relatório traz as mesmas três frases do
   resultado. Aparecem **Baixar HTML** e, se houver o Chromium, **Baixar PDF**; o botão
   **Imprimir ou salvar como PDF** funciona no Windows sem instalar nada.
 - O relatório usa os períodos escolhidos na Investigação e nunca mostra um relatório antigo.
 
-## 8. Dados reais testados (menu "Dados reais testados")
+## 8. Dados reais testados (Mais ferramentas › Validação e referências)
 
 - **Testes com dados públicos:** começa pelo quadro **O que já foi testado com dados reais**
   (caso, dados, o que a EULER fez, resultado e o que falta) e mostra um caso por aba. A
@@ -125,30 +133,31 @@ cadastro de instrumentos:
 - **Diagnóstico de evidências:** para cada caldeira da EPA e cada mês, o que os dados
   sustentam, a força da evidência e a próxima verificação.
 
-## 9. Calculadora de referência (menu "Referência")
+## 9. Calculadora de referência (Mais ferramentas › Validação e referências)
 
 - Simulação da perda de calor pela chaminé (em revisão científica; não use para decisões).
   Mexa nos três controles e veja os números mudarem.
 
-## 10. Acompanhar a planta (menu "Acompanhar a planta")
+## 10. Acompanhar a planta (menus "Minha planta", "Dados" e "Ações")
 
 Aqui os dados ficam **guardados por planta** e a EULER acompanha período após período. Para
-conhecer sem dados reais: **Atualizar dados** → digite **Seu nome** na barra lateral → abra
+conhecer sem dados reais: **Dados** (tela Atualizar dados) → digite **Seu nome** na barra lateral → abra
 **Cadastrar uma planta** → **Criar planta de demonstração (sintética)**. Ela importa as 8
 semanas, define a referência (agosto) e fecha o primeiro período.
 
-- **Painel:** o último fechamento, os números do acompanhamento e **O que olhar primeiro**
-  (desvio que persiste, ação sem verificação, investigação aberta, oportunidade, dado
-  faltando). Oportunidades aparecem uma a uma, **sem soma**. "Economia verificada" só mostra
+- **Painel** (menu **Minha planta**): o último fechamento, os números do acompanhamento e
+  **O que olhar primeiro** (desvio que persiste, ação sem verificação, investigação aberta,
+  oportunidade, dado faltando): os três primeiros itens à vista e o resto em **Outros itens
+  para acompanhar**; as pendências dos registros ficam num quadro recolhido. Oportunidades aparecem uma a uma, **sem soma**. "Economia verificada" só mostra
   resultado de ação avaliada pelo protocolo.
-- **Atualizar dados:** envio → prévia → confirmação na mesma tela. O que já está gravado não
+- **Atualizar dados** (menu **Dados**): envio → prévia → confirmação na mesma tela. O que já está gravado não
   se duplica; valor diferente vira **conflito** para decidir na aba **Conflitos**. Na aba
   **Configuração e preços** ficam a política de custo e a **tabela de preços**.
-- **Fechamentos:** a referência (com versões e motivo) e, a cada período novo, **Produzir
+- **Fechamentos** (Mais ferramentas › Histórico e cadastro): a referência (com versões e motivo) e, a cada período novo, **Produzir
   fechamento**: custo observado, custo esperado pela referência ajustada, desvio em reais,
   o que mudou e a próxima verificação. **Abrir investigação deste desvio** leva o caso para a
   tela seguinte.
-- **Investigações e ações:** cada investigação com evidências, situação, responsável, ações
+- **Investigações e ações** (menu **Ações**): cada investigação com evidências, situação, responsável, ações
   ligadas e encerramento (encerrar não significa causa confirmada). Na aba **Ações e
   resultados**, **Avaliar agora** compara a referência com os períodos depois da ação, em três
   níveis: diferença observada, melhoria associada e economia verificada. Os custos de medição

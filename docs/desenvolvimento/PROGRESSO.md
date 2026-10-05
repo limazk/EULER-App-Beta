@@ -351,3 +351,13 @@ Pedido do Adryan: "trabalhe exaustivamente nisso até achar dados completos de u
 - **Prévia** republicada no mesmo link, com a aba da planta brasileira (resposta, conferência, hipóteses e fontes). Conferida no navegador e na largura de celular, sem erro nem rolagem lateral.
 - 635 testes passando; nenhum golden ou tolerância alterado.
 - **Continua faltando** para a validação completa: estoque medido, umidade/PCI da casca, água de alimentação e gases. Isso só vem de uma planta piloto autorizada.
+
+## Navegação simplificada conferida e prévia no menu novo — 05/10/2026
+
+Pedido do Adryan: preservar as mudanças de interface feitas com o Codex (commit `ed44ff6`) e continuar a partir delas.
+
+- **Suíte completa** (a entrega tinha rodado só os 59 testes de interface): 635 passaram e 3 falharam. As três falhas eram testes de tela procurando rótulos antigos: os botões "Ato 1"/"Ato 2" do Início (agora **Explorar demonstração** e **Ver demonstração com dados incompletos**) e o título "Por que a conta mudou em relação à referência" (agora uma seção recolhida do Financeiro). Os testes passaram a usar os rótulos novos, com as mesmas verificações; nenhuma tela, cálculo, golden ou tolerância alterado.
+- **No navegador:** seis entradas no menu e 17 telas com **Mais ferramentas** aberto; os endereços antigos (`/investigacao`, `/dados_publicos`, `/diagnostico`, `/calculadora`, `/fechamentos`, `/relatorio`) abrem sem erro; demonstração → Análise → Financeiro → Minha planta sem erro; largura de celular (390 px) sem rolagem lateral.
+- **Prévia online** republicada no mesmo link com o menu novo (seis entradas e **Mais ferramentas** nos três grupos), o Início novo e os detalhes recolhidos de Investigação, Financeiro e Painel. As seções abertas continuam abertas quando a tela se redesenha.
+- **Guias** (`PASSEIO_PELAS_TELAS.md` e `ENTENDA_A_EULER.md`) com o menu novo e onde fica cada tela; Financeiro entrou na tabela de telas.
+- **D100** registra a navegação como proposta. Pendentes para o Adryan: os títulos dentro das telas ainda são os antigos ("Painel", "Saúde da caldeira", "Atualizar dados", "Investigações e ações") e o rótulo "Qualidade e limites dos dados" aparece cortado na barra lateral.
