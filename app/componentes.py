@@ -155,7 +155,7 @@ def aplicar_estilo() -> None:
 
 
 def cabecalho(titulo: str, resumo: str = "", sobrelinha: str = "") -> None:
-    """Cabeçalho padrão: sobrelinha (ex.: "Passo 3 de 5"), título e uma frase de resumo."""
+    """Cabeçalho padrão: sobrelinha (ex.: "Analisar um período"), título e uma frase de resumo."""
     with st.container(key="euler-cabecalho"):
         if sobrelinha:
             st.html(f'<div class="euler-sobrelinha">{escape(sobrelinha)}</div>')

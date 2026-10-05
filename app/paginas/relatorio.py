@@ -17,7 +17,7 @@ cabecalho(
     "Relatório",
     "Relatório em linguagem simples, com os 5 blocos fixos: **O que mudou · O que os dados "
     "sustentam · Explicações possíveis · O que falta saber · Próxima verificação**.",
-    "Passo 6 de 6",
+    "Analisar um período",
 )
 
 COMO_FAZER_PDF = (

@@ -21,7 +21,7 @@ from euler.investigacao import SUFIXO_CADASTRAR, investigar
 from euler.periodos import periodos_entre_estoques
 from euler.textos import PERGUNTA_CENTRAL
 
-cabecalho("Investigação", PERGUNTA_CENTRAL, "Passo 4 de 6")
+cabecalho("Investigação", PERGUNTA_CENTRAL, "Analisar um período")
 
 
 @st.cache_data(show_spinner="Investigando os dois períodos…", max_entries=64)
@@ -366,7 +366,7 @@ def mostrar(pacote) -> None:
             "Baixar o JSON", texto, file_name="investigacao_euler.json", mime="application/json"
         )
         st.json(j, expanded=False)
-    proximo_passo("paginas/extrato.py", "5. Extrato por fornecedor")
+    proximo_passo("paginas/financeiro.py", "Financeiro")
 
 
 pacote = estado.exigir_pacote()

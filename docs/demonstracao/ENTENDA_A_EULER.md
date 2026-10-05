@@ -58,20 +58,24 @@ com dados reais de uma caldeira (é a próxima fase).
 
 ## 4. Como usar, tela por tela
 
-Abra com `ABRIR-EULER.cmd` (Windows) ou `streamlit run app/main.py`. Menu à esquerda; cada
-tela diz "Passo X de 6" e tem o botão **Próximo** no fim. Passeio detalhado:
-`docs/demonstracao/PASSEIO_PELAS_TELAS.md`.
+Abra com `ABRIR-EULER.cmd` (Windows) ou `streamlit run app/main.py`. Menu à esquerda em três
+grupos: **Analisar um período**, **Acompanhar a planta** e **Referência**; as telas de análise
+têm o botão **Próximo** no fim. Passeio detalhado: `docs/demonstracao/PASSEIO_PELAS_TELAS.md`.
 
 | Tela | Para que serve | O que fazer |
 |---|---|---|
 | **Início** | apresenta a EULER e em que pé ela está | **Ato 1 · a EULER conclui** ou **Ato 2 · a EULER explica por que não conclui** |
-| **1. Importar dados** | recebe os arquivos da fábrica e lista os problemas deles | enviar os arquivos ou escolher um exemplo; informar a altitude |
-| **2. Saúde da caldeira** | consumo por tonelada de vapor semana a semana, eventos e o selo mudou / estável / não dá para dizer | ler o selo e a frase; **Investigar esta mudança** |
-| **3. Dados e limites** | diz o que dá e o que não dá para concluir, e por quê | ler o que está bloqueado e o que cadastrar para liberar |
-| **4. Investigação** | compara dois períodos: o que mudou, o que explica, o que verificar | escolher os períodos; ler as três frases do resultado; abrir as abas |
-| **5. Extrato por fornecedor** | custo da energia de cada fornecedor | comparar R$/t com R$/GJ; ver a umidade semana a semana |
-| **6. Relatório** | junta tudo num documento para compartilhar | **Gerar relatório** e baixar |
+| **Importar dados** | recebe os arquivos da fábrica e lista os problemas deles | enviar os arquivos ou escolher um exemplo; informar a altitude |
+| **Saúde da caldeira** | consumo por tonelada de vapor semana a semana, eventos e o selo mudou / estável / não dá para dizer | ler o selo e a frase; **Investigar esta mudança** |
+| **Dados e limites** | diz o que dá e o que não dá para concluir, e por quê | ler o que está bloqueado e o que cadastrar para liberar |
+| **Investigação** | compara dois períodos: o que mudou, o que explica, o que verificar | escolher os períodos; ler as três frases do resultado; abrir as abas |
+| **Extrato por fornecedor** | custo da energia de cada fornecedor | comparar R$/t com R$/GJ; ver a umidade semana a semana |
+| **Relatório** | junta tudo num documento para compartilhar | **Gerar relatório** e baixar |
 | **Calculadora de referência** | simula a perda de calor pela chaminé | mexer na temperatura, no O₂ e na umidade |
+| **Painel** (Acompanhar a planta) | o que mudou no último fechamento e o que olhar primeiro | ler a fila; seguir para Fechamentos ou Investigações e ações |
+| **Atualizar dados** | acrescenta os dados novos da planta sem duplicar nem substituir em silêncio | enviar, conferir a prévia, confirmar; decidir conflitos; cadastrar preços |
+| **Fechamentos** | custo observado × esperado e o que mudou, a cada período | **Produzir fechamento**; **Abrir investigação deste desvio** |
+| **Investigações e ações** | do desvio à verificação, com histórico | registrar evidência e ação; **Avaliar agora**; encerrar |
 
 Para ver sem instalar nada: a **prévia interativa** (link que o Claude publicou), com as mesmas
 telas e os números do motor para o caso de demonstração.

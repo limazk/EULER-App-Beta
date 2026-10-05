@@ -22,24 +22,33 @@ aplicar_estilo()
 
 paginas = {
     "": [st.Page("paginas/inicio.py", title="Início", icon=":material/home:", default=True)],
-    "Investigar": [
-        st.Page("paginas/diagnostico.py", title="Diagnóstico EULER", icon=":material/fact_check:"),
-        st.Page("paginas/importar.py", title="1. Importar dados", icon=":material/upload_file:"),
-        st.Page("paginas/saude.py", title="2. Saúde da caldeira", icon=":material/monitor_heart:"),
-        st.Page("paginas/limites.py", title="3. Dados e limites", icon=":material/rule:"),
-        st.Page("paginas/investigacao.py", title="4. Investigação", icon=":material/troubleshoot:"),
-        st.Page(
-            "paginas/extrato.py", title="5. Extrato por fornecedor", icon=":material/receipt_long:"
-        ),
-        st.Page("paginas/relatorio.py", title="6. Relatório", icon=":material/description:"),
-    ],
-    "Gestão": [
-        st.Page("paginas/plantas.py", title="Plantas e histórico", icon=":material/database:"),
-        st.Page("paginas/acompanhamento.py", title="Acompanhamento", icon=":material/history:"),
+    # um período: os arquivos desta sessão (demonstração ou enviados)
+    "Analisar um período": [
+        st.Page("paginas/importar.py", title="Importar dados", icon=":material/upload_file:"),
+        st.Page("paginas/saude.py", title="Saúde da caldeira", icon=":material/monitor_heart:"),
+        st.Page("paginas/limites.py", title="Dados e limites", icon=":material/rule:"),
+        st.Page("paginas/investigacao.py", title="Investigação", icon=":material/troubleshoot:"),
         st.Page("paginas/financeiro.py", title="Financeiro", icon=":material/payments:"),
         st.Page("paginas/oportunidades.py", title="Oportunidades", icon=":material/flag:"),
+        st.Page(
+            "paginas/extrato.py", title="Extrato por fornecedor", icon=":material/receipt_long:"
+        ),
+        st.Page("paginas/relatorio.py", title="Relatório", icon=":material/description:"),
+    ],
+    # ao longo do tempo: dados, fechamentos e ações guardados no banco de cada planta
+    "Acompanhar a planta": [
+        st.Page("paginas/painel.py", title="Painel", icon=":material/space_dashboard:"),
+        st.Page("paginas/acompanhamento.py", title="Atualizar dados", icon=":material/upload:"),
+        st.Page("paginas/fechamentos.py", title="Fechamentos", icon=":material/event_available:"),
+        st.Page("paginas/acoes.py", title="Investigações e ações", icon=":material/task_alt:"),
+        st.Page("paginas/plantas.py", title="Plantas e histórico", icon=":material/database:"),
     ],
     "Referência": [
+        st.Page(
+            "paginas/diagnostico.py",
+            title="Diagnóstico de evidências",
+            icon=":material/fact_check:",
+        ),
         st.Page(
             "paginas/dados_publicos.py",
             title="Testes com dados públicos",
@@ -51,7 +60,8 @@ paginas = {
     ],
 }
 
-navegacao = st.navigation(paginas)
+# expanded: com muitas telas o Streamlit esconde parte do menu em 'ver mais'
+navegacao = st.navigation(paginas, expanded=True)
 # As telas não usam st.stop(): o rodapé de segurança precisa aparecer sempre.
 navegacao.run()
 rodape()

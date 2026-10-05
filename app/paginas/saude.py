@@ -18,7 +18,7 @@ from euler.saude import avaliar_saude
 cabecalho(
     "Saúde da caldeira",
     "O consumo mudou? Veja o que merece atenção e por onde começar.",
-    "Passo 2 de 6",
+    "Analisar um período",
 )
 
 
@@ -180,4 +180,4 @@ def mostrar(pacote) -> None:
 pacote = estado.exigir_pacote()
 if pacote is not None:
     mostrar(pacote)
-    proximo_passo("paginas/limites.py", "3. Dados e limites")
+    proximo_passo("paginas/limites.py", "Dados e limites")

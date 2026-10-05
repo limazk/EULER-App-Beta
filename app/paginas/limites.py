@@ -19,7 +19,7 @@ cabecalho(
     "A EULER começa perguntando **o que esta planta tem?** e monta as rotas físicas "
     "compatíveis com os sinais disponíveis. Quando uma rota não fecha, procura outra forma "
     "fisicamente válida; o que continuar ausente não vira zero nem hipótese escondida.",
-    "Passo 3 de 6",
+    "Analisar um período",
 )
 
 ICONE = {
@@ -356,4 +356,4 @@ if pacote is not None:
     mostrar(pacote)
     por_periodo(pacote)
     novas_analises(pacote)
-    proximo_passo("paginas/investigacao.py", "4. Investigação")
+    proximo_passo("paginas/investigacao.py", "Investigação")

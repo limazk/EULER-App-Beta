@@ -14,7 +14,7 @@ COR_GRAVIDADE = {"Erro": "red", "Atenção": "orange", "Informação": "gray"}
 cabecalho(
     "Importar dados",
     "Carregue os registros disponíveis. A EULER mostra o que pode analisar e o que ainda falta.",
-    "Passo 1 de 6",
+    "Analisar um período",
 )
 
 if st.session_state.get("arquivos"):
@@ -257,4 +257,4 @@ def mostrar_resultado(pacote) -> None:
 pacote = estado.pacote()
 if pacote is not None:
     mostrar_resultado(pacote)
-    proximo_passo("paginas/saude.py", "2. Saúde da caldeira")
+    proximo_passo("paginas/saude.py", "Saúde da caldeira")

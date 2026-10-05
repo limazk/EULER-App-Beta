@@ -41,28 +41,34 @@ st.info(
     icon=":material/science:",
 )
 
-st.markdown("### Como funciona, em 6 passos")
-st.page_link(
-    "paginas/financeiro.py",
-    label="Financeiro · veja o consumo em reais",
-    icon=":material/payments:",
-)
-passos = [
-    (":material/upload_file:", "paginas/importar.py", "Importar", "Os registros que a fábrica já tem (CSV ou planilha). Nada é corrigido em silêncio."),
-    (":material/monitor_heart:", "paginas/saude.py", "Saúde da caldeira", "O consumo por tonelada de vapor semana a semana: mudou ou ficou estável?"),
-    (":material/rule:", "paginas/limites.py", "Dados e limites", "O que dá e o que não dá para concluir com esses dados, e por quê."),
-    (":material/troubleshoot:", "paginas/investigacao.py", "Investigação", "Dois períodos lado a lado: o que mudou, o que explica e o que verificar."),
-    (":material/receipt_long:", "paginas/extrato.py", "Extrato", "Quanto custa a energia de cada fornecedor (R$/GJ), não só a tonelada."),
-    (":material/description:", "paginas/relatorio.py", "Relatório", "Linguagem simples, 5 blocos fixos, pronto para compartilhar."),
-]  # fmt: skip
-for n, ((icone, pagina, titulo, texto), coluna) in enumerate(
-    zip(passos, st.columns(6), strict=True), start=1
-):
-    with coluna, cartao(f"passo-{n}"):
-        st.html(f'<div class="euler-sobrelinha">Passo {n}</div>')
-        st.markdown(f"{icone} **{titulo}**")
-        st.caption(texto)
-        st.page_link(pagina, label="Abrir", icon=":material/arrow_forward:")
+st.markdown("### Duas formas de usar")
+um, dois = st.columns(2)
+with um, cartao("uso-periodo"):
+    st.html('<div class="euler-sobrelinha">Analisar um período</div>')
+    st.markdown(":material/troubleshoot: **O consumo mudou: o que explica e o que verificar?**")
+    st.caption(
+        "Com os arquivos desta sessão (demonstração ou enviados): saúde da caldeira, "
+        "investigação de dois períodos, a conta em reais, as oportunidades e o relatório."
+    )
+    st.caption("Importar dados → Saúde → Investigação → Financeiro → Relatório")
+    st.page_link(
+        "paginas/importar.py", label="Começar pelos dados", icon=":material/arrow_forward:"
+    )
+with dois, cartao("uso-acompanhar"):
+    st.html('<div class="euler-sobrelinha">Acompanhar a planta</div>')
+    st.markdown(
+        ":material/event_available:  **A cada período: o que mudou, o que fazer e o que deu certo**"
+    )
+    st.caption(
+        "Os dados ficam guardados por planta. A cada atualização a EULER fecha o período, abre "
+        "investigações, acompanha as ações da equipe e verifica o resultado depois."
+    )
+    st.caption("Atualizar dados → Fechamentos → Investigações e ações → Painel")
+    st.page_link(
+        "paginas/acompanhamento.py",
+        label="Cadastrar a planta ou criar a demonstração",
+        icon=":material/arrow_forward:",
+    )
 
 st.markdown("### Em que pé está a EULER")
 icones = (":material/verified:", ":material/rate_review:", ":material/hourglass_empty:")

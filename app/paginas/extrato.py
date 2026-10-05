@@ -13,7 +13,7 @@ cabecalho(
     "Extrato por fornecedor",
     "**O fornecedor mais barato por tonelada nem sempre é o mais barato por energia.** "
     "Compare o custo do combustível considerando a energia que ele contém.",
-    "Passo 5 de 6",
+    "Analisar um período",
 )
 
 
@@ -287,4 +287,4 @@ def mostrar(pacote) -> None:
 pacote = estado.exigir_pacote()
 if pacote is not None:
     mostrar(pacote)
-    proximo_passo("paginas/relatorio.py", "6. Relatório")
+    proximo_passo("paginas/relatorio.py", "Relatório")

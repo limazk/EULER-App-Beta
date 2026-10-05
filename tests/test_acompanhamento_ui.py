@@ -46,6 +46,8 @@ def test_tela_confirma_versao_no_mesmo_banco_e_reabre_serie(tmp_path, monkeypatc
     at.number_input(key="equip_altitude").set_value(1000.0)
     clicar("Cadastrar equipamento")
     at.text_input(key="acomp_autor").set_value("Teste de integração").run()
+    # a tela também aceita envio direto; aqui o teste usa a versão já salva
+    at.radio(key="acomp_fonte_tipo").set_value("Usar versão já salva em Plantas e histórico").run()
     clicar("Preparar prévia")
     clicar("Confirmar registros novos")
     a = repo.armazem(planta["id"])

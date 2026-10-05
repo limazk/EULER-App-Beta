@@ -292,3 +292,16 @@ Pedido do Adryan: manter só uma versão do software, sempre atualizada (D91).
   exigem nova versão. Política de preço consistente entre números do fechamento.
 - Passagem para o Claude e limites atuais:
   [unificacao_banco_2026-10-04.md](unificacao_banco_2026-10-04.md).
+
+## App reorganizado e telas de acompanhamento completas — 05/10/2026
+
+Pedido do Adryan: "entrou muita coisa e ficou um pouco confuso usar" (D96).
+
+- **Menu em três grupos, sempre aberto:** *Analisar um período* (as 8 telas da investigação de um período, sem a numeração "Passo X de 6"), *Acompanhar a planta* (Painel, Atualizar dados, Fechamentos, Investigações e ações, Plantas e histórico) e *Referência*. O Início mostra as duas formas de usar.
+- **Atualizar dados:** envio → prévia → confirmação numa tela; colunas com outro nome escolhidas em listas (sem JSON); conflitos, configuração e **tabela de preços** em abas. Botão **Criar planta de demonstração (sintética)**: importa as 8 semanas, define a referência de agosto e fecha o primeiro período.
+- **Fechamentos:** referência com versões, **Produzir fechamento**, custo observado × esperado × desvio, o que mudou, próxima verificação, conta do período, reprodução e downloads; **Abrir investigação deste desvio** leva direto à investigação.
+- **Investigações e ações:** evidência, situação, responsável, ação ligada e encerramento; ações com **Avaliar agora** (diferença observada, melhoria associada, economia verificada), adoção da referência pós-ação e custos de medição e acompanhamento.
+- **Painel:** último fechamento, números do acompanhamento, **O que olhar primeiro** com critérios legíveis (oportunidades uma a uma, sem soma) e resultados verificados.
+- **Uso mais seguro:** o nome de quem registra é digitado uma vez e vale em todas as telas; depois de gravar, a tela se redesenha com aviso verde no topo e formulários limpos (nada é enviado duas vezes por engano); a aba escolhida continua aberta.
+- **Testes:** ciclo completo pelas telas (planta de demonstração → painel → fechamento → investigação → evidência → ação → avaliação → encerramento → custo → preço) e as quatro telas abrindo sem planta. Conferido no navegador, sem erros.
+- Decisões D93–D96 registradas como propostas pendentes. Guias de demonstração atualizados para o menu novo.

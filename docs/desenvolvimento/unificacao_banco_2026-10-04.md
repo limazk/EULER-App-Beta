@@ -45,10 +45,15 @@ foram guardados pela versão anterior não podem ser recuperados retroativamente
 
 ## Fluxo pela interface
 
+> Atualização de 05/10/2026 (D96): a tela **Acompanhamento** virou **Atualizar dados**, que
+> também aceita envio direto dos arquivos; referência e fechamentos ficam em **Fechamentos**;
+> investigações e ações em **Investigações e ações**; visão geral em **Painel**. O caminho
+> abaixo, por versão salva, continua válido.
+
 1. **Importar dados:** carregar os arquivos; informar a altitude quando conhecida.
 2. **Plantas e histórico:** cadastrar planta e classe; salvar os arquivos com autor
    e motivo. Reabrir versões e baixar/restaurar backup no mesmo lugar.
-3. **Acompanhamento:** cadastrar equipamento com o `caldeira_id` do diário e altitude.
+3. **Atualizar dados:** cadastrar equipamento com o `caldeira_id` do diário e altitude.
 4. Escolher a versão salva, preparar a prévia e conferir novas, iguais, conflitos,
    recusadas, repetidas, tardias e avisos de unidades. A altitude do equipamento deve
    corresponder àquela da versão escolhida; divergências não são corrigidas em silêncio.
@@ -56,7 +61,7 @@ foram guardados pela versão anterior não podem ser recuperados retroativamente
    responsável e motivo. Mapeamento de nomes não converte unidades.
 6. **Analisar série acumulada:** materializar os registros dessa revisão e abrir
    Investigação. A versão consolidada fica identificada como tal; os originais permanecem.
-7. Em **Referência e fechamentos**, escolher os períodos e justificar a referência.
+7. Em **Fechamentos**, escolher os períodos e justificar a referência.
    Fechar períodos disponíveis, consultar relatório e conferir sua reprodução.
 
 Limpar a sessão não apaga o banco. Selecionar uma planta não abre automaticamente
