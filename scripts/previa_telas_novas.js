@@ -727,13 +727,73 @@ function abaZhejiang() {
     <details><summary>O que este ensaio comprova — e o que falta</summary><ul><li>${md("**Verificado:** origem pública rastreável, importação, preservação das temperaturas, cálculos termodinâmicos condicionais e bloqueios por falta de dados.")}</li><li>${md("**Ainda não demonstrado:** causa de perda, economia recuperável, custo por fornecedor e desempenho completo em uma planta brasileira a biomassa.")}</li><li>${md("**Próxima evidência necessária:** histórico sincronizado de combustível, vapor, condições da água e do vapor, qualidade do combustível, preços e eventos, com unidades e incertezas.")}</li></ul>${fonteLink(x.url, "Fonte original de Zhejiang · CC0")}</details>`;
 }
 
+/* série mensal: uma escala por gráfico; ponto com dica ao passar o mouse */
+function graficoLinha(pontos, unidade, casas) {
+  const W = 380, H = 200, m = { l: 48, r: 10, t: 12, b: 26 };
+  const vals = pontos.map((p) => p[1]);
+  const hi = Math.max(...vals) * 1.1, lo = 0;
+  const passo = passoBonito(hi - lo);
+  const X = (i) => m.l + (i * (W - m.l - m.r)) / Math.max(pontos.length - 1, 1);
+  const Y = (v) => m.t + ((hi - v) / (hi - lo)) * (H - m.t - m.b);
+  let grade = "";
+  for (let v = 0; v <= hi; v += passo) grade += `<line x1="${m.l}" x2="${W - m.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="#333333"/><text x="${m.l - 7}" y="${Y(v) + 4}" text-anchor="end" fill="#A3A3A3" font-size="11">${nf(v, casas)}</text>`;
+  const linha = pontos.map(([, v], i) => `${i ? "L" : "M"}${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join("");
+  const marcas = pontos.map(([d, v], i) => `<circle cx="${X(i).toFixed(1)}" cy="${Y(v).toFixed(1)}" r="4" fill="var(--serie)" stroke="var(--fundo)" stroke-width="2" data-dica="${e(d)} · ${nf(v, casas)} ${e(unidade)}"/>`).join("");
+  const rotulos = pontos.map(([d], i) => (i % 4 === 0 ? `<text x="${X(i)}" y="${H - 6}" text-anchor="middle" fill="#A3A3A3" font-size="11">${e(d)}</text>` : "")).join("");
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Série mensal, em ${e(unidade)}">${grade}<path d="${linha}" fill="none" stroke="var(--serie)" stroke-width="2"/>${marcas}${rotulos}</svg>`;
+}
+
+estado.pubCervSub = 0;
+function abaCervejaria() {
+  const x = PUB.cervejaria;
+  let sub = "";
+  if (estado.pubCervSub === 0) {
+    sub = `<div class="grade g4">${x.metricas.map(([r, v]) => metrica(r, v)).join("")}</div>
+      <p class="legenda">Consumo aparente = casca registrada ÷ vapor das duas caldeiras (t de casca por t de vapor). Mesmo trecho do calendário nos dois anos: 05/11 a 25/08. A incerteza conhecida é só a da balança (2%), com k = 2; o que falta não entra como zero.</p>
+      ${tabela(["Período", "Dias", "Vapor (t)", "Casca (t)", "Consumo aparente (t/t)", "Vapor médio (t/dia)", "Dias sem vapor registrado"], x.periodos.map((l) => l.map(e)), [1, 2, 3, 4, 5, 6])}
+      <div class="grade g2"><div class="cartao"><b>Consumo aparente por mês (t/t)</b><div class="grafico">${graficoLinha(x.mensal.map(([mes, c]) => [mes, c]), "t/t", 2)}</div></div>
+        <div class="cartao"><b>Vapor médio por mês (t/dia)</b><div class="grafico">${graficoLinha(x.mensal.map(([mes, , v]) => [mes, v]), "t/dia", 0)}</div></div></div>
+      <p class="legenda">Mês a mês, a casca registrada inclui o que entrou ou saiu do estoque, que não foi publicado: as oscilações mensais não são da caldeira.</p>
+      <div class="cartao"><b>Outros cortes do mesmo registro</b>${tabela(["Corte", "Trecho", "Dias", "Consumo aparente (t/t)"], x.cortes.map((l) => l.map(e)), [2, 3])}<p class="legenda">${e(x.cortes_frase)}</p></div>
+      <b>O que a EULER bloqueia neste caso</b><ul>${x.bloqueado.map((b) => `<li>${e(b)}</li>`).join("")}</ul>`;
+  } else if (estado.pubCervSub === 1) {
+    sub = `<b>Totais: soma da EULER × relatório de verificação publicado</b>
+      ${tabela(["Grandeza", "Soma da EULER (t)", "Relatório (t)"], x.totais.map((l) => l.map(e)), [1, 2])}
+      ${x.totais_conferem ? `<div class="alerta ok">${icone("ok")}<div>As três somas reproduzem os totais do relatório de verificação, arredondados à tonelada. Isso confere a leitura da planilha, não os instrumentos da planta.</div></div>` : ""}
+      <p>${md(x.calendario)}</p><p>${md(x.lacunas)}</p>
+      <div class="cartao"><b>O que a conferência encontrou</b><ul>${x.achados.map((a) => `<li>${md(a)}</li>`).join("")}</ul>
+        ${tabela(["Data", "Caldeira", "Horas", "Vapor (t)", "Média (t/h)", "% da capacidade"], x.acima.map((l) => l.map(e)), [1, 2, 3, 4, 5])}
+        <p class="legenda">Nada foi corrigido. Quem tem o registro original (totalizador e livro de turno) confere se foi digitação, troca de caldeira ou leitura do medidor.</p></div>
+      <b>A casca do dia não é a casca queimada no dia</b>
+      ${tabela(["Soma de", "Vapor por t de casca · baixo (5%)", "Mediana", "Alto (95%)"], x.janelas.map((l) => l.map(e)), [1, 2, 3])}
+      <p class="legenda">${e(x.janelas_frase)}</p>
+      <b>Física: entalpia do vapor</b><p>${e(x.entalpia)}</p><p class="legenda">${e(x.entalpia_legenda)}</p>`;
+  } else if (estado.pubCervSub === 2) {
+    sub = `<h3>Explicações que continuam possíveis</h3><p class="legenda">Nenhuma é causa atribuída. Cada uma vem com a verificação que a separa das outras.</p>
+      ${x.hipoteses.map(([t, mostra, verif], i) => `<div class="cartao"><b>${i + 1}. ${e(t)}</b><p>${e(mostra)}</p><p class="legenda">Verificação: ${e(verif)}</p></div>`).join("")}
+      <div class="alerta info">${icone("busca")}<div>${md("**Próxima medição que mais separa as explicações:** o estoque de casca do galpão nas datas de corte. Com ele, a EULER calcula a casca queimada em cada período e a diferença deixa de depender de entrega e estoque.")}</div></div>
+      <p class="legenda">${e(x.projeto)}</p>
+      <p class="legenda">A EULER recomenda verificações, nunca mudanças na operação da caldeira. Qualquer ação fica com os responsáveis técnicos da planta.</p>`;
+  } else {
+    sub = `<p>${md("**Origem:** registros diários do projeto 1202 do Mecanismo de Desenvolvimento Limpo (MDL), publicados pela ONU (UNFCCC) no pedido de emissão de créditos. A planilha está no repositório sem nenhuma alteração; o CSV só extrai as colunas diárias, sem mudar valores.")}</p>
+      <p>${md(`**Termos de uso:** ${x.termos}`)}</p><p>${md(`**Aviso:** ${x.aviso}`)}</p>
+      <p class="legenda">Consumo aparente c = Σ casca ÷ Σ (vapor da caldeira 1 + vapor da caldeira 2); variação = c₂/c₁ − 1. A incerteza da balança (2% sem tipo, lido como limite: u = 2%/√3, D35) entra por época de calibração; a época comum aos dois períodos é o mesmo erro (D37). Estoque e medidores de vapor entram como incertezas que faltam.</p>
+      <div class="lado-a-lado">${x.links.map(([r, u]) => fonteLink(u, r)).join("")}</div>
+      <details><summary>Detalhes técnicos · integridade</summary>${x.sha256.map(([n, h]) => `<p><code>${e(n)}</code><br><span class="legenda">${e(h)}</span></p>`).join("")}<p class="legenda">SHA-256 conferido nos testes. Arquivo sem alteração não comprova exatidão da medição.</p></details>`;
+  }
+  return `<h3>Planta brasileira real · 660 dias de duas caldeiras a casca de arroz</h3>
+    <p class="legenda">CASO PÚBLICO · cervejaria em Viamão (RS) · 05/11/2007 a 25/08/2009 · registros publicados no MDL da ONU · sem vínculo com a empresa</p>
+    <div class="cartao"><h3>O consumo de casca por tonelada de vapor mudou?</h3><p>${e(x.conclusao)}</p></div>
+    ${abas(["Resposta", "Conferência dos registros", "Hipóteses e próximas medições", "Fontes"], estado.pubCervSub, "pub-cerv")}<div class="grade">${sub}</div>`;
+}
+
 function telaPublicos() {
   const topo = cabecalho("Dados reais testados", "Testes com dados públicos", "Dados reais publicados por empresas, governos e universidades, executados no motor atual. Medições ausentes continuam ausentes.", false);
-  const corpo = [abaEpa, abaUtfpr, abaUnisanta, abaCargas, abaZhejiang][estado.pubAba]();
+  const corpo = [abaCervejaria, abaEpa, abaUtfpr, abaUnisanta, abaCargas, abaZhejiang][estado.pubAba]();
   return `${topo}<h2>O que já foi testado com dados reais</h2>
     ${tabelaLonga(["Caso", "Dados", "O que a EULER fez", "Resultado", "O que falta"], PUB.resumo.map((l) => [l.Caso, l.Dados, l["O que a EULER fez"], l.Resultado, l["O que falta"]].map(e)))}
     <p class="legenda">${e(PUB.aviso)}</p>
-    ${abas(["Caldeiras EPA · EUA", "Biomassa · UTFPR", "Custo do vapor · Unisanta", "Três cargas · carvão", "Série · Zhejiang"], estado.pubAba, "pub-aba")}
+    ${abas(["Planta brasileira · RS", "Caldeiras EPA · EUA", "Biomassa · UTFPR", "Custo do vapor · Unisanta", "Três cargas · carvão", "Série · Zhejiang"], estado.pubAba, "pub-aba")}
     <div class="grade">${corpo}</div>`;
 }
 
@@ -762,5 +822,6 @@ function telaDiagnostico() {
 Object.assign(ACOES, {
   "pub-aba": (el) => { estado.pubAba = Number(el.dataset.i); mostrar(); },
   "pub-sub": (el) => { estado.pubSub = Number(el.dataset.i); mostrar(); },
+  "pub-cerv": (el) => { estado.pubCervSub = Number(el.dataset.i); mostrar(); },
   "abrir-diag": () => { estado.diagUn = estado.pubUn; estado.diagMes = 0; ir("diagnostico"); },
 });
