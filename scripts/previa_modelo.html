@@ -198,6 +198,13 @@ select { background: var(--campo); color: var(--texto); border: 1px solid #3F3F3
   border: 1px solid #2F5A43; border-radius: 10px; padding: 10px 14px; font-size: 14.5px;
   max-width: min(420px, calc(100vw - 40px)); box-shadow: 0 6px 24px rgba(0, 0, 0, .35); }
 .lado-a-lado { display: flex; flex-wrap: wrap; gap: 10px 24px; align-items: center; }
+/* percurso da planta (D102), quadro da conclusão (D101) e entrega do fechamento (D104) */
+.passos { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; margin: 4px 0; }
+.passo b { display: block; margin: 8px 0 2px; }
+.quadro h3 { margin: 0; }
+ol.verificar { margin: 0; padding-left: 22px; display: grid; gap: 6px; }
+.entrega h4 { margin: 8px 0 0; font-size: 16px; font-weight: 600; }
+.conteudo hr { border: 0; border-top: 1px solid var(--linha); margin: 10px 0; }
 .link { all: unset; cursor: pointer; color: var(--t-blue); display: inline-flex; gap: 6px; align-items: center; font-size: 15px; }
 .link:hover { text-decoration: underline; }
 .link:focus-visible { outline: 2px solid #A8C7FA; outline-offset: 2px; }
@@ -211,6 +218,7 @@ select { background: var(--campo); color: var(--texto); border: 1px solid #3F3F3
   .g4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 820px) {
+  .passos { grid-template-columns: minmax(0, 1fr); }
   .app { grid-template-columns: minmax(0, 1fr); }
   .lateral { position: static; height: auto; padding: 16px; }
   .nav { flex-direction: row; flex-wrap: wrap; }
@@ -332,7 +340,7 @@ const COMPLEMENTARES = [
 function cabecalho(sobre, titulo, resumo, comDados = true) {
   return `<header class="cabecalho">${sobre ? `<div class="sobrelinha">${e(sobre)}</div>` : ""}
     <h1>${e(titulo)}</h1>${resumo ? `<p class="resumo">${resumo}</p>` : ""}</header>
-    ${comDados ? `<div class="dados-em-uso">Dados em uso: <b>${e(A().rotulo_dados)}</b> ${selo("orange", "DADOS SINTÉTICOS")}</div>` : ""}`;
+    ${comDados ? `<div class="dados-em-uso"><b>Análise temporária</b> · dados desta sessão: <b>${e(A().rotulo_dados)}</b> ${selo("orange", "DADOS SINTÉTICOS")}</div>` : ""}`;
 }
 const proximo = (tela, rotulo) => `<div class="proximo"><button class="botao" data-ir="${tela}">Próximo: ${e(rotulo)} ${icone("seta")}</button></div>`;
 const metrica = (rotulo, valor, extra = "") => `<div class="cartao metrica"><div class="rotulo">${e(rotulo)}</div><div class="valor">${e(valor)}</div>${extra}</div>`;
@@ -354,6 +362,7 @@ function telaInicio() {
     <div class="grade g2">
       <div class="cartao"><div class="titulo-uso">Minha planta</div>
         <p class="legenda">Reúna os registros, veja pendências e acompanhe as ações ao longo do tempo.</p>
+        <p class="legenda">Enviar registros → conferir a conta → investigar → registrar ação → verificar resultado. Tudo fica salvo na planta.</p>
         <div>${link("painel", "Abrir painel da planta", "painel")}</div>
         <div>${link("atualizar", "Cadastrar ou atualizar dados", "atualizar")}</div></div>
       <div class="cartao"><div class="titulo-uso">Analisar um período</div>

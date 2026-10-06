@@ -4,7 +4,11 @@ const rs = (v) => (v === null || v === undefined ? "—" : (v < 0 ? "−" : "") 
 const link = (tela, rotulo, ic = "seta") => `<button class="link" data-ir="${tela}">${icone(ic)} ${e(rotulo)}</button>`;
 
 function telaFinanceiro() {
-  const topo = cabecalho("Analisar um período", "Financeiro", "Quanto o consumo pesa no caixa — e o que vale investigar.");
+  const origem = estado.finOrigem || "sessao";
+  const seletor = `${abas(["Dados desta sessão", "Fechamentos da planta"], origem === "sessao" ? 0 : 1, "fin-origem")}
+    <p class="legenda">Dados desta sessão: análise temporária do arquivo carregado. Fechamentos da planta: a conta gravada de cada período.</p>`;
+  if (origem === "planta") return cabecalho("Analisar um período", "Financeiro", "Entenda a conta do combustível e o que merece verificação.", false) + seletor + financeiroPlanta();
+  const topo = cabecalho("Analisar um período", "Financeiro", "Entenda a conta do combustível e o que merece verificação.") + seletor;
   const c = combo();
   if (!c) return topo + periodosHtml() + foraDaPrevia();
   const f = c.fin;
@@ -12,13 +16,11 @@ function telaFinanceiro() {
   if (f.motivo) {
     h += `<div class="alerta info">${icone("busca")}<div>${e(f.motivo)}</div></div>`;
   } else {
-    const classe = { total: "fin-total", alerta: "fin-alerta" };
-    h += `<h3>${e(f.frase)}</h3>
-      <div class="grade g3">${f.cartoes.map(([r, v, l, cl]) => `<div class="cartao metrica ${classe[cl] || ""}"><div class="rotulo">${e(r)}</div><div class="valor">${e(v)}</div><p class="legenda">${e(l)}</p></div>`).join("")}</div>
+    const preco = f.quadro.consumido.preco_brl_t;
+    h += `${quadroHtml(f.quadro)}
+      <p class="legenda">${preco !== null && preco !== undefined ? `Preço do combustível: R$ ${nf(preco, 2)}/t · média ponderada dos recebimentos com preço e massa válidos. Custo atribuído não é pagamento confirmado.` : "Preço do combustível não informado no período: informe o valor total e a massa dos recebimentos para expressar a diferença em reais."}</p>
       <details><summary>Entender a faixa de incerteza</summary><div class="grade">${incertezaHtml(f.incerteza)}</div></details>
-      <div class="cartao"><b>Parcela evitável: não apurada</b><p class="legenda">${e(f.evitavel)}</p>
-        ${f.verificacao ? `<p>${md("**Próxima verificação:** " + f.verificacao)}</p><p class="legenda">${e(f.porque)}</p>` : ""}
-        <div>${link("oportunidades", "Ver as oportunidades em ordem de prioridade", "oportunidades")}</div></div>
+      <div>${link("oportunidades", "Ver as oportunidades em ordem de prioridade", "oportunidades")}</div>
       <details><summary>Por que a conta mudou · composição e premissas</summary><div class="grade"><p class="legenda">${e(f.variacao)}</p>
       ${tabela(["Parcela", "Pergunta", "Combustível", "Valor"], f.parcelas.map((l) => l.map(e)), [2, 3])}
       ${f.separacao ? `<p class="legenda">${e(f.separacao)}</p>` : ""}
@@ -140,9 +142,11 @@ function cobertura() {
 function semPlanta() {
   return `<div class="alerta info">${icone("busca")}<div>Nenhuma planta cadastrada nesta instalação. Comece em <b>Atualizar dados</b> (cadastro e primeira importação) ou crie a planta de demonstração lá.</div></div><div>${link("atualizar", "Ir para Atualizar dados", "atualizar")}</div>`;
 }
-function seletores() {
+function seletores(passos = []) {
   return `<div class="grade g2"><label class="campo">Planta<select disabled><option>${e(AC.planta)}</option></select></label>
     <label class="campo">Equipamento<select disabled><option>${e(AC.equipamento.nome)} · ${e(AC.equipamento.caldeira_id)}</option></select></label></div>
+    <p class="legenda"><b>Dados salvos da planta.</b> O que você confirmar aqui fica gravado no histórico, com autor e data (nesta prévia, só neste navegador).</p>
+    ${passos.length ? marcador(passos) : ""}
     <p class="legenda"><span style="color:var(--t-orange)">DADOS SINTÉTICOS</span> · não representam uma planta real.</p>`;
 }
 function faixaSituacao(sit, frase) {
@@ -196,7 +200,7 @@ function telaAtualizar() {
     aba = `${tabela(["Quando", "Quem", "Fonte", "Modo", "Novos", "Corrigidos", "Conflitos"], [[quando(ac.criadaEm), nome() || "—", "Importação de arquivos", "incremental", String(i.novas), String(i.corrigidas ?? 0), String(i.conflitos)]].map((l) => l.map(e)), [4, 5, 6])}
       <details><summary>Todas as alterações (auditoria)</summary>${tabela(["Quando", "O quê", "Ação", "Quem"], [...ac.eventos].reverse().map((x) => [quando(x.quando), x.o_que, x.acao, autorDe(x.autor)].map(e)))}</details>`;
   }
-  return `${topo}${cadastro}${seletores()}
+  return `${topo}${cadastro}${seletores(["registros"])}
     <details><summary>Cadastrar equipamento</summary><p class="legenda">Na prévia, o equipamento é o da demonstração. No app: identificador, nome, código da caldeira no diário e altitude do local.</p></details>
     <p class="legenda">${cob.ok ? "✓ " : ""}${e(cob.frase)}</p>
     <div class="grade g3">${metrica("Diário desde", quando(AC.diario[0]))}${metrica("até", quando(AC.diario[1]))}${metrica("Última importação", quando(ac.criadaEm))}</div>
@@ -221,7 +225,7 @@ function telaFechamentos() {
   const abriu = ac.abriu && ac.abriu.fech === sel.id ? ac.abriu : null;
   const inv = abriu ? ac.invs.find((x) => x.id === abriu.inv) : null;
   const acoesAntes = info.acoes || [];
-  return `${topo}${seletores()}
+  return `${topo}${seletores(["conta"])}
     <p>${md(`**Referência v${r.versao}** · ${r.periodo} · ${r.tipo} · ${r.consumo} t de combustível por t de vapor`)}</p>
     <details><summary>Definir nova versão da referência</summary><div class="grade"><p class="legenda">Na prévia, a referência fica em agosto. No app: escolher os períodos, o tipo (mudança estrutural ou correção de dados) e o motivo. Uma referência pior que a anterior só entra como mudança estrutural confirmada.</p>
       <p class="legenda">Versões anteriores nunca mudam; fechamentos antigos continuam reproduzíveis.</p>
@@ -232,7 +236,8 @@ function telaFechamentos() {
       : `<p class="legenda">Nenhum período novo desde o último fechamento: importe dados novos para continuar.</p>`}
     <h2>Fechamento #${sel.id} · ${e(sel.periodo)}</h2>
     ${faixaSituacao(sel.situacao, sel.frase)}
-    ${sel.metricas ? `<div class="grade g3">${metrica("Custo do consumo observado", sel.metricas[0])}${metrica("Custo esperado (referência ajustada)", sel.metricas[1])}${metrica("Desvio monetizado", sel.metricas[2])}</div><p class="legenda">${e(sel.politica)}</p>${incertezaHtml(sel.incerteza, true)}` : ""}
+    ${sel.metricas ? `${quadroHtml(sel.quadro)}<p class="legenda">${e(sel.politica)}</p>${incertezaHtml(sel.incerteza, true)}` : ""}
+    <div><button class="link" data-acao="ver-entrega">${icone("seta")} Ver a entrega deste fechamento (Financeiro · fechamentos da planta)</button></div>
     <p>${md("**O que mudou desde o fechamento anterior:** " + sel.mudanca)}</p>
     ${sel.persistencia ? `<p>${md("**Persistência:** " + sel.persistencia)}</p>` : ""}
     <p>${md("**Próxima verificação:** " + sel.proxima)}</p>
@@ -275,6 +280,7 @@ function abrirInvestigacao(fid) {
     inv = { id: proxId(ac.invs), chave: r.chave, titulo: r.titulo, estado: r.estado, responsavel: null, criada: agora(), atualizada: agora(), desvio: r.desvio, proxima: r.proxima_verificacao, hipoteses: r.hipoteses, limitacoes: r.limitacoes, resultado: null, motivoEnc: null, eventos: [{ quando: agora(), tipo: "criada", autor: nome(), texto: r.desvio.frase }] };
     ac.invs.push(inv);
   }
+  inv.fechs = [...(inv.fechs || []), fid];
   evento(`investigacao ${inv.id}`, "ocorrencia");
   ac.abriu = { fech: fid, inv: inv.id };
   ac.invSel = inv.id;
@@ -286,7 +292,7 @@ function telaAcoes() {
   const topo = cabecalho("Acompanhar a planta", "Investigações e ações", "Do desvio à verificação: o que a equipe investigou, decidiu e qual foi o resultado.", false);
   if (!ac.criada) return topo + semPlanta();
   const abertas = ac.invs.filter((x) => x.estado !== "encerrada").length;
-  return `${topo}${seletores()}
+  return `${topo}${seletores(["investigar", "acao", "resultado"])}
     <div class="grade g2">${metrica("Investigações abertas", String(abertas))}${metrica("Ações registradas", String(ac.acoes.length))}</div>
     ${abas(["Investigações", "Ações e resultados"], ac.abaAcoes, "aba-acoes")}
     <div class="grade">${ac.abaAcoes === 0 ? abaInvestigacoes() : abaAcoesResultados()}</div>`;
@@ -458,6 +464,7 @@ function telaPainel() {
   abertas.filter((x) => x.estado === "aguardando_dados").forEach((x) => pend.push(`Investigação aguardando dados: ${x.titulo}`));
   ac.acoes.filter((x) => !x.avaliacao).forEach((x) => pend.push(`Ação sem avaliação: ${x.descricao}`));
   return `${topo}${seletores()}
+    ${percursoHtml()}
     ${cob.ok ? "" : `<div class="alerta aviso">${icone("mao")}<div>${e(cob.frase)}</div></div>`}
     <h3>Último fechamento · ${e(u.periodo)} · referência v${u.ref_versao}</h3>
     ${faixaSituacao(u.situacao, u.frase)}
@@ -597,6 +604,9 @@ const ACOES = {
   "aba-inv": (el) => { ac.abaInv[el.dataset.inv] = Number(el.dataset.i); ac.erro = null; guardar(); mostrar(); },
   serie: () => { estado.ato = "1"; toast("Série carregada: abra Investigação, Saúde ou Financeiro para analisar."); ir("saude"); },
   recomecar: () => { const autor = ac.autor; ac = novoAcomp(); ac.autor = autor; gravou("Demonstração apagada desta página."); },
+  "fin-origem": (el) => { estado.finOrigem = el.dataset.i === "1" ? "planta" : "sessao"; mostrar(); },
+  "lt-modo": (el) => { estado.ltModo = Number(el.dataset.i); mostrar(); },
+  "ver-entrega": () => { estado.finOrigem = "planta"; estado.abrirEntrega = true; ir("financeiro"); },
 };
 
 /* ---------------------------------------------- incerteza da faixa (D97) */
@@ -825,3 +835,236 @@ Object.assign(ACOES, {
   "pub-cerv": (el) => { estado.pubCervSub = Number(el.dataset.i); mostrar(); },
   "abrir-diag": () => { estado.diagUn = estado.pubUn; estado.diagMes = 0; ir("diagnostico"); },
 });
+
+/* ---------------------------------------------- Conclusão financeira em um quadro (D101) */
+// mesmo objeto de euler.conta.conclusao_financeira, calculado pelo motor ao gerar a página
+const ESTADO_Q = { acima: "acima do esperado, além da incerteza", abaixo: "abaixo do esperado, além da incerteza", nao_estabelecido: "dentro da incerteza: não estabelecida", sem_faixa: "sem faixa de incerteza" };
+const temValor = (v) => v !== null && v !== undefined;
+const rsQ = (v, sinal = false) => (!temValor(v) ? "—" : (v < 0 ? "−" : sinal && v > 0 ? "+" : "") + "R$ " + nf(Math.abs(v), 0));
+const faixaQ = (f) => (!f ? "não determinada" : `${rsQ(f[0])} a ${rsQ(f[1])}`);
+
+function quadroHtml(q) {
+  if (!q) return "";
+  if (!q.disponivel) return `<div class="alerta info">${icone("busca")}<div>${e(q.motivo || "Conta indisponível.")}</div></div>`;
+  const c = q.consumido, x = q.esperado, s = q.sem_explicacao, p = q.ponte, ev = q.evitavel;
+  const preco = temValor(c.preco_brl_t) ? `${nf(c.combustivel_t, 1)} t × R$ ${nf(c.preco_brl_t, 2)}/t` : `${nf(c.combustivel_t, 1)} t`;
+  let h = `<div class="cartao quadro"><h3>Conclusão financeira</h3><p><b>${e(q.frase)}</b></p>
+    ${tabela(["A conta do período", "Valor", "Como foi obtido"], [
+      [e("Custo do combustível consumido"), e(rsQ(c.custo_brl)), e(`${preco} · consumo calculado pelos estoques e recebimentos`)],
+      [e("Esperado nas condições analisadas"), e(rsQ(x.custo_brl)), e(`referência ajustada por ${x.ajustado_por.join(", ")}`)],
+      ["<b>Diferença sem explicação</b>", `<b>${e(rsQ(s.custo_brl, true))}</b>`, e(`faixa das medições: ${faixaQ(s.faixa_brl)} · ${ESTADO_Q[s.estado]}`)],
+    ], [1])}`;
+  if (p.disponivel) {
+    const d = p.dias || {};
+    const dur = d.referencia && d.comparacao ? ` (${nf(d.referencia, 0)} dias → ${nf(d.comparacao, 0)} dias)` : "";
+    h += `<p><b>Por que o custo mudou em relação à referência</b>${e(dur)}: ${e(`${rsQ(p.referencia_brl)} → ${rsQ(p.periodo_brl)}, variação de ${rsQ(p.variacao_brl, true)}.`)}</p>
+      ${tabela(["Parcela", "Valor"], p.grupos.map((g) => [e(g.titulo + (g.nota ? " · " + g.nota : "")), e(temValor(g.custo_brl) ? rsQ(g.custo_brl, true) : "não separado")]), [1])}
+      <p class="legenda">As parcelas fecham a variação. Explicado quer dizer atribuído a um fator medido, não inevitável: a qualidade do combustível, por exemplo, pode ter parte evitável.${p.nao_separados.length ? " Ainda dentro da diferença: " + e(p.nao_separados.join("; ").toLowerCase()) + "." : ""}</p>`;
+  } else {
+    h += `<p class="legenda">${md("Comparação com a referência: " + p.motivo)}</p>`;
+  }
+  const itens = [
+    ...ev.antes.map(md),
+    ...ev.verificacoes.map((v) => `<b>${e(v.titulo)}</b>`
+      + (temValor(v.impacto_brl) ? e(` · impacto associado ${rsQ(v.impacto_brl)}` + (v.faixa_brl ? ` (faixa ${faixaQ(v.faixa_brl)})` : "")) : "")
+      + e(v.onde ? `, ${v.onde}` : "") + ". " + md(v.acao) + (v.distingue ? e(` Separa: ${v.distingue}.`) : "")),
+  ];
+  h += `<p><b>${e(ev.situacao)}.</b> O que falta verificar:</p>
+    ${itens.length ? `<ol class="verificar">${itens.map((t) => `<li>${t}</li>`).join("")}</ol>` : '<p class="legenda">Nenhuma verificação priorizada nesta comparação.</p>'}
+    <p class="legenda">${e(ev.condicao)}</p>
+    <p class="legenda">Economia verificada: só depois de uma ação registrada e avaliada em Ações. A diferença acima não é economia nem prejuízo recuperável confirmado.</p></div>`;
+  return h;
+}
+
+/* ---------------------------------------------- Percurso da planta em cinco passos (D102) */
+// mesmas regras de euler/percurso.py, lidas dos registros desta página
+const PASSOS = [["registros", "Enviar registros", "atualizar"], ["conta", "Conferir a conta", "fechamentos"], ["investigar", "Investigar", "acoes"], ["acao", "Registrar ação", "acoes"], ["resultado", "Verificar resultado", "acoes"]];
+const ESTADO_PASSO = { feito: ["Feito", "green"], andamento: ["Em andamento", "blue"], pendente: ["Pendente", "orange"], bloqueado: ["Aguarda o passo anterior", "gray"] };
+
+function percurso() {
+  const p = {};
+  if (!ac.criada) {
+    p.registros = ["pendente", "Nenhum registro enviado para este equipamento."];
+    p.conta = ["bloqueado", "Depende dos registros."];
+    p.investigar = ["bloqueado", "Depende do primeiro fechamento."];
+    p.acao = ["bloqueado", "Depende de uma investigação aberta."];
+    p.resultado = ["bloqueado", "Depende de uma ação registrada."];
+  } else {
+    const cob = cobertura();
+    p.registros = cob.ok ? ["feito", `1 envio(s); último em ${quando(ac.criadaEm)}. ${cob.frase}`] : ["pendente", cob.frase];
+    const prontos = (AC.pendentes[ac.nFech - 1] || []).filter((x) => x.valido);
+    const fs = fechs();
+    const u = fs[fs.length - 1];
+    p.conta = prontos.length ? ["pendente", `${prontos.length} período(s) com dados completos ainda sem fechamento.`] : ["feito", `Último fechamento: ${u.periodo}. ${u.situacao_frase}`];
+    const abertas = ac.invs.filter((x) => x.estado !== "encerrada");
+    const ligadas = new Set(ac.invs.flatMap((x) => x.fechs || []));
+    if ((u.situacao === "acima" || u.ops.length) && !ligadas.has(u.id)) p.investigar = ["pendente", "O último fechamento tem verificação a fazer e ainda não virou investigação."];
+    else if (abertas.length) p.investigar = ["andamento", `${abertas.length} investigação(ões) aberta(s).`];
+    else p.investigar = ["feito", "Nada aberto para investigar neste momento."];
+    const comAcao = new Set(ac.acoes.map((x) => x.inv).filter(Boolean));
+    const semAcao = abertas.filter((x) => x.estado === "em_investigacao" && !comAcao.has(x.id));
+    const ultima = ac.acoes.map((x) => x.data).sort().pop();
+    if (semAcao.length) p.acao = ["pendente", `${semAcao.length} investigação(ões) sem ação registrada: registre o que a equipe verificou ou fez.`];
+    else if (ac.acoes.length) p.acao = ["feito", `${ac.acoes.length} ação(ões) registrada(s); última em ${quando(ultima)}.`];
+    else if (abertas.length) p.acao = ["andamento", "Investigações aguardando dados ou verificação."];
+    else p.acao = ["bloqueado", "Depende de uma investigação aberta."];
+    const semAv = ac.acoes.filter((x) => !x.avaliacao);
+    if (semAv.length) p.resultado = ["pendente", `${semAv.length} ação(ões) ainda sem avaliação do resultado.`];
+    else if (ac.acoes.length) p.resultado = ["feito", "Todas as ações registradas já foram avaliadas."];
+    else p.resultado = ["bloqueado", "Depende de uma ação registrada."];
+  }
+  return PASSOS.map(([id, titulo, destino]) => ({ id, titulo, destino, estado: p[id][0], frase: p[id][1] }));
+}
+
+function percursoHtml() {
+  const itens = percurso();
+  const prox = itens.find((x) => x.estado === "pendente");
+  return `<div class="cartao"><b>Percurso da planta</b>
+    <p class="legenda">Enviar registros → conferir a conta → investigar → registrar ação → verificar resultado. Tudo aqui usa os dados salvos desta planta.</p>
+    <div class="passos">${itens.map((x, i) => `<div class="passo"><div>${selo(ESTADO_PASSO[x.estado][1], ESTADO_PASSO[x.estado][0])}</div><b>${i + 1}. ${e(x.titulo)}</b><p class="legenda">${e(x.frase)}</p></div>`).join("")}</div>
+    ${prox ? `<div>${link(prox.destino, "Próximo passo: " + prox.titulo.toLowerCase())}</div>` : '<p class="legenda">Nada pendente no percurso agora.</p>'}</div>`;
+}
+
+function marcador(passos) {
+  return `<p class="legenda">Percurso: ${PASSOS.map(([k, t], i) => (passos.includes(k) ? `<b>${i + 1}. ${e(t)}</b>` : `${i + 1}. ${e(t)}`)).join(" › ")}</p>`;
+}
+
+/* ---------------------------------------------- Linha do tempo dos fechamentos (D103) */
+// valores e leitura da série calculados pelo motor (euler/linha_do_tempo.py) para cada fechamento;
+// a página só acrescenta as linhas das ações que o visitante registrou, com a avaliação de cada uma
+const ESTADO_LT = { acima: ["Acima do esperado", "#efbd80"], abaixo: ["Abaixo do esperado", "#9cb5ca"], nao_estabelecido: ["Dentro da incerteza", "#a3a3a3"], sem_faixa: ["Sem faixa de incerteza", "#a3a3a3"] };
+const estadoLT = (x) => ESTADO_LT[x] || ["Conta indisponível", "#a3a3a3"];
+const rs2 = (v) => (!temValor(v) ? "—" : (v < 0 ? "−" : "") + "R$ " + nf(Math.abs(v), 2));
+const diaDe = (x) => new Date(x.length === 10 ? x + "T12:00" : x);
+
+function acoesNoPeriodo(f) {
+  return ac.acoes.filter((x) => new Date(f.inicio) < diaDe(x.data) && diaDe(x.data) <= new Date(f.fim));
+}
+function leituraSerie(fs) {
+  const linhas = [...fs[fs.length - 1].padrao];
+  const acoes = fs.flatMap((f) => acoesNoPeriodo(f).map((x) => `Ação em ${quando(x.data)} (${x.descricao}): ` + (x.avaliacao ? x.avaliacao.frase : "ainda não avaliada; a melhora só é afirmada pela avaliação.")));
+  linhas.splice(1, 0, ...acoes);
+  return linhas;
+}
+
+function graficoLinhaDoTempo(fs, porVapor) {
+  const campo = porVapor ? "desvio_por_t_vapor_brl" : "desvio_brl";
+  const campoF = porVapor ? "faixa_por_t_vapor_brl" : "faixa_brl";
+  const fmt = porVapor ? rs2 : rs;
+  const pts = fs.filter((f) => temValor(f.lt[campo]));
+  if (!pts.length) return "";
+  const acoes = fs.flatMap(acoesNoPeriodo);
+  const W = 760, H = 250, xa = 70, xb = 740, ya = 14, yb = 214;
+  const t = (x) => diaDe(x).getTime();
+  const tMin = Math.min(...pts.map((f) => t(f.inicio)));
+  const tMax = Math.max(...pts.map((f) => t(f.fim)));
+  const X = (v) => xa + ((v - tMin) / (tMax - tMin || 1)) * (xb - xa);
+  const vals = pts.flatMap((f) => [f.lt[campo], ...(f.lt[campoF] || [])]).concat([0]);
+  let lo = Math.min(...vals), hi = Math.max(...vals);
+  const passo = passoBonito(hi - lo || 1);
+  lo = Math.floor(lo / passo) * passo; hi = Math.ceil(hi / passo) * passo;
+  const Y = (v) => yb - ((v - lo) / (hi - lo || 1)) * (yb - ya);
+  const casas = porVapor ? 2 : 0;
+  let g = "";
+  for (let v = lo; v <= hi + passo / 2; v += passo) g += `<line x1="${xa}" x2="${xb}" y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}" stroke="#333"/><text x="${xa - 8}" y="${(Y(v) + 4).toFixed(1)}" text-anchor="end" fill="#A3A3A3" font-size="12">${nf(v, casas)}</text>`;
+  g += `<line x1="${xa}" x2="${xb}" y1="${Y(0).toFixed(1)}" y2="${Y(0).toFixed(1)}" stroke="#A3A3A3"/>`;
+  const marcasX = [...new Set([...pts.map((f) => f.inicio), pts[pts.length - 1].fim])];
+  g += marcasX.map((d) => `<text x="${X(t(d)).toFixed(1)}" y="${yb + 20}" text-anchor="middle" fill="#A3A3A3" font-size="12">${quando(d).slice(0, 5)}</text>`).join("");
+  const acoesHtml = acoes.map((x) => {
+    const xx = X(diaDe(x.data).getTime()).toFixed(1);
+    const dicaA = `Ação registrada: ${quando(x.data)} · ${x.descricao} · ${x.avaliacao ? x.avaliacao.frase : "Ainda não avaliada"}`;
+    return `<line x1="${xx}" x2="${xx}" y1="${ya}" y2="${yb}" stroke="#A3A3A3" stroke-width="1.5" stroke-dasharray="4 4"/><line x1="${xx}" x2="${xx}" y1="${ya}" y2="${yb}" stroke="transparent" stroke-width="12" data-dica="${e(dicaA)}"/>`;
+  }).join("");
+  const marcas = pts.map((f) => {
+    const v = f.lt[campo], fx = f.lt[campoF], [rot, cor] = estadoLT(f.lt.estado);
+    const meio = (t(f.inicio) + t(f.fim)) / 2;
+    const dica = `Fechamento #${f.id} · ${f.periodo} · desvio ${fmt(v)} · faixa ${fx ? `${fmt(fx[0])} a ${fmt(fx[1])}` : "não determinada"} · ${rot} · conta ${f.lt.qualidade}`;
+    return (fx ? `<line x1="${X(meio).toFixed(1)}" x2="${X(meio).toFixed(1)}" y1="${Y(fx[0]).toFixed(1)}" y2="${Y(fx[1]).toFixed(1)}" stroke="#d5dce2" stroke-width="1.5"/>` : "")
+      + `<line x1="${(X(t(f.inicio)) + 2).toFixed(1)}" x2="${(X(t(f.fim)) - 2).toFixed(1)}" y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}" stroke="${cor}" stroke-width="3" stroke-linecap="round"/>`
+      + `<circle cx="${X(meio).toFixed(1)}" cy="${Y(v).toFixed(1)}" r="5" fill="${cor}" stroke="#262626" stroke-width="2"/>`
+      + `<rect x="${X(t(f.inicio)).toFixed(1)}" y="${ya}" width="${(X(t(f.fim)) - X(t(f.inicio))).toFixed(1)}" height="${yb - ya}" fill="transparent" data-dica="${e(dica)}"/>`;
+  }).join("");
+  const fora = fs.length - pts.length;
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Desvio de cada fechamento com a faixa de incerteza">
+      <text x="14" y="${(ya + yb) / 2}" fill="#A3A3A3" font-size="12" transform="rotate(-90 14 ${(ya + yb) / 2})" text-anchor="middle">${porVapor ? "R$ por t de vapor" : "R$ no período"}</text>${g}${acoesHtml}${marcas}</svg>
+    <p class="legenda">Cada segmento é o desvio de um fechamento (custo consumido − esperado); a barra vertical é a faixa de incerteza. Âmbar: acima do esperado além da incerteza; azul: abaixo; cinza: dentro da incerteza ou sem faixa. Linhas tracejadas: ações registradas. Os mesmos valores estão na tabela abaixo.${fora ? ` ${fora} fechamento(s) sem esse valor ficam fora do gráfico, sem zero.` : ""}</p>`;
+}
+
+function linhaDoTempoHtml(fs) {
+  const porVapor = estado.ltModo === 1;
+  const linhas = fs.map((f) => {
+    const l = f.lt;
+    return [`#${f.id} · ${f.periodo}`, nf(l.dias, 0), temValor(l.vapor_t) ? `${nf(l.vapor_t, 0)} t` : "—", temValor(l.consumo_t_t) ? `${nf(l.consumo_t_t * 1000, 1)} kg/t` : "—", rs(l.custo_brl), rs2(l.custo_por_t_vapor_brl), rs(l.custo_por_dia_brl), rs(l.desvio_brl), l.faixa_brl ? `${rs(l.faixa_brl[0])} a ${rs(l.faixa_brl[1])}` : "—", estadoLT(l.estado)[0], l.qualidade, acoesNoPeriodo(f).map((x) => x.descricao).join("; ") || "—"].map(e);
+  });
+  const grafico = graficoLinhaDoTempo(fs, porVapor);
+  return `<h3>Linha do tempo dos fechamentos</h3>
+    <p class="legenda">Cada fechamento gravado, em ordem: o desvio apareceu agora, está se repetindo ou mudou depois de uma ação? Valores preservados de cada fechamento.</p>
+    <ul>${leituraSerie(fs).map((x) => `<li>${e(x)}</li>`).join("")}</ul>
+    ${abas(["Total do período (R$)", "Por tonelada de vapor (R$/t)"], porVapor ? 1 : 0, "lt-modo")}
+    <p class="legenda">Períodos com duração ou produção diferentes se comparam melhor por tonelada de vapor.</p>
+    ${grafico || '<div class="alerta info">' + icone("busca") + "<div>Nenhum fechamento tem esse valor calculado. Veja os motivos na tabela abaixo.</div></div>"}
+    <details ${fs.length <= 3 ? "open" : ""}><summary>Tabela dos fechamentos</summary>
+      ${tabela(["Fechamento", "Dias", "Vapor", "Consumo", "Custo", "Custo por t de vapor", "Custo por dia", "Desvio", "Faixa do desvio", "Situação", "Qualidade da conta", "Ações no período"], linhas, [1, 2, 3, 4, 5, 6, 7])}
+      <p class="legenda">Qualidade da conta: completa (preço e faixa), preço incompleto, sem faixa ou conta indisponível. Custo atribuído ao consumo não é pagamento confirmado.</p></details>`;
+}
+
+/* ---------------------------------------------- Entrega de cada fechamento (D104) */
+// mesmas cinco partes de euler/entrega.py: a conta vem do fechamento; o resto, dos registros desta página
+function entrega(sel) {
+  const cob = cobertura();
+  const pend = cob.ok ? [] : [cob.frase];
+  const novos = (AC.pendentes[ac.nFech - 1] || []).filter((p) => p.valido).length;
+  if (novos) pend.push(`${novos} período(s) com dados completos ainda sem fechamento.`);
+  if (sel.lt.qualidade !== "completa") pend.push(`Conta deste fechamento: ${sel.lt.qualidade} (${sel.lt.qualidade_motivo})`);
+  const abertas = ac.invs.filter((x) => x.estado !== "encerrada");
+  const andamento = ac.acoes.filter((x) => !x.avaliacao || x.avaliacao.resultado === "nao_avaliavel");
+  const avaliadas = ac.acoes.filter((x) => x.avaliacao && x.avaliacao.resultado !== "nao_avaliavel");
+  return { pend, abertas, andamento, avaliadas };
+}
+
+function entregaHtml(sel) {
+  const { pend, abertas, andamento, avaliadas } = entrega(sel);
+  const lista = (itens, vazio) => (itens.length ? `<ul>${itens.map((x) => `<li>${x}</li>`).join("")}</ul>` : `<p class="legenda">${e(vazio)}</p>`);
+  const hoje = new Date().toISOString().slice(0, 10);
+  const verificadas = avaliadas.filter((x) => x.avaliacao.economia && temValor(x.avaliacao.economia.valor_brl));
+  return `<div class="cartao" id="entrega"><b>Entrega do fechamento #${sel.id}</b>
+    <p class="legenda">O resumo de cada fechamento para a gestão: a conta e o que mudou, as pendências, as verificações e ações em andamento e os resultados já demonstrados. A conta vem preservada do fechamento; o restante é o registrado até hoje.</p>
+    <div class="grade g4">${metrica("Pendências", String(pend.length))}${metrica("Verificações abertas", String(abertas.length))}${metrica("Ações sem avaliação", String(andamento.length))}${metrica("Ações avaliadas", String(avaliadas.length))}</div>
+    <p class="legenda">No app, o botão “Baixar a entrega do fechamento” gera o mesmo texto em arquivo, para enviar à gestão. Nada é enviado automaticamente.</p>
+    <details ${estado.abrirEntrega ? "open" : ""}><summary>Ver a entrega completa</summary><div class="grade entrega" style="gap:10px">
+      <h3>Entrega do fechamento #${sel.id} · ${e(AC.equipamento.nome)}</h3>
+      <p class="legenda">Período: ${e(sel.periodo)} · referência v${sel.ref_versao} · entrega gerada em ${quando(hoje)}. A conta é a preservada no fechamento. Pendências, verificações e resultados são os registrados até a data da entrega.</p>
+      <h4>1. A conta do período</h4>${sel.quadro && sel.quadro.disponivel ? quadroHtml(sel.quadro) : `<p>${e((sel.quadro && sel.quadro.motivo) || sel.frase)}</p>`}
+      <h4>2. O que mudou</h4><p>${md(sel.mudanca)}</p>${lista(sel.padrao.map(e), "")}
+      <h4>3. Pendências relevantes</h4>${lista(pend.map(e), "Nenhuma pendência registrada.")}
+      <h4>4. Verificações e ações em andamento</h4>${lista([
+        ...abertas.map((v) => e(`Verificação: ${v.titulo} · estado: ${AC.estados[v.estado].toLowerCase()} · responsável: ${v.responsavel || "não informado"}` + ((v.proxima || {}).acao ? ` · próximo passo: ${v.proxima.acao}` : ""))),
+        ...andamento.map((x) => e(`Ação em ${quando(x.data)}: ${x.descricao} · ${x.avaliacao ? "avaliação sem conclusão: " + x.avaliacao.frase : "ainda não avaliada"}`)),
+      ], "Nenhuma verificação ou ação em andamento.")}
+      <h4>5. Resultados já demonstrados</h4>${lista(avaliadas.map((x) => e(`${quando(x.data)} · ${x.descricao}: ${x.avaliacao.frase}`)), "Nenhuma ação avaliada até esta entrega.")}
+      <p>${e(verificadas.length ? "Economia verificada pelo protocolo: " + verificadas.map((x) => `${x.descricao} · ${rs(x.avaliacao.economia.valor_brl)}`).join("; ") + ". No app, a soma exclui janelas sobrepostas." : "Economia verificada no histórico: não apurada (nenhuma avaliação cumpriu o protocolo).")}</p>
+      <p class="legenda">Só entram economias verificadas pelo protocolo, uma por intervenção, sem janelas sobrepostas. É benefício das ações da planta (equipe, fornecedores, projetos), não um valor atribuído à EULER.</p>
+      <p class="legenda">A EULER investiga e recomenda verificações; não comanda a caldeira. Qualquer ajuste operacional é avaliado e decidido pelos responsáveis técnicos da planta.</p>
+    </div></details></div>`;
+}
+
+/* Financeiro · fechamentos da planta: linha do tempo, conta salva e entrega */
+function financeiroPlanta() {
+  if (!ac.criada) {
+    return `<div class="alerta info">${icone("busca")}<div>Ainda não há conta fechada para este equipamento. Defina a referência e produza o primeiro fechamento.</div></div>
+      <div>${link("atualizar", "Criar a planta de demonstração em Dados", "atualizar")}</div>`;
+  }
+  const fs = fechs();
+  const sel = fs.find((f) => f.id === ac.fechSel) || fs[fs.length - 1];
+  const h = `${seletores(["conta"])}${linhaDoTempoHtml(fs)}<hr>
+    <label class="campo" style="max-width:360px">Fechamento salvo<select id="ver-fech">${[...fs].reverse().map((f) => `<option value="${f.id}" ${f.id === sel.id ? "selected" : ""}>#${f.id} · ${e(f.periodo)}</option>`).join("")}</select></label>
+    <h3>Conta do período · ${e(sel.periodo)}</h3>
+    <p class="legenda">Referência v${sel.ref_versao}. Valores preservados no fechamento; preços e registros novos não reescrevem esta conta.</p>
+    ${faixaSituacao(sel.situacao, sel.frase)}
+    ${sel.quadro && sel.quadro.disponivel ? quadroHtml(sel.quadro) + incertezaHtml(sel.incerteza, true) : `<div class="alerta info">${icone("busca")}<div>${e((sel.quadro && sel.quadro.motivo) || "Comparação financeira ainda não disponível.")}</div></div>`}
+    <p>${md("**Próxima verificação:** " + sel.proxima)}</p>
+    ${entregaHtml(sel)}
+    <div class="lado-a-lado">${link("acoes", "Acompanhar verificações e ações", "acoes")}${link("fechamentos", "Gerenciar referência e fechamentos", "fechamentos")}</div>`;
+  estado.abrirEntrega = false;
+  return h;
+}

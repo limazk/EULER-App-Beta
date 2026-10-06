@@ -52,6 +52,7 @@ from euler.combustivel import (
     extrato_semanal,
     frase_tonelada_vs_energia,
 )
+from euler.conta import conclusao_financeira
 from euler.formato import num, pct, plural
 from euler.investigacao import SUFIXO_CADASTRAR, investigar
 from euler.io import importar_pasta
@@ -294,6 +295,10 @@ def _financeiro(j: dict) -> dict:
     return {
         "cab": cab,
         "frase": d["frase"],
+        # quadro único da conclusão (D101), o mesmo objeto da tela do app
+        "quadro": conclusao_financeira(
+            c, (j.get("oportunidades") or {}).get("oportunidades", ()), dias
+        ),
         "cartoes": [
             [
                 "Combustível consumido",

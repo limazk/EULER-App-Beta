@@ -410,3 +410,7 @@ Pedido do Adryan: continuar as cinco melhorias propostas pelo Codex, começando 
 - **Tela.** Financeiro → Fechamentos da planta mostra o resumo da entrega (contagens), o texto completo e o botão "Baixar a entrega do fechamento"; a tela Fechamentos tem o mesmo botão ao lado do relatório. Nada é enviado automaticamente.
 - **Item 4.** Roteiro do teste com uma planilha real autorizada em `docs/produto/teste_planilha_real.md`: objetivos, cuidados antes da reunião (sem presumir acesso; autorização por escrito), pedido de amostra para o Adryan adaptar, roteiro de 45–60 minutos com a pergunta central e ficha de observação sem dados do cliente.
 - Testes: `tests/test_entrega.py` (7).
+
+## Prévia online atualizada — 06/10/2026
+
+- A prévia interativa (`scripts/gerar_previa.py`) mostra as melhorias D101–D104 com os números calculados pelo motor: o quadro da conclusão financeira no Financeiro e em Fechamentos; o percurso de cinco passos em Minha planta e o marcador de passo nas telas da planta; o Financeiro com "Dados desta sessão" e "Fechamentos da planta" (linha do tempo, conta salva e entrega do fechamento); "Análise temporária" × "Dados salvos da planta". Republicada no mesmo endereço.

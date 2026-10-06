@@ -25,6 +25,7 @@ from euler.acompanhamento import (
     registrar_intervencao,
 )
 from euler.armazem import POLITICAS_CUSTO
+from euler.conta import conclusao_financeira
 from euler.evidencias import ROTULOS
 from euler.fechamento import (
     TIPOS_REFERENCIA,
@@ -36,6 +37,7 @@ from euler.fechamento import (
 )
 from euler.formato import num
 from euler.io.esquemas import TABELAS
+from euler.linha_do_tempo import linha_do_tempo
 from euler.painel import CATEGORIAS, CRITERIOS
 from euler.periodos import periodos_entre_estoques
 from euler.persistencia import Repositorio
@@ -67,6 +69,18 @@ def periodo(p: dict) -> str:
     return f"{data(p['inicio'])} a {data(p['fim'])}"
 
 
+def _dias(p: dict) -> float:
+    return (pd.Timestamp(p["fim"]) - pd.Timestamp(p["inicio"])).total_seconds() / 86400
+
+
+# campos da linha do tempo (D103) que a prévia usa; valores do motor, sem conta nova
+CAMPOS_LT = (
+    "dias", "vapor_t", "consumo_t_t", "custo_brl", "esperado_brl", "desvio_brl", "faixa_brl",
+    "estado", "custo_por_t_vapor_brl", "custo_por_dia_brl", "desvio_por_t_vapor_brl",
+    "faixa_por_t_vapor_brl", "referencia_versao", "qualidade", "qualidade_motivo",
+)  # fmt: skip
+
+
 def _fechamento(f: dict) -> dict:
     """O que a tela Fechamentos mostra de um fechamento (mesmos textos da tela)."""
     r = f["resultado"]
@@ -95,6 +109,12 @@ def _fechamento(f: dict) -> dict:
         "situacao": r["situacao"],
         "situacao_frase": r["situacao_frase"],
         "frase": desvio.get("frase") or r["situacao_frase"],
+        # quadro único da conclusão (D101): o mesmo objeto que o app mostra
+        "quadro": conclusao_financeira(
+            conta,
+            n["oportunidades"],
+            {"referencia": _dias(n["referencia"]), "comparacao": _dias(n["periodo"])},
+        ),
         "metricas": [
             brl(conta["consumido"]["custo_brl"]),
             brl(conta["esperado"]["custo_brl"]),
@@ -263,6 +283,10 @@ def dados_acompanhamento() -> dict:
             produzir_fechamento(a, EQ, AUTOR)
             pendentes.append(_pendentes(a))
         lista = [_fechamento(f) for f in fechamentos(a, EQ)]
+        # linha do tempo (D103): valores de cada fechamento e a leitura da série até ele
+        for item, p in zip(lista, linha_do_tempo(a, EQ)["periodos"], strict=True):
+            item["lt"] = {k: p[k] for k in CAMPOS_LT}
+            item["padrao"] = linha_do_tempo(a, EQ, ate_fechamento=item["id"])["padrao"]
     finally:
         a.fechar()
 
