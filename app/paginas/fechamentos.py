@@ -19,6 +19,7 @@ from acompanhamento_ui import (
 from componentes import cabecalho, incerteza_explicada, md
 
 from euler.acompanhamento import ESTADOS, abrir_do_fechamento
+from euler.entrega import entrega_do_fechamento, texto_entrega
 from euler.evidencias import ROTULOS
 from euler.fechamento import (
     TIPOS_REFERENCIA,
@@ -252,9 +253,20 @@ def mostrar_fechamento(a, f, nome_autor) -> None:
             rep = executar(lambda: reproduzir(a, f["id"], alvo))
             if rep:
                 (st.success if rep["identico"] else st.info)(rep["frase"])
-        c1, c2 = st.columns(2)
+        c1, c2, c3 = st.columns(3)
         c1.download_button(
             "Baixar relatório", texto_fechamento(f), f"fechamento-{f['id']}.md", "text/markdown"
+        )
+        c3.download_button(
+            "Baixar a entrega do fechamento",
+            texto_entrega(
+                entrega_do_fechamento(a, f["equipamento_id"], f["id"]),
+                a.equipamento(f["equipamento_id"]).get("nome"),
+            ),
+            f"entrega-fechamento-{f['id']}.md",
+            "text/markdown",
+            help="Resumo para a gestão: conta e o que mudou, pendências, verificações e ações "
+            "em andamento e resultados já demonstrados.",
         )
         c2.download_button(
             "Baixar dados (JSON)",

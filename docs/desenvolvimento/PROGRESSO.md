@@ -403,3 +403,10 @@ Pedido do Adryan: continuar as cinco melhorias propostas pelo Codex, começando 
 - **Leitura da série.** Diz se o desvio "está se repetindo" (dois ou mais fechamentos seguidos acima, além da incerteza), "apareceu agora" ou cabe na incerteza; avisa quando a referência muda de versão, quando as durações são diferentes e quando há conta incompleta. "Melhorou depois da ação" só vem da avaliação registrada da ação.
 - **Tela.** Financeiro → Fechamentos da planta, acima do fechamento escolhido: leitura, gráfico do desvio com a faixa de incerteza e as ações como linhas tracejadas (total do período ou por tonelada de vapor) e a tabela dos fechamentos. Fechamento sem conta fica fora do gráfico, sem zero, e aparece na tabela com o motivo.
 - Testes: `tests/test_linha_do_tempo.py` (9). Conferido no navegador com uma planta sintética de seis fechamentos.
+
+## Entrega a cada fechamento — 06/10/2026
+
+- **Item 5 (D104).** `euler/entrega.py` monta a entrega de um fechamento em cinco partes: a conta do período (mesmo quadro da conclusão) e o que mudou; pendências relevantes; verificações abertas e ações sem avaliação; resultados já demonstrados (só avaliações registradas e economia verificada pelo protocolo). A conta vem preservada do fechamento; o restante é o registrado até a data da entrega, escrita no documento. Termina com o aviso de que a EULER recomenda verificações e não comanda a caldeira.
+- **Tela.** Financeiro → Fechamentos da planta mostra o resumo da entrega (contagens), o texto completo e o botão "Baixar a entrega do fechamento"; a tela Fechamentos tem o mesmo botão ao lado do relatório. Nada é enviado automaticamente.
+- **Item 4.** Roteiro do teste com uma planilha real autorizada em `docs/produto/teste_planilha_real.md`: objetivos, cuidados antes da reunião (sem presumir acesso; autorização por escrito), pedido de amostra para o Adryan adaptar, roteiro de 45–60 minutos com a pergunta central e ficha de observação sem dados do cliente.
+- Testes: `tests/test_entrega.py` (7).

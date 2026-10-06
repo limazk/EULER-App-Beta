@@ -4,6 +4,7 @@ import pandas as pd
 import streamlit as st
 from acompanhamento_ui import brl, faixa_situacao, periodo, planta_e_equipamento
 from blocos.conclusao_financeira import renderizar as renderizar_conclusao
+from blocos.entrega import renderizar as renderizar_entrega
 from blocos.linha_do_tempo import renderizar as renderizar_linha_do_tempo
 from componentes import incerteza_explicada, md
 
@@ -164,6 +165,7 @@ def mostrar() -> None:
             key=f"fin_fech_{planta['id']}_{eq['id']}",
         )
         conta_salva(por_id[ident])
+        renderizar_entrega(a, eq, ident)
         ver = painel(a, eq["id"])["verificado"]
     st.markdown("### Resultados das ações · histórico do equipamento")
     st.caption("Histórico completo disponível hoje; não se limita ao período do fechamento acima.")
