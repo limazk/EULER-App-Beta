@@ -27,6 +27,10 @@ um, dois = st.columns(2)
 with um, cartao("inicio-planta"):
     st.markdown("#### Minha planta")
     st.caption("Reúna os registros, veja pendências e acompanhe as ações ao longo do tempo.")
+    st.caption(
+        "Enviar registros → conferir a conta → investigar → registrar ação → verificar "
+        "resultado. Tudo fica salvo na planta."
+    )
     st.page_link(
         "paginas/painel.py", label="Abrir painel da planta", icon=":material/space_dashboard:"
     )

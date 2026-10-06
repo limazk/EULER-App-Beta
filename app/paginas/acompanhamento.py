@@ -373,7 +373,12 @@ def configuracao(a, eq, nome_autor: str) -> None:
     cfg = eq["config"]
     with st.form(chave_form("acomp_config")):
         c1, c2 = st.columns(2)
-        alt = c1.number_input("Altitude do local (m)", value=cfg["altitude_m"], step=10.0)
+        alt = c1.number_input(
+            "Altitude do local (m)",
+            # altitude gravada como inteiro (ex.: 1000) não pode quebrar o campo decimal
+            value=None if cfg["altitude_m"] is None else float(cfg["altitude_m"]),
+            step=10.0,
+        )
         dias = c2.number_input(
             "Avisar desatualização depois de (dias sem dados)",
             min_value=1,
@@ -513,7 +518,7 @@ def mostrar() -> None:
     cadastrar_planta(repo, nome_autor, aberto=not tem_plantas)
     if not tem_plantas:
         return
-    with planta_e_equipamento(exigir_equipamento=False) as ctx:
+    with planta_e_equipamento(exigir_equipamento=False, passo=("registros",)) as ctx:
         if ctx is None:
             return
         repo, planta, a, eq = ctx

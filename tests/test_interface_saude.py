@@ -20,6 +20,10 @@ def test_limpar_sessao_remove_resultados_periodos_e_altitude():
         assert key not in at.session_state
     assert at.number_input[0].value is None
     at.switch_page("paginas/financeiro.py").run()
+    assert not at.exception, at.exception
+    # sem arquivos na sessão, o Financeiro abre nos fechamentos salvos da planta (D102)
+    assert at.radio(key="fin_origem").value == "Fechamentos da planta"
+    at.radio(key="fin_origem").set_value("Dados desta sessão").run()
     assert any("Nenhum dado importado" in i.value for i in at.info)
 
 

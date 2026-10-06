@@ -299,8 +299,11 @@ st.html("""<style>
 origem = st.radio(
     "Origem da análise",
     ["Dados desta sessão", "Fechamentos da planta"],
+    index=0 if st.session_state.get("arquivos") else 1,
     horizontal=True,
     key="fin_origem",
+    help="Dados desta sessão: análise temporária dos arquivos abertos agora. "
+    "Fechamentos da planta: contas já gravadas no histórico da planta.",
 )
 if origem == "Fechamentos da planta":
     from blocos.financeiro_planta import mostrar as mostrar_planta

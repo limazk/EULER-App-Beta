@@ -245,5 +245,10 @@ def exigir_pacote() -> Pacote | None:
         sem_dados()
         return None
     selo = " · :orange-badge[:material/science: DADOS SINTÉTICOS]" if dados_sinteticos() else ""
-    st.caption(f":material/database: Dados em uso: **{rotulo_dados()}**{selo}")
+    import armazenamento
+
+    st.caption(
+        f":material/hourglass_top: **Análise temporária** · dados desta sessão: "
+        f"**{rotulo_dados()}**{selo} · {armazenamento.situacao()}"
+    )
     return p

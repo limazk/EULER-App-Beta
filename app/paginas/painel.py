@@ -8,6 +8,7 @@ economia verificada não é contada duas vezes.
 import pandas as pd
 import streamlit as st
 from acompanhamento_ui import brl, data, faixa_situacao, periodo, planta_e_equipamento
+from blocos.percurso import renderizar as renderizar_percurso
 from componentes import cabecalho, md
 
 from euler.formato import num
@@ -87,6 +88,7 @@ def mostrar() -> None:
         if ctx is None:
             return
         _, _, a, eq = ctx
+        renderizar_percurso(a, eq["id"])
         p = painel(a, eq["id"])
         fila = fila_de_atencao(a, eq["id"])
     cob = p["cobertura"]

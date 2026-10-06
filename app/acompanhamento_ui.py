@@ -110,12 +110,25 @@ def executar(acao, sucesso: str | None = None, *, recarregar_tela: bool = False)
     return True if r is None else r  # sucesso sempre verdadeiro; falha devolve None
 
 
+def aviso_dados_salvos(passo: tuple[str, ...] = ()) -> None:
+    """Deixa claro que a tela usa os dados gravados da planta, não os da sessão (D102)."""
+    st.caption(
+        ":material/database: **Dados salvos da planta.** O que você confirmar aqui fica "
+        "gravado no histórico, com autor e data."
+    )
+    if passo:
+        from blocos.percurso import marcador
+
+        marcador(*passo)
+
+
 @contextmanager
-def planta_e_equipamento(exigir_equipamento: bool = True):
+def planta_e_equipamento(exigir_equipamento: bool = True, passo: tuple[str, ...] = ()):
     """Escolha da planta e do equipamento; entrega (repo, planta, armazém, equipamento).
 
     Fecha o arquivo da planta ao final da tela. Sem planta ou equipamento, mostra o caminho
-    para cadastrar e entrega None.
+    para cadastrar e entrega None. `passo`: em qual passo do percurso da planta a tela está
+    (D102); aparece numa linha abaixo da escolha, junto do aviso de que os dados são salvos.
     """
     mostrar_aviso()
     repo = arm.repositorio()
@@ -174,6 +187,7 @@ def planta_e_equipamento(exigir_equipamento: bool = True):
             key="acomp_equip_sel",
         )
         st.session_state["acomp_equip_atual"] = eid
+        aviso_dados_salvos(passo)
         if planta["classe"] == "sintetico":
             st.caption(":orange[DADOS SINTÉTICOS] · não representam uma planta real.")
         yield repo, planta, a, por_id[eid]

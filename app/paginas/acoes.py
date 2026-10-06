@@ -388,7 +388,7 @@ recarregar_tela=True,
 
 def mostrar() -> None:
     nome_autor = autor()
-    with planta_e_equipamento() as ctx:
+    with planta_e_equipamento(passo=("investigar", "acao", "resultado")) as ctx:
         if ctx is None:
             return
         _, _, a, eq = ctx

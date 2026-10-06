@@ -389,3 +389,10 @@ Pedido do Adryan: continuar as cinco melhorias propostas pelo Codex, começando 
 - **Item 1 (D101).** O Financeiro abre com um quadro único, montado por `euler.conta.conclusao_financeira` só com números da conta E16: custo do combustível consumido, esperado nas condições analisadas, diferença sem explicação com a faixa; a ponte em relação à referência (preço, produção de vapor com a nota de duração, outros ajustes e sem explicação, fechando a variação); e o que falta verificar para considerar alguma parcela evitável, com o lugar da conta onde aparece o impacto de cada verificação. "Explicado" quer dizer atribuído a um fator medido, não inevitável. O mesmo quadro aparece nos fechamentos salvos.
 - Os três cartões, o quadro de oportunidade/economia e a ponte separada saíram da tela (o conteúdo está no quadro); a faixa de incerteza, a composição detalhada e compras e estoque continuam.
 - Testes: `tests/test_conclusao_financeira.py` (10, contas refeitas à mão); testes de tela do Financeiro atualizados para o quadro, com as mesmas verificações. Nenhum golden ou tolerância alterado.
+
+## Caminho único da planta — 06/10/2026
+
+- **Item 2 (D102).** `euler/percurso.py` diz, para o equipamento escolhido, em que pé estão os cinco passos (enviar registros → conferir a conta → investigar → registrar ação → verificar resultado) e qual é o próximo, lendo só o que está gravado. Minha planta mostra o percurso completo com atalho para o próximo passo; Dados, Fechamentos, Ações e o Financeiro dos fechamentos mostram em que passo a tela está.
+- **Salvo × temporário.** As telas da planta dizem "Dados salvos da planta: o que você confirmar aqui fica gravado no histórico". As telas de análise dizem "Análise temporária · dados desta sessão" e se a versão está salva. Sem arquivos na sessão, o Financeiro abre nos fechamentos da planta.
+- Correção: o campo de altitude em Dados quebrava quando a altitude estava gravada como número inteiro.
+- Testes: `tests/test_percurso.py` (5) e `tests/test_percurso_telas.py` (5); um teste de tela ajustado ao novo padrão do Financeiro sem dados. Conferido no navegador com a planta de demonstração.

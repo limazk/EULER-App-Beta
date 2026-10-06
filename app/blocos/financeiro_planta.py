@@ -138,7 +138,7 @@ def conta_salva(f: dict) -> None:
 
 def mostrar() -> None:
     """Consulta sem escritas: seleciona planta, equipamento e período já fechado."""
-    with planta_e_equipamento() as ctx:
+    with planta_e_equipamento(passo=("conta",)) as ctx:
         if ctx is None:
             return
         _, planta, a, eq = ctx

@@ -266,7 +266,7 @@ def mostrar_fechamento(a, f, nome_autor) -> None:
 
 def mostrar() -> None:
     nome_autor = autor()
-    with planta_e_equipamento() as ctx:
+    with planta_e_equipamento(passo=("conta",)) as ctx:
         if ctx is not None:
             _, _, a, eq = ctx
             conteudo(a, eq["id"], nome_autor)
