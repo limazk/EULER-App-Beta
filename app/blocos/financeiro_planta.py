@@ -4,6 +4,7 @@ import pandas as pd
 import streamlit as st
 from acompanhamento_ui import brl, faixa_situacao, periodo, planta_e_equipamento
 from blocos.conclusao_financeira import renderizar as renderizar_conclusao
+from blocos.linha_do_tempo import renderizar as renderizar_linha_do_tempo
 from componentes import incerteza_explicada, md
 
 from euler.conta import conclusao_financeira
@@ -153,6 +154,8 @@ def mostrar() -> None:
                 icon=":material/event_available:",
             )
             return
+        renderizar_linha_do_tempo(a, eq["id"])
+        st.divider()
         por_id = {f["id"]: f for f in fs}
         ident = st.selectbox(
             "Fechamento salvo",

@@ -396,3 +396,10 @@ Pedido do Adryan: continuar as cinco melhorias propostas pelo Codex, começando 
 - **Salvo × temporário.** As telas da planta dizem "Dados salvos da planta: o que você confirmar aqui fica gravado no histórico". As telas de análise dizem "Análise temporária · dados desta sessão" e se a versão está salva. Sem arquivos na sessão, o Financeiro abre nos fechamentos da planta.
 - Correção: o campo de altitude em Dados quebrava quando a altitude estava gravada como número inteiro.
 - Testes: `tests/test_percurso.py` (5) e `tests/test_percurso_telas.py` (5); um teste de tela ajustado ao novo padrão do Financeiro sem dados. Conferido no navegador com a planta de demonstração.
+
+## Linha do tempo financeira — 06/10/2026
+
+- **Item 3 (D103).** `euler/linha_do_tempo.py` reúne os fechamentos gravados, período a período: duração, vapor, combustível, consumo específico, custo, esperado, desvio com faixa, situação, qualidade da conta e as ações registradas no período, com a avaliação de cada uma. Custo e desvio também por tonelada de vapor e por dia (o mesmo valor dividido pelo vapor medido ou pela duração).
+- **Leitura da série.** Diz se o desvio "está se repetindo" (dois ou mais fechamentos seguidos acima, além da incerteza), "apareceu agora" ou cabe na incerteza; avisa quando a referência muda de versão, quando as durações são diferentes e quando há conta incompleta. "Melhorou depois da ação" só vem da avaliação registrada da ação.
+- **Tela.** Financeiro → Fechamentos da planta, acima do fechamento escolhido: leitura, gráfico do desvio com a faixa de incerteza e as ações como linhas tracejadas (total do período ou por tonelada de vapor) e a tabela dos fechamentos. Fechamento sem conta fica fora do gráfico, sem zero, e aparece na tabela com o motivo.
+- Testes: `tests/test_linha_do_tempo.py` (9). Conferido no navegador com uma planta sintética de seis fechamentos.
