@@ -1,5 +1,25 @@
 # PROGRESSO da construção
 
+## 06/10/2026 — Importação guiada e financeiro por planta
+
+CSV e Excel com associação explícita de colunas/unidades, prévia vinculada ao conteúdo e
+preservação dos arquivos originais. Financeiro separa compras, estoques e consumo; permite
+consultar fechamentos salvos por planta, equipamento e período. Explicações respeitam a
+política de preço registrada, sem converter desvio automaticamente em economia.
+Ver [implementação, uso e limites](importacao_financeiro_2026-10-06.md).
+
+Validação: **215 testes distintos selecionados passaram**, incluindo golden, importação,
+conta, fechamento, armazém, navegação, linguagem e telas. Foram 131 testes na integração,
+15 na importação, 80 na regressão e repetições pontuais após ajustes. Um teste de navegação
+atingiu 30 s com execuções simultâneas; passou isolado, sem alterar timeout ou expectativas.
+Ruff e formatação aprovados no repositório. Nenhum golden ou tolerância alterado.
+
+Financeiro conferido no navegador, com demonstração sintética e caminho sem fechamento;
+um problema visual com o símbolo R$ foi corrigido. Formulário de importação conferido
+visualmente, e envio/confirmação testados por AppTest; o seletor de arquivos do navegador
+automatizado não respondeu, portanto esse clique nativo permanece sem verificação manual.
+Os testes de regressão selecionados não equivalem à execução local da suíte inteira.
+
 ## 05/10/2026 - Navegação simplificada e hipótese de assinatura
 
 Pedido de Adryan: menos abas e texto, mais clareza para uso recorrente. Menu com seis entradas

@@ -219,12 +219,33 @@ def test_relatorio_do_fechamento_vem_do_mesmo_objeto(tmp_path):
     assert not comandos_operacionais(texto)
 
 
+def test_relatorio_identifica_soma_parcial_de_notas(tmp_path):
+    from euler.painel import texto_fechamento
+
+    a, s = planta_com(tmp_path, [Periodo(G01), Periodo(G01)])
+    criar_referencia(a, EQ, s[0][0], s[0][1], "inicial", "Base", "Ana")
+    f = produzir_fechamento(a, EQ, "Ana")
+    # O relatório deve respeitar a cobertura gravada, sem inferir o valor das notas ausentes.
+    f["resultado"]["nucleo"]["conta_do_periodo"]["lotes_sem_valor"] = 1
+    texto = texto_fechamento(f)
+    assert "notas, valor parcial" in texto
+    assert "1 lote(s) sem valor informado" in texto
+    a.fechar()
+
+
 def test_reproducao_congela_altitude_e_precos_do_fechamento(tmp_path):
     a, s = planta_com(tmp_path, [Periodo(G01), Periodo(G01)])
     a.configurar(EQ, {"politica_custo": "tabela_de_precos"}, autor="Ana")
     registrar_preco(a, EQ, "cavaco", 190.0, s[0][0], "Contrato original", "Ana")
     criar_referencia(a, EQ, s[0][0], s[0][1], "inicial", "Base", "Ana")
     f = produzir_fechamento(a, EQ, "Ana")
+    conta = f["resultado"]["nucleo"]["explicacao_conta"]
+    assert conta["entradas"]["politica_custo"] == "tabela_de_precos"
+    assert conta["entradas"]["preco_ref_brl_gj"] is None
+    assert conta["entradas"]["preco_brl_gj"] is None
+    assert "tabela de preços" in conta["desvio"]["frase"]
+    assert "média ponderada dos recebimentos" not in " ".join(conta["premissas"])
+    assert f["resultado"]["nucleo"]["custo_por_energia"]["periodo_brl_gj"] is not None
     a.configurar(EQ, {"altitude_m": 1500.0}, autor="Ana")
     registrar_preco(a, EQ, "cavaco", 220.0, s[0][0], "Nova cotação", "Ana")
     r = reproduzir(a, f["id"])

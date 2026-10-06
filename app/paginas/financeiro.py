@@ -6,7 +6,7 @@ import estado
 import pandas as pd
 import streamlit as st
 from componentes import cabecalho, incerteza_explicada, md
-from financeiro import nao_negativo
+from financeiro import movimentacao_periodo, resumo_compras, resumo_variacao
 
 from euler.formato import num
 
@@ -38,6 +38,30 @@ def toneladas(v):
     return "—" if v is None else ("−" if v < 0 else "") + f"{num(abs(v), 1)} t"
 
 
+def ponte_da_conta(c):
+    """Resumo da decomposição reconciliada; sem nova atribuição física."""
+    r = resumo_variacao(c)
+    st.markdown("### Por que o custo mudou")
+    if not r["disponivel"]:
+        st.info(r["motivo"])
+        return
+    st.caption(
+        md(
+            f"Custo atribuído ao consumo: {dinheiro(r['custo_referencia_brl'])} na referência → "
+            f"{dinheiro(r['custo_brl'])} no período. Variação: {dinheiro_sinal(r['variacao_brl'])}. "
+            "Compare também a duração dos períodos acima."
+        )
+    )
+    for coluna, parcela in zip(st.columns(3), r["grupos"]):
+        coluna.metric(parcela["titulo"], dinheiro_sinal(parcela["custo_brl"]), border=True)
+    st.caption(
+        "As três parcelas fecham a variação total. São uma decomposição sob as premissas "
+        "da referência; o residual não demonstra, sozinho, desperdício ou perda de eficiência."
+    )
+    if r["nao_separados"]:
+        st.caption("Ainda misturados ao residual: " + "; ".join(r["nao_separados"]) + ".")
+
+
 def explicar(j):
     """Explicação da conta (D89): o motor já calculou; a tela só apresenta."""
     c = j["explicacao_conta"]
@@ -51,10 +75,10 @@ def explicar(j):
     c1, c2, c3 = st.columns(3)
     with c1:
         cartao(
-            "Combustível consumido",
+            "Custo atribuído ao consumo",
             dinheiro_sinal(c["consumido"]["custo_brl"]),
             f"{toneladas(c['consumido']['combustivel_t'])} queimadas no período, ao preço médio "
-            "dos recebimentos.",
+            "dos recebimentos com preço e massa válidos.",
             "fin-total",
         )
     with c2:
@@ -67,7 +91,7 @@ def explicar(j):
     with c3:
         faixa = d["faixa_brl"]
         cartao(
-            f"Desvio ainda não explicado · {rotulo.lower()}",
+            f"Desvio monetizado · {rotulo.lower()}",
             dinheiro_sinal(d["custo_brl"]),
             f"{toneladas(d['combustivel_t'])} ({num(d['pct_do_esperado'], 1)}% do esperado)"
             + (
@@ -77,12 +101,30 @@ def explicar(j):
             ),
             classe,
         )
+    preco = c["consumido"]["preco_brl_t"]
+    st.caption(
+        f"Preço do combustível: {dinheiro(preco)}/t · média ponderada dos recebimentos com preço e massa válidos. "
+        "Custo atribuído não é pagamento confirmado."
+        if preco is not None
+        else "Preço do combustível não informado no período: informe o valor total e a massa "
+        "dos recebimentos para expressar a diferença em reais."
+    )
     with st.expander("Entender a faixa de incerteza"):
         incerteza_explicada(d.get("incerteza"))
     with st.container(border=True):
-        st.markdown("**Parcela evitável: não apurada**")
-        motivo = c["evitavel"]["motivo"].removeprefix("Parcela evitável não apurada: ")
-        st.caption(motivo[:1].upper() + motivo[1:])
+        potencial, verificada = st.columns(2)
+        with potencial:
+            st.markdown("**Oportunidade fundamentada**")
+            st.markdown("Parcela evitável: não apurada")
+            st.caption(
+                "Depende de confirmar um mecanismo corrigível e uma referência justificável."
+            )
+        with verificada:
+            st.markdown("**Economia verificada**")
+            st.markdown("Não avaliada nesta comparação")
+            st.caption(
+                "Consulte avaliações pós-intervenção em Ações. Uma queda de consumo isolada não comprova economia."
+            )
         if c["evitavel"]["verificacao"]:
             st.markdown(md(f"**Próxima verificação:** {c['evitavel']['verificacao']}"))
             st.caption(j["proxima_verificacao"]["porque"])
@@ -91,6 +133,8 @@ def explicar(j):
             label="Ver as oportunidades em ordem de prioridade",
             icon=":material/flag:",
         )
+
+    ponte_da_conta(c)
 
     with st.expander("Por que a conta mudou · composição e premissas"):
         v = c["variacao"]
@@ -165,6 +209,121 @@ def explicar(j):
             )
 
 
+def compras_e_estoque(pacote, j):
+    """Compras da comparação e conta física; histórico fora do período fica recolhido."""
+    combustivel = pacote.dados("combustivel")
+    if combustivel is None:
+        st.info("Importe os recebimentos para acompanhar compras e custo do combustível.")
+        return
+    if j:
+        p = j["periodos"]["comparacao"]
+        c = j.get("explicacao_conta") or {}
+        cp = movimentacao_periodo(
+            pacote,
+            p["inicio"],
+            p["fim"],
+            preco_brl_t=(c.get("consumido") or {}).get("preco_brl_t"),
+        )
+        r = cp["compras"]
+        st.markdown("### Compras e estoque no período")
+        st.caption(
+            "Mesmas datas da comparação acima. Recebimentos após o início e até o fim do período."
+        )
+        compra, recebido, pagamento = st.columns(3)
+        parcial = r["sem_preco"] > 0 and r["valor_conhecido_brl"] is not None
+        compra.metric(
+            "Valor conhecido dos recebimentos" if parcial else "Valor dos recebimentos",
+            dinheiro(r["valor_conhecido_brl"])
+            if r["valor_conhecido_brl"] is not None
+            else "Não informado",
+            border=True,
+        )
+        recebido.metric("Combustível recebido", toneladas(r["recebido_t"]), border=True)
+        pagamento.metric("Pagamento confirmado", "Não informado", border=True)
+        st.caption(
+            f"{r['lotes']} recebimentos · {r['sem_preco']} sem preço válido · {r['sem_massa']} sem massa válida. Compra não é consumo; valor de nota não é pagamento."
+        )
+        if r["massas_estimadas"]:
+            st.caption(
+                f"{r['massas_estimadas']} recebimentos com massa estimada a partir do volume e da densidade informados."
+            )
+        if parcial:
+            st.warning(
+                "Valor parcial: falta preço em parte dos recebimentos. O subtotal conhecido não representa a compra total."
+            )
+        if not r["lotes"]:
+            st.info(
+                "Nenhum recebimento registrado neste período. Isso não comprova ausência de compras na operação."
+            )
+        if cp["variacao_estoque_t"] is not None:
+            diferenca = cp["variacao_estoque_t"]
+            st.caption(
+                "O estoque "
+                + (
+                    f"aumentou {toneladas(diferenca)}"
+                    if diferenca > 0
+                    else f"diminuiu {toneladas(abs(diferenca))}"
+                    if diferenca < 0
+                    else "permaneceu no mesmo nível"
+                )
+                + ". Por isso, recebimento e consumo devem ser lidos separadamente."
+            )
+        with st.expander("Conferir a conta do estoque"):
+            st.markdown(
+                "**Estoque inicial + recebimentos − estoque final = combustível consumido**"
+            )
+            st.dataframe(
+                pd.DataFrame(
+                    [
+                        {
+                            "Registro": "Estoque inicial",
+                            "Massa": toneladas(cp["estoque_inicial_t"]),
+                        },
+                        {"Registro": "Recebimentos", "Massa": toneladas(cp["recebido_t"])},
+                        {"Registro": "Estoque final", "Massa": toneladas(cp["estoque_final_t"])},
+                        {"Registro": "Consumo calculado", "Massa": toneladas(cp["consumido_t"])},
+                    ]
+                ),
+                hide_index=True,
+                width="stretch",
+            )
+            if cp["motivo_consumo"]:
+                st.info(cp["motivo_consumo"])
+            st.caption(
+                "Estoque em reais não apurado nesta comparação. Consulte Fechamentos da planta para a política de custo cadastrada e seu histórico."
+            )
+    with st.expander("Todos os recebimentos carregados", expanded=j is None):
+        r = resumo_compras(combustivel)
+        st.caption(
+            "Histórico completo carregado; pode incluir datas fora da comparação. Não somar este valor ao período acima."
+        )
+        cartao(
+            "Compras registradas" if not r["sem_preco"] else "Valor parcial dos recebimentos",
+            dinheiro(r["valor_conhecido_brl"]),
+            f"{r['lotes']} recebimentos · {r['sem_preco']} sem preço válido. Compra não equivale a consumo nem a pagamento confirmado.",
+        )
+        grupos = [x for x in r["fornecedores"] if x["valor_brl"] is not None]
+        if grupos:
+            valores = (
+                pd.DataFrame(
+                    {
+                        "Fornecedor": [
+                            x["fornecedor"] + (" · parcial" if x["parcial"] else "") for x in grupos
+                        ],
+                        "Compras (R$)": [x["valor_brl"] for x in grupos],
+                    }
+                )
+                .set_index("Fornecedor")
+                .sort_values("Compras (R$)", ascending=False)
+            )
+            st.bar_chart(valores, horizontal=True, color="#7f9ab4", height=190)
+        st.page_link(
+            "paginas/extrato.py",
+            label="Comparar fornecedores por custo da energia",
+            icon=":material/receipt_long:",
+        )
+
+
 def mostrar(pacote):
     j = estado.investigacao_ou_padrao(pacote)
 
@@ -193,49 +352,13 @@ def mostrar(pacote):
             "Você já pode consultar as compras registradas abaixo."
         )
 
-    combustivel = pacote.dados("combustivel")
-    if combustivel is not None:
-        receb = combustivel[combustivel["tipo"] == "recebimento"].copy()
-        if not receb.empty:
-            receb["valor_valido"] = receb["preco_brl"].map(nao_negativo)
-            validos = receb.dropna(subset=["valor_valido"])
-            total = float(validos["valor_valido"].sum()) if len(validos) else None
-            st.markdown("### Compras registradas")
-            st.caption(
-                f"Todos os recebimentos carregados: {receb['data'].min():%d/%m/%Y} "
-                f"a {receb['data'].max():%d/%m/%Y}. "
-                "Este período pode ser diferente da comparação acima."
-            )
-            cartao(
-                "Valor dos recebimentos"
-                if len(validos) == len(receb)
-                else "Valor parcial dos recebimentos",
-                dinheiro(total),
-                f"{len(validos)} de {len(receb)} recebimentos com preço. "
-                "Compra não equivale a consumo nem a pagamento confirmado.",
-            )
-            if len(validos):
-                grupos = (
-                    validos.assign(fornecedor=validos["fornecedor_id"].fillna("Sem identificação"))
-                    .groupby("fornecedor")["valor_valido"]
-                    .sum()
-                    .sort_values(ascending=False)
-                )
-                st.bar_chart(
-                    pd.DataFrame({"Compras (R$)": grupos}),
-                    horizontal=True,
-                    color="#7f9ab4",
-                    height=190,
-                )
-            st.page_link(
-                "paginas/extrato.py",
-                label="Comparar fornecedores por custo da energia",
-                icon=":material/receipt_long:",
-            )
+    compras_e_estoque(pacote, j)
 
 
 cabecalho(
-    "Financeiro", "Quanto o consumo pesa no caixa — e o que vale investigar.", "Analisar um período"
+    "Financeiro",
+    "Entenda a conta do combustível e o que merece verificação.",
+    "Analisar um período",
 )
 st.html("""<style>
 .fin-card {border:1px solid #3c4145;border-radius:16px;padding:24px 26px;
@@ -249,6 +372,17 @@ st.html("""<style>
 .fin-alert .fin-value {color:#ffd39b}
 @media(max-width:640px){.fin-card{padding:20px;min-height:0}.fin-value{font-size:2rem}}
 </style>""")
-pacote = estado.exigir_pacote()
-if pacote is not None:
-    mostrar(pacote)
+origem = st.radio(
+    "Origem da análise",
+    ["Dados desta sessão", "Fechamentos da planta"],
+    horizontal=True,
+    key="fin_origem",
+)
+if origem == "Fechamentos da planta":
+    from blocos.financeiro_planta import mostrar as mostrar_planta
+
+    mostrar_planta()
+else:
+    pacote = estado.exigir_pacote()
+    if pacote is not None:
+        mostrar(pacote)

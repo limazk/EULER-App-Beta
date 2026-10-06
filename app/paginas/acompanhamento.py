@@ -20,6 +20,7 @@ from acompanhamento_ui import (
     recarregar,
 )
 from componentes import cabecalho, md
+from importacao_guiada import assinatura_envio, guia_importacao
 
 from euler.armazem import CLASSES, POLITICAS_CUSTO, cabecalho_csv
 from euler.fechamento import (
@@ -162,11 +163,14 @@ def novos_dados(repo, planta, a, eq, nome_autor: str) -> None:
     importacao_id = None
     if tipo == FONTES[0]:
         enviados = st.file_uploader(
-            "Arquivos da planta (CSV ou planilha do modelo)",
+            "Arquivos da planta (CSV ou Excel)",
             type=["csv", "xlsx"],
             accept_multiple_files=True,
             key=chave_form(f"up_{planta['id']}_{eq['id']}"),
         )
+        if enviados and len({f.name for f in enviados}) != len(enviados):
+            st.error("Há arquivos com nomes repetidos. Renomeie antes de enviar.")
+            return
         brutos = {f.name: f.getvalue() for f in enviados or []}
     else:
         if not versoes:
@@ -187,7 +191,32 @@ def novos_dados(repo, planta, a, eq, nome_autor: str) -> None:
         help="O mapeamento de colunas fica salvo por fonte e equipamento.",
     ).strip()
     salvo = a.perfil(eq["id"], fonte) or {}
-    mapa = mapeamento(brutos, salvo)
+    guiado = tipo == FONTES[0] and st.toggle(
+        "Adaptar minha planilha (nomes de colunas e unidades)",
+        value=True,
+        key="acomp_guia_ativo",
+    )
+    if guiado:
+        try:
+            lote, mapa = guia_importacao(
+                brutos,
+                chave=f"acomp_{planta['id']}_{eq['id']}",
+                salvo=salvo,
+                origem={
+                    "sintetico": "sintetico",
+                    "publico": "publico",
+                    "cliente_autorizado": "real",
+                }.get(planta["classe"]),
+                caldeira=eq.get("caldeira_id"),
+            )
+        except (ValueError, OSError) as exc:
+            st.error(str(exc))
+            return
+        if lote is None:
+            return
+        brutos = lote
+    else:
+        mapa = mapeamento(brutos, salvo)
     salvar_perfil = st.checkbox(
         "Guardar o mapeamento para esta fonte", value=bool(mapa and not salvo)
     )
@@ -195,14 +224,23 @@ def novos_dados(repo, planta, a, eq, nome_autor: str) -> None:
         planta["id"],
         eq["id"],
         importacao_id,
-        tuple(sorted(brutos)),
+        assinatura_envio(brutos, mapa),
         fonte,
         tuple(sorted(mapa.items())),
     )
     if st.button("Preparar prévia", type="primary"):
         previa = executar(
-            lambda: a.previa(eq["id"], brutos, fonte=fonte or None, mapeamento=mapa or None)
+            lambda: a.previa(
+                eq["id"],
+                brutos,
+                fonte=fonte or None,
+                mapeamento={} if guiado else mapa,
+            )
         )
+        if previa and guiado:
+            # O lote já está adaptado; o perfil guarda apenas as escolhas de cabeçalho.
+            # As unidades são confirmadas em cada envio e rastreadas no manifesto.
+            previa.mapeamento = mapa
         st.session_state["acomp_previa"] = (chave, previa) if previa else None
     preparada = st.session_state.get("acomp_previa")
     if not preparada or preparada[0] != chave:

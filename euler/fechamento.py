@@ -470,6 +470,15 @@ def _nucleo(a, equip_id, pacote, ref, inicio, fim, politica, precos_fixados=None
                 **entradas,
                 "preco_ref_brl_t": preco_ref.get("preco_brl_t"),
                 "preco_brl_t": preco.get("preco_brl_t"),
+                "politica_custo": politica,
+                # R$/GJ da investigação usa recebimentos: não herdar em outra política.
+                # O núcleo calcula seu custo_por_energia pela política selecionada abaixo.
+                "preco_ref_brl_gj": entradas.get("preco_ref_brl_gj")
+                if politica == "recebimentos_do_periodo"
+                else None,
+                "preco_brl_gj": entradas.get("preco_brl_gj")
+                if politica == "recebimentos_do_periodo"
+                else None,
                 # cenários de preço por lote só fazem sentido na política de recebimentos
                 "preco_min_brl_t": entradas.get("preco_min_brl_t")
                 if politica == "recebimentos_do_periodo"

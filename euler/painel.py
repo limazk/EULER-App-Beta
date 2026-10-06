@@ -343,10 +343,16 @@ def texto_fechamento(f: dict) -> str:
             linhas.append("")
     else:
         linhas += [conta.get("motivo") or "Conta indisponível.", ""]
+    notas = f"notas: {_brl(cp['valor_notas_brl'])}"
+    if cp.get("lotes_sem_valor", 0):
+        notas = (
+            f"notas, valor parcial: {_brl(cp['valor_notas_brl'])}; "
+            f"{cp['lotes_sem_valor']} lote(s) sem valor informado"
+        )
     linhas += [
         "## Conta do período",
         "",
-        f"- Recebido: {num(cp['recebido_t'], 1)} t em {cp['recebido_lotes']} lotes (notas: {_brl(cp['valor_notas_brl'])})",
+        f"- Recebido: {num(cp['recebido_t'], 1)} t em {cp['recebido_lotes']} lotes ({notas})",
         f"- Estoque: {num(cp['estoque_inicial_t'], 1)} t → {num(cp['estoque_final_t'], 1)} t",
         f"- Consumido: {num(cp['consumido_t'], 1)} t · custo atribuído: {_brl(cp['custo_atribuido_brl'])}",
         f"- {cp['nota_pagamento']}",

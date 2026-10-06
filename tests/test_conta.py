@@ -49,6 +49,32 @@ def test_exemplo_do_adryan_custo_consumido_esperado_e_desvio():
     assert "quanto dessa diferença pode ser evitado" in c["desvio"]["frase"]
 
 
+@pytest.mark.parametrize(
+    "politica, rotulo", [("fifo", "FIFO"), ("tabela_de_precos", "tabela de preços")]
+)
+def test_textos_financeiros_respeitam_a_politica_de_preco(politica, rotulo):
+    c = conta(politica_custo=politica)
+    preco = next(x for x in c["variacao"]["componentes"] if x["id"] == "preco")
+    assert rotulo in c["desvio"]["frase"]
+    assert rotulo in preco["base"]
+    assert any(rotulo in p for p in c["premissas"])
+    assert "média ponderada dos recebimentos" not in " ".join(textos(c))
+    assert c["entradas"]["politica_custo"] == politica
+    assert c["desvio"]["custo_brl"] == conta()["desvio"]["custo_brl"]
+
+
+def test_politica_alternativa_sem_preco_nao_diz_que_faltou_recebimento():
+    c = conta(politica_custo="fifo", preco_brl_t=None)
+    assert "FIFO" in c["desvio"]["frase"]
+    assert "FIFO" in c["variacao"]["motivo"]
+    assert "preço dos recebimentos" not in " ".join(textos(c))
+
+
+def test_politica_desconhecida_nao_e_rotulada_como_recebimentos():
+    with pytest.raises(ValueError, match="Política de custo"):
+        conta(politica_custo="desconhecida")
+
+
 def test_parcelas_fecham_a_variacao_da_conta_exatamente():
     c = conta(efeito_condicao_vapor_pct=1.0, efeito_qualidade_pct=5.0)
     v = c["variacao"]

@@ -4,8 +4,11 @@ import armazenamento as arm
 import estado
 import streamlit as st
 from componentes import cabecalho, cartao, proximo_passo
+from importacao_guiada import assinatura_envio, guia_importacao
 
+from euler.capacidades import avaliar
 from euler.formato import num
+from euler.io import fontes_de_arquivos, importar_pacote
 from euler.io.esquemas import TABELAS
 from euler.io.modelos import ARQUIVO_PLANILHA
 
@@ -39,18 +42,19 @@ st.page_link(
 
 with st.expander("Como preparar os dados de uma empresa"):
     st.markdown(
-        "1. **Baixe a planilha modelo** e mantenha os nomes das abas, colunas e unidades.\n"
+        "1. **Envie sua própria planilha** e confirme a correspondência das colunas e unidades, "
+        "ou baixe o modelo pronto. O cabeçalho deve ficar na primeira linha.\n"
         "2. **Apague as linhas sintéticas de exemplo** de todas as abas. Preencha só os registros reais disponíveis.\n"
         "3. Use uma **caldeira por análise**, com identificação, datas e horários coerentes. "
         "Na coluna de origem dos registros, indique que os dados são reais. "
         "Mantenha estimativas identificadas como tal; não transforme valores desconhecidos em zero.\n"
         "4. Informe a altitude do local e envie a planilha ou selecione todos os CSVs do novo conjunto.\n"
-        "5. Clique em **Importar os arquivos enviados**, confira os avisos e abra **Saúde da caldeira** "
+        "5. Prepare a prévia, confira os avisos e confirme a importação. Depois abra **Saúde da caldeira** "
         "ou **Dados e limites**. Não é preciso preencher todos os campos para começar."
     )
     st.caption(
-        "Se o exportador da fábrica usar nomes ou unidades diferentes, será necessário "
-        "mapear os dados antes da análise. Não envie arquivos de clientes ao GitHub."
+        "O guia ajuda a associar nomes e converter unidades compatíveis. "
+        "Não transforme preço por tonelada em preço total sem os registros necessários."
     )
     with st.expander("Detalhes técnicos · origem dos registros"):
         st.markdown("Na planilha, preencha a coluna `origem_dado` com `real` nos registros reais.")
@@ -109,15 +113,70 @@ with envio, cartao("arquivos"):
             )
     else:
         st.caption("A importação fica na sessão até você salvá-la em Plantas e histórico.")
+    arquivos = None
+    if enviados:
+        if len({f.name for f in enviados}) != len(enviados):
+            st.error("Há arquivos com o mesmo nome. Renomeie antes de importar.")
+        else:
+            brutos = {f.name: f.getvalue() for f in enviados}
+            guiado = st.toggle("Adaptar minha planilha (nomes de colunas e unidades)", value=True)
+            try:
+                arquivos, _ = (
+                    guia_importacao(brutos, chave="importacao_avulsa") if guiado else (brutos, {})
+                )
+            except (ValueError, OSError) as exc:
+                st.error(str(exc))
+    assinatura = assinatura_envio(arquivos, {"altitude": altitude}) if arquivos else None
+    if st.button("Preparar prévia", disabled=not arquivos):
+        try:
+            fontes, avisos = fontes_de_arquivos(arquivos)
+            previa = importar_pacote(
+                fontes,
+                p_atm_bar=None if altitude is None else estado.p_atm_por_altitude_bar(altitude),
+            )
+            previa.avisos_gerais += avisos
+            st.session_state["importar_previa_guiada"] = (assinatura, previa)
+        except (ValueError, OSError) as exc:
+            st.error(f"Não foi possível ler os arquivos: {exc}")
+    preparada = st.session_state.get("importar_previa_guiada")
+    pronta = preparada is not None and assinatura is not None and preparada[0] == assinatura
+    if pronta:
+        previa = preparada[1]
+        avisos = previa.tabela_avisos()
+        erros = sum(a.gravidade == "erro" for a in previa.avisos)
+        repetidas = sum("duplic" in a.tipo for a in previa.avisos)
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Tabelas reconhecidas", len(previa.importacoes))
+        c2.metric("Erros para revisar", erros)
+        c3.metric("Avisos de duplicidade", repetidas)
+        if erros:
+            st.warning("Tabelas com erros ficam bloqueadas. Corrija o arquivo para utilizá-las.")
+        with st.expander("O que estes dados permitem analisar", expanded=True):
+            for cap in avaliar(previa):
+                estado_cap = {
+                    "habilitada": "Disponível",
+                    "parcial": "Parcial",
+                    "bloqueada": "Faltam dados",
+                }[cap.situacao]
+                st.markdown(f"**{cap.nome}** · {estado_cap}")
+                if cap.motivos:
+                    st.caption(" ".join(cap.motivos[:2]))
+        with st.expander("Conferir qualidade e primeiras linhas"):
+            relevantes = avisos[avisos["Gravidade"] != "Informação"]
+            if not relevantes.empty:
+                st.dataframe(relevantes, hide_index=True, width="stretch")
+            for nome, imp in previa.importacoes.items():
+                st.caption(TABELAS[nome].titulo)
+                st.dataframe(imp.dados.head(5), hide_index=True, width="stretch")
+        pronta = any(not imp.bloqueada for imp in previa.importacoes.values())
     with st.container(horizontal=True, gap="small"):
-        if st.button("Importar os arquivos enviados", type="primary", disabled=not enviados):
+        if st.button("Importar os arquivos enviados", type="primary", disabled=not pronta):
             if len({f.name for f in enviados}) != len(enviados):
                 st.error(
                     "Há arquivos com o mesmo nome. Renomeie antes de importar para não perder registros."
                 )
             else:
                 try:
-                    arquivos = {f.name: f.getvalue() for f in enviados}
                     if salvar_no_banco:
                         arm.importar_na_planta(
                             arquivos, altitude, autor=autor_importacao, motivo=motivo_importacao

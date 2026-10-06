@@ -33,6 +33,16 @@ TITULOS = {
 NAO_MODELADO = (
     "Carga e regime de operação: não modelados nesta versão; seu efeito permanece no desvio."
 )
+ORIGEM_PRECO = {
+    "recebimentos_do_periodo": "dos recebimentos",
+    "fifo": "pela política FIFO",
+    "tabela_de_precos": "pela tabela de preços",
+}
+BASE_PRECO = {
+    "recebimentos_do_periodo": "média ponderada dos recebimentos",
+    "fifo": "política FIFO: lotes mais antigos do estoque",
+    "tabela_de_precos": "tabela de preços vigente, com adicionais declarados",
+}
 
 
 def _f(x) -> float | None:
@@ -77,11 +87,13 @@ def explicar_conta(
     motivo_qualidade: str = "umidade e PCI medidos não disponíveis nos dois períodos",
     verificacao: str | None = None,
     analise_incerteza: dict | None = None,
+    politica_custo: str = "recebimentos_do_periodo",
 ) -> dict:
     """Conta do período analisado (comparação) contra o esperado nas mesmas condições.
 
     Entradas: massas em t (combustível queimado E9, vapor do totalizador); preços em R$/t
-    (média ponderada dos recebimentos do período; mínimo e máximo por lote); efeitos em
+    (pela política declarada; padrão: média ponderada dos recebimentos do período);
+    mínimo e máximo por lote somente para a política de recebimentos; efeitos em
     pontos log % no consumo, como o motor os calcula (condição do vapor: razão da energia
     por kg de vapor; qualidade: razão do PCI úmido mais a perda nos gases pela umidade).
     `incerteza_consumo_t_t`: U (k = 2) da diferença de consumo específico com erros de
@@ -107,6 +119,8 @@ def explicar_conta(
     """
     # entradas guardadas no resultado: permitem recalcular com outra política de preço (D93)
     entradas = {k: list(v) if isinstance(v, tuple) else v for k, v in locals().items()}
+    if politica_custo not in ORIGEM_PRECO:
+        raise ValueError("Política de custo desconhecida.")
     m_r, v_r = _f(combustivel_ref_t), _f(vapor_ref_t)
     m, v = _f(combustivel_t), _f(vapor_t)
     p_r, p = _nao_negativo(preco_ref_brl_t), _nao_negativo(preco_brl_t)
@@ -172,9 +186,14 @@ def explicar_conta(
     valor = custo(desvio)
     faixa_brl = None if faixa_t is None or p is None else [x * p for x in faixa_t]
     em_reais = (
-        f", equivalente a {_brl(abs(valor))} ao preço médio dos recebimentos"
+        f", equivalente a {_brl(abs(valor))} "
+        + (
+            "ao preço médio dos recebimentos"
+            if politica_custo == "recebimentos_do_periodo"
+            else f"ao preço atribuído {ORIGEM_PRECO[politica_custo]}"
+        )
         if valor is not None
-        else " (sem preço dos recebimentos no período, o valor em reais não foi estimado)"
+        else f" (sem preço {ORIGEM_PRECO[politica_custo]} no período, o valor em reais não foi estimado)"
     )
     faixa_txt = (
         f"de {_brl(faixa_brl[0])} a {_brl(faixa_brl[1])}"
@@ -211,7 +230,7 @@ def explicar_conta(
         )
 
     incerteza = _incerteza_explicada(analise_incerteza, v, desvio, centros, p, estado)
-    var = _variacao(m_r, m, e0, e1, e2, desvio, p_r, p, ef_dh, ef_w)
+    var = _variacao(m_r, m, e0, e1, e2, desvio, p_r, p, ef_dh, ef_w, politica_custo)
     var["componentes"] = _componentes(
         var,
         v_r,
@@ -225,6 +244,7 @@ def explicar_conta(
         motivo_qualidade,
         preco_ref_brl_gj,
         preco_brl_gj,
+        politica_custo,
     )
     return {
         "disponivel": True,
@@ -261,7 +281,9 @@ def explicar_conta(
             "verificacao": verificacao,
         },
         "variacao": var,
-        "premissas": _premissas(horas_ref, horas, preco_ref_brl_gj, preco_brl_gj, p),
+        "premissas": _premissas(
+            horas_ref, horas, preco_ref_brl_gj, preco_brl_gj, p, politica_custo
+        ),
     }
 
 
@@ -364,7 +386,7 @@ def _incerteza_explicada(analise, v, desvio, centros, p, estado) -> dict | None:
     }
 
 
-def _variacao(m_r, m, e0, e1, e2, desvio, p_r, p, ef_dh, ef_w) -> dict:
+def _variacao(m_r, m, e0, e1, e2, desvio, p_r, p, ef_dh, ef_w, politica) -> dict:
     t = {
         "producao": e0 - m_r,
         "condicao_vapor": e1 - e0 if ef_dh is not None else None,
@@ -375,7 +397,7 @@ def _variacao(m_r, m, e0, e1, e2, desvio, p_r, p, ef_dh, ef_w) -> dict:
         return {
             "disponivel": False,
             "motivo": (
-                "Sem preço dos recebimentos "
+                f"Sem preço {ORIGEM_PRECO[politica]} "
                 + ("nos dois períodos" if p is None and p_r is None else "num dos períodos")
                 + ": a variação da conta não pode ser decomposta em reais."
             ),
@@ -394,7 +416,9 @@ def _variacao(m_r, m, e0, e1, e2, desvio, p_r, p, ef_dh, ef_w) -> dict:
     }
 
 
-def _componentes(var, v_r, v, k_r, p_r, p, ef_dh, ef_w, mot_dh, mot_w, pgj_r, pgj) -> list[dict]:
+def _componentes(
+    var, v_r, v, k_r, p_r, p, ef_dh, ef_w, mot_dh, mot_w, pgj_r, pgj, politica
+) -> list[dict]:
     t, brl = var["combustivel_t"], var.get("brl") or {}
 
     def linha(chave: str, base: str, separado: bool = True) -> dict:
@@ -409,10 +433,10 @@ def _componentes(var, v_r, v, k_r, p_r, p, ef_dh, ef_w, mot_dh, mot_w, pgj_r, pg
         }
 
     preco_base = (
-        f"R$ {num(p_r)}/t → R$ {num(p)}/t (média ponderada dos recebimentos), aplicada ao "
+        f"R$ {num(p_r)}/t → R$ {num(p)}/t ({BASE_PRECO[politica]}), aplicada ao "
         "combustível da referência."
         if p is not None and p_r is not None
-        else "Preço dos recebimentos ausente num dos períodos; parcela não separada."
+        else f"Preço {ORIGEM_PRECO[politica]} ausente num dos períodos; parcela não separada."
     )
     if pgj_r is not None and pgj is not None:
         preco_base += (
@@ -449,17 +473,32 @@ def _componentes(var, v_r, v, k_r, p_r, p, ef_dh, ef_w, mot_dh, mot_w, pgj_r, pg
     ]
 
 
-def _premissas(horas_ref, horas, pgj_r, pgj, p) -> list[str]:
+def _premissas(horas_ref, horas, pgj_r, pgj, p, politica) -> list[str]:
+    premissa_preco = {
+        "recebimentos_do_periodo": (
+            "Preço = média ponderada dos recebimentos do período. Compra não é consumo: o "
+            "combustível queimado pode ter sido comprado antes, a outro preço."
+        ),
+        "fifo": (
+            "Preço atribuído pela política FIFO, supondo consumo dos lotes mais antigos do "
+            "estoque. Depende dos estoques e do histórico de lotes; não comprova a ordem real da queima."
+        ),
+        "tabela_de_precos": (
+            "Preço atribuído pela tabela de preços que cobre todo o período, com os custos "
+            "adicionais declarados. A origem está registrada na política do fechamento."
+        ),
+    }[politica]
     premissas = [
         (
             "Consumo esperado = consumo por tonelada de vapor da referência, ajustado só pelo que "
             "os dados permitem separar (hipótese: mesma eficiência da referência)."
         ),
+        premissa_preco,
         (
-            "Preço = média ponderada dos recebimentos do período. Compra não é consumo: o "
-            "combustível queimado pode ter sido comprado antes, a outro preço."
+            "Frete e outros custos variáveis só entram se estiverem no preço informado de cada lote."
+            if politica != "tabela_de_precos"
+            else "Frete e outros custos variáveis só entram quando declarados na tabela de preços."
         ),
-        "Frete e outros custos variáveis só entram se estiverem no preço informado de cada lote.",
         (
             "Custo do combustível consumido não é necessariamente caixa: contratos com mínimo de "
             "compra ou tarifa fixa não mudam com o consumo."
@@ -478,7 +517,12 @@ def _premissas(horas_ref, horas, pgj_r, pgj, p) -> list[str]:
         )
     if (pgj_r is None or pgj is None) and p is not None:
         premissas.append(
-            "Custo por energia (R$/GJ) indisponível: com biomassa, R$/t pode confundir quando a "
-            "umidade muda."
+            "Custo por energia (R$/GJ) não informado nesta decomposição pela política "
+            f"{BASE_PRECO[politica]}. Com biomassa, R$/t pode confundir quando a umidade muda."
+            if politica != "recebimentos_do_periodo"
+            else (
+                "Custo por energia (R$/GJ) indisponível: com biomassa, R$/t pode confundir quando a "
+                "umidade muda."
+            )
         )
     return premissas
