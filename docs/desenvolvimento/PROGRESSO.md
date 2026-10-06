@@ -381,3 +381,11 @@ Pedido do Adryan: preservar as mudanças de interface feitas com o Codex (commit
 - **Prévia online** republicada no mesmo link com o menu novo (seis entradas e **Mais ferramentas** nos três grupos), o Início novo e os detalhes recolhidos de Investigação, Financeiro e Painel. As seções abertas continuam abertas quando a tela se redesenha.
 - **Guias** (`PASSEIO_PELAS_TELAS.md` e `ENTENDA_A_EULER.md`) com o menu novo e onde fica cada tela; Financeiro entrou na tabela de telas.
 - **D100** registra a navegação como proposta. Pendentes para o Adryan: os títulos dentro das telas ainda são os antigos ("Painel", "Saúde da caldeira", "Atualizar dados", "Investigações e ações") e o rótulo "Qualidade e limites dos dados" aparece cortado na barra lateral.
+
+## Conclusão financeira em um quadro — 06/10/2026
+
+Pedido do Adryan: continuar as cinco melhorias propostas pelo Codex, começando pelos itens 1 e 2. Antes, a entrega do Codex (`ed1c086`, importação guiada e financeiro por planta) foi conferida com a suíte completa: 677 testes passando; a única falha da primeira rodada (`test_armazenamento_app`) foi tempo esgotado com processos pesados em paralelo e passou isolada e na rodada limpa.
+
+- **Item 1 (D101).** O Financeiro abre com um quadro único, montado por `euler.conta.conclusao_financeira` só com números da conta E16: custo do combustível consumido, esperado nas condições analisadas, diferença sem explicação com a faixa; a ponte em relação à referência (preço, produção de vapor com a nota de duração, outros ajustes e sem explicação, fechando a variação); e o que falta verificar para considerar alguma parcela evitável, com o lugar da conta onde aparece o impacto de cada verificação. "Explicado" quer dizer atribuído a um fator medido, não inevitável. O mesmo quadro aparece nos fechamentos salvos.
+- Os três cartões, o quadro de oportunidade/economia e a ponte separada saíram da tela (o conteúdo está no quadro); a faixa de incerteza, a composição detalhada e compras e estoque continuam.
+- Testes: `tests/test_conclusao_financeira.py` (10, contas refeitas à mão); testes de tela do Financeiro atualizados para o quadro, com as mesmas verificações. Nenhum golden ou tolerância alterado.

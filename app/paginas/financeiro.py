@@ -5,9 +5,11 @@ from html import escape
 import estado
 import pandas as pd
 import streamlit as st
+from blocos.conclusao_financeira import renderizar as renderizar_conclusao
 from componentes import cabecalho, incerteza_explicada, md
-from financeiro import movimentacao_periodo, resumo_compras, resumo_variacao
+from financeiro import movimentacao_periodo, resumo_compras
 
+from euler.conta import conclusao_financeira
 from euler.formato import num
 
 
@@ -22,14 +24,6 @@ def cartao(rotulo, valor, legenda, classe=""):
     )
 
 
-ESTADOS = {
-    "acima": ("Acima do esperado", "fin-alert"),
-    "abaixo": ("Abaixo do esperado", "fin-total"),
-    "nao_estabelecido": ("Não ficou bem estabelecido", ""),
-    "sem_faixa": ("Faixa não determinada", ""),
-}
-
-
 def dinheiro_sinal(v):
     return "—" if v is None else ("−" if v < 0 else "") + f"R$ {num(abs(v), 0)}"
 
@@ -38,69 +32,18 @@ def toneladas(v):
     return "—" if v is None else ("−" if v < 0 else "") + f"{num(abs(v), 1)} t"
 
 
-def ponte_da_conta(c):
-    """Resumo da decomposição reconciliada; sem nova atribuição física."""
-    r = resumo_variacao(c)
-    st.markdown("### Por que o custo mudou")
-    if not r["disponivel"]:
-        st.info(r["motivo"])
-        return
-    st.caption(
-        md(
-            f"Custo atribuído ao consumo: {dinheiro(r['custo_referencia_brl'])} na referência → "
-            f"{dinheiro(r['custo_brl'])} no período. Variação: {dinheiro_sinal(r['variacao_brl'])}. "
-            "Compare também a duração dos períodos acima."
-        )
-    )
-    for coluna, parcela in zip(st.columns(3), r["grupos"]):
-        coluna.metric(parcela["titulo"], dinheiro_sinal(parcela["custo_brl"]), border=True)
-    st.caption(
-        "As três parcelas fecham a variação total. São uma decomposição sob as premissas "
-        "da referência; o residual não demonstra, sozinho, desperdício ou perda de eficiência."
-    )
-    if r["nao_separados"]:
-        st.caption("Ainda misturados ao residual: " + "; ".join(r["nao_separados"]) + ".")
-
-
 def explicar(j):
-    """Explicação da conta (D89): o motor já calculou; a tela só apresenta."""
+    """Quadro único da conclusão (D101) e os detalhes da conta (D89); a tela só apresenta."""
     c = j["explicacao_conta"]
     d, e = c["desvio"], c["esperado"]
     dias = {
         k: (pd.Timestamp(x["fim"]) - pd.Timestamp(x["inicio"])).total_seconds() / 86400
         for k, x in j["periodos"].items()
     }
-    rotulo, classe = ESTADOS[d["estado"]]
-    st.markdown(md(f"#### {d['frase']}"))
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        cartao(
-            "Custo atribuído ao consumo",
-            dinheiro_sinal(c["consumido"]["custo_brl"]),
-            f"{toneladas(c['consumido']['combustivel_t'])} queimadas no período, ao preço médio "
-            "dos recebimentos com preço e massa válidos.",
-            "fin-total",
-        )
-    with c2:
-        cartao(
-            "Esperado nas mesmas condições",
-            dinheiro_sinal(e["custo_brl"]),
-            f"{toneladas(e['combustivel_t'])}: consumo por tonelada de vapor da referência, "
-            "ajustado por: " + ", ".join(e["ajustado_por"]) + ".",
-        )
-    with c3:
-        faixa = d["faixa_brl"]
-        cartao(
-            f"Desvio monetizado · {rotulo.lower()}",
-            dinheiro_sinal(d["custo_brl"]),
-            f"{toneladas(d['combustivel_t'])} ({num(d['pct_do_esperado'], 1)}% do esperado)"
-            + (
-                f". Faixa das medições: {dinheiro_sinal(faixa[0])} a {dinheiro_sinal(faixa[1])}."
-                if faixa
-                else ". Faixa não determinada."
-            ),
-            classe,
-        )
+    renderizar_conclusao(
+        conclusao_financeira(c, (j.get("oportunidades") or {}).get("oportunidades", ()), dias),
+        chave="fin-sessao",
+    )
     preco = c["consumido"]["preco_brl_t"]
     st.caption(
         f"Preço do combustível: {dinheiro(preco)}/t · média ponderada dos recebimentos com preço e massa válidos. "
@@ -111,30 +54,11 @@ def explicar(j):
     )
     with st.expander("Entender a faixa de incerteza"):
         incerteza_explicada(d.get("incerteza"))
-    with st.container(border=True):
-        potencial, verificada = st.columns(2)
-        with potencial:
-            st.markdown("**Oportunidade fundamentada**")
-            st.markdown("Parcela evitável: não apurada")
-            st.caption(
-                "Depende de confirmar um mecanismo corrigível e uma referência justificável."
-            )
-        with verificada:
-            st.markdown("**Economia verificada**")
-            st.markdown("Não avaliada nesta comparação")
-            st.caption(
-                "Consulte avaliações pós-intervenção em Ações. Uma queda de consumo isolada não comprova economia."
-            )
-        if c["evitavel"]["verificacao"]:
-            st.markdown(md(f"**Próxima verificação:** {c['evitavel']['verificacao']}"))
-            st.caption(j["proxima_verificacao"]["porque"])
-        st.page_link(
-            "paginas/oportunidades.py",
-            label="Ver as oportunidades em ordem de prioridade",
-            icon=":material/flag:",
-        )
-
-    ponte_da_conta(c)
+    st.page_link(
+        "paginas/oportunidades.py",
+        label="Ver as oportunidades em ordem de prioridade",
+        icon=":material/flag:",
+    )
 
     with st.expander("Por que a conta mudou · composição e premissas"):
         v = c["variacao"]

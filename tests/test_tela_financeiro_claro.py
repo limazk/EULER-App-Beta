@@ -8,15 +8,17 @@ def test_financeiro_expoe_ponte_e_separa_compras_do_periodo():
     assert not at.exception, at.exception
     assert at.radio(key="fin_origem").value == "Dados desta sessão"
     textos = " ".join(m.value for m in at.markdown)
+    # quadro único (D101): conta do período, ponte com a referência e o que verificar
+    assert "Conclusão financeira" in textos
     assert "Por que o custo mudou" in textos
-    assert "Oportunidade fundamentada" in textos
-    assert "Economia verificada" in textos
+    for parcela in ("Preço do combustível", "Produção de vapor", "Sem explicação"):
+        assert f"| {parcela}" in textos
+    assert "Parcela evitável: não apurada" in textos
+    assert any("Economia verificada" in c.value for c in at.caption)
     assert "Compras e estoque no período" in textos
     assert any("não é pagamento" in c.value for c in at.caption)
     assert any(e.label == "Todos os recebimentos carregados" for e in at.expander)
     metricas = {m.label: m.value for m in at.metric}
-    assert "Preço do combustível" in metricas
-    assert "Produção e ajustes disponíveis" in metricas
     assert metricas["Pagamento confirmado"] == "Não informado"
 
 

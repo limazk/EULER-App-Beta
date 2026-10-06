@@ -42,12 +42,24 @@ def test_financeiro_abre_fechamento_sem_importar_sessao(planta_financeira):
     at = abrir_bloco()
     from acompanhamento_ui import brl
 
+    from euler.formato import num
+
     custos = f["resultado"]["nucleo"]["explicacao_conta"]
     metrics = {m.label: m.value for m in at.metric}
-    assert metrics["Custo do consumo observado"] == brl(custos["consumido"]["custo_brl"])
-    assert metrics["Desvio monetizado"] == brl(custos["desvio"]["custo_brl"])
     assert metrics["Economia verificada no histórico"] == "Não apurada"
     textos = " ".join(str(x.value) for g in (at.markdown, at.caption) for x in g)
+    # quadro único da conclusão (D101), lido do fechamento gravado
+    quadro = textos.replace("\\$", "$").replace("\u00a0", " ")
+    assert "Conclusão financeira" in quadro
+    assert (
+        f"Custo do combustível consumido | R$ {num(custos['consumido']['custo_brl'], 0)}" in quadro
+    )
+    assert (
+        f"Esperado nas condições analisadas | R$ {num(custos['esperado']['custo_brl'], 0)}"
+        in quadro
+    )
+    assert "Parcela evitável: não apurada" in quadro
+    assert brl  # formatação do restante da tela continua a de acompanhamento_ui
     assert "não é pagamento" in textos
     assert "Política de custo" in textos
     assert "Próxima verificação" in textos
@@ -63,6 +75,7 @@ def test_financeiro_abre_fechamento_sem_importar_sessao(planta_financeira):
     at.selectbox(key="acomp_planta_sel").set_value(outra["id"]).run()
     assert not at.exception, at.exception
     assert not at.metric
+    assert not any("Conclusão financeira" in m.value for m in at.markdown)
     assert any("Ainda não há conta fechada" in x.value for x in at.info)
 
 

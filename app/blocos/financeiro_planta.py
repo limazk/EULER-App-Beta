@@ -3,8 +3,10 @@
 import pandas as pd
 import streamlit as st
 from acompanhamento_ui import brl, faixa_situacao, periodo, planta_e_equipamento
+from blocos.conclusao_financeira import renderizar as renderizar_conclusao
 from componentes import incerteza_explicada, md
 
+from euler.conta import conclusao_financeira
 from euler.fechamento import fechamentos
 from euler.formato import num
 from euler.painel import painel, texto_fechamento
@@ -27,15 +29,13 @@ def conta_salva(f: dict) -> None:
     )
     faixa_situacao(r["situacao"], (c.get("desvio") or {}).get("frase") or r["situacao_frase"])
     if c.get("disponivel"):
-        observado, esperado, desvio = st.columns(3)
-        observado.metric(
-            "Custo do consumo observado", brl(c["consumido"]["custo_brl"]), border=True
+        dias = {
+            k: (pd.Timestamp(x["fim"]) - pd.Timestamp(x["inicio"])).total_seconds() / 86400
+            for k, x in (("referencia", n["referencia"]), ("comparacao", n["periodo"]))
+        }
+        renderizar_conclusao(
+            conclusao_financeira(c, n["oportunidades"], dias), chave=f"fin-fech-{f['id']}"
         )
-        esperado.metric(
-            "Custo esperado (referência ajustada)", brl(c["esperado"]["custo_brl"]), border=True
-        )
-        desvio.metric("Desvio monetizado", brl(c["desvio"]["custo_brl"]), border=True)
-        st.caption("O desvio não é prejuízo recuperável confirmado nem economia verificada.")
         incerteza_explicada(c["desvio"].get("incerteza"), recolhido=True)
     else:
         st.info(c.get("motivo") or "Comparação financeira ainda não disponível.")

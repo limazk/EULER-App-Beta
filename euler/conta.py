@@ -526,3 +526,187 @@ def _premissas(horas_ref, horas, pgj_r, pgj, p, politica) -> list[str]:
             )
         )
     return premissas
+
+
+# ---------------------------------------------------------------- conclusão em um quadro
+# Onde o impacto de cada hipótese aparece na decomposição da conta (E16): a umidade
+# entra pela parcela de qualidade do combustível; a condição do vapor tem parcela
+# própria quando é calculada; as demais ficam na diferença sem explicação.
+PARCELA_DA_HIPOTESE = {"umidade_combustivel": "qualidade", "condicao_vapor": "condicao_vapor"}
+CONDICAO_EVITAVEL = (
+    "Uma parcela só pode ser chamada de evitável depois que a verificação confirmar o "
+    "mecanismo e houver uma condição de referência tecnicamente justificada. Os impactos "
+    "associados não se somam: podem representar a mesma perda."
+)
+
+
+def _oportunidade(o: dict) -> dict:
+    """Aceita a oportunidade da investigação (D90) ou a forma resumida do fechamento."""
+    imp = o.get("impacto") if isinstance(o.get("impacto"), dict) else {}
+    ver = o.get("verificacao")
+    return {
+        "id": o.get("id"),
+        "titulo": o.get("titulo"),
+        "prioridade": o.get("prioridade"),
+        "impacto_brl": _f(o["impacto_brl"]) if "impacto_brl" in o else _f(imp.get("custo_brl")),
+        "faixa_brl": o["faixa_brl"] if "faixa_brl" in o else imp.get("faixa_brl"),
+        "acao": ver.get("acao") if isinstance(ver, dict) else ver,
+        "distingue": ver.get("distingue") if isinstance(ver, dict) else None,
+    }
+
+
+def _ponte(v: dict, dias: dict | None) -> dict:
+    """Variação da conta em relação à referência em quatro grupos que fecham o total."""
+    if not v.get("disponivel"):
+        return {"disponivel": False, "motivo": v.get("motivo") or "Variação indisponível."}
+    por_id = {x["id"]: x for x in v["componentes"]}
+
+    def valor(k):
+        x = por_id.get(k)
+        return x["custo_brl"] if x and x["separado"] and x["custo_brl"] is not None else None
+
+    nota_duracao = None
+    if dias and dias.get("referencia") and dias.get("comparacao"):
+        dr, dc = dias["referencia"], dias["comparacao"]
+        if abs(dr - dc) > 0.05 * max(dr, dc):
+            nota_duracao = f"inclui a diferença de duração ({num(dr, 0)} → {num(dc, 0)} dias)"
+    ajustes = [
+        {"id": k, "titulo": TITULOS[k], "custo_brl": valor(k)}
+        for k in ("condicao_vapor", "qualidade")
+        if valor(k) is not None
+    ]
+    grupos = [
+        {"id": "preco", "titulo": TITULOS["preco"], "custo_brl": valor("preco"), "nota": None},
+        {
+            "id": "producao",
+            "titulo": TITULOS["producao"],
+            "custo_brl": valor("producao"),
+            "nota": nota_duracao,
+        },
+        {
+            "id": "ajustes",
+            "titulo": "Outros ajustes",
+            "custo_brl": sum(x["custo_brl"] for x in ajustes) if ajustes else None,
+            "nota": ", ".join(x["titulo"].lower() for x in ajustes) if ajustes else None,
+            "itens": ajustes,
+        },
+        {
+            "id": "sem_explicacao",
+            "titulo": "Sem explicação",
+            "custo_brl": valor("nao_explicado"),
+            "nota": "igual à diferença da conta do período",
+        },
+    ]
+    soma = sum(g["custo_brl"] for g in grupos if g["custo_brl"] is not None)
+    total = v["variacao_brl"]
+    if grupos[-1]["custo_brl"] is None or abs(soma - total) > 1e-6 * max(1.0, abs(total)):
+        return {
+            "disponivel": False,
+            "motivo": "As parcelas não fecham a variação total; a ponte não é mostrada.",
+        }
+    return {
+        "disponivel": True,
+        "motivo": None,
+        "referencia_brl": v["custo_referencia_brl"],
+        "periodo_brl": v["custo_brl"],
+        "variacao_brl": total,
+        "dias": dias,
+        "grupos": grupos,
+        "nao_separados": [x["titulo"] for x in v["componentes"] if not x["separado"]],
+    }
+
+
+def conclusao_financeira(conta: dict, oportunidades=(), dias: dict | None = None) -> dict:
+    """Quadro único da conclusão financeira (D101, proposta; E16 e D90).
+
+    Entrada: `conta` = resultado de `explicar_conta` (E16); `oportunidades` = lista de
+    oportunidades da investigação (D90) ou do fechamento; `dias` = duração em dias da
+    referência e do período ({"referencia": float, "comparacao": float}), opcional.
+
+    Saída: a conta do período (custo consumido, esperado nas condições analisadas e a
+    diferença sem explicação, com a faixa), a ponte em relação à referência (preço,
+    produção, outros ajustes e sem explicação, fechando a variação), e o que falta
+    verificar para considerar alguma parcela evitável.
+
+    Só reorganiza números já calculados. "Explicado" quer dizer atribuído a um fator
+    medido (preço, produção, qualidade do combustível), não inevitável: a parcela de
+    qualidade, por exemplo, pode ter parte evitável. A parcela evitável continua `None`;
+    oportunidades não são somadas nem convertidas em economia. Não altera a entrada.
+    """
+    if not conta or not conta.get("disponivel"):
+        return {
+            "disponivel": False,
+            "motivo": (conta or {}).get("motivo") or "Conta indisponível.",
+        }
+    cons, esp, des = conta["consumido"], conta["esperado"], conta["desvio"]
+    v = conta.get("variacao") or {}
+    separados = {x["id"] for x in v.get("componentes", []) if x["separado"]}
+    verificacoes = []
+    for o in map(_oportunidade, oportunidades or ()):
+        if o["prioridade"] not in ("alta", "media") or not o["acao"]:
+            continue
+        parcela = PARCELA_DA_HIPOTESE.get(o["id"])
+        onde = (
+            f"na parcela de {TITULOS[parcela].lower()}"
+            if parcela in separados
+            else "dentro da diferença sem explicação"
+        )
+        verificacoes.append({**o, "onde": onde})
+    if not verificacoes and conta["evitavel"].get("verificacao"):
+        verificacoes.append(
+            {
+                "id": None,
+                "titulo": "Próxima verificação",
+                "prioridade": None,
+                "impacto_brl": None,
+                "faixa_brl": None,
+                "acao": conta["evitavel"]["verificacao"],
+                "distingue": None,
+                "onde": None,
+            }
+        )
+    antes = []
+    if des["estado"] in ("nao_estabelecido", "sem_faixa"):
+        inc = des.get("incerteza") or {}
+        partes = [
+            "Confirmar que a diferença existe: "
+            + (
+                "a faixa das medições inclui zero."
+                if des["estado"] == "nao_estabelecido"
+                else "falta a incerteza de algum instrumento para calcular a faixa."
+            ),
+            inc.get("frase_origem"),
+            (inc.get("melhor") or {}).get("frase"),
+        ]
+        antes.append(" ".join(x for x in partes if x))
+    return {
+        "disponivel": True,
+        "motivo": None,
+        "frase": des["frase"],
+        "estado": des["estado"],
+        "consumido": {
+            "custo_brl": cons["custo_brl"],
+            "combustivel_t": cons["combustivel_t"],
+            "preco_brl_t": cons["preco_brl_t"],
+        },
+        "esperado": {
+            "custo_brl": esp["custo_brl"],
+            "combustivel_t": esp["combustivel_t"],
+            "ajustado_por": list(esp["ajustado_por"]),
+        },
+        "sem_explicacao": {
+            "custo_brl": des["custo_brl"],
+            "combustivel_t": des["combustivel_t"],
+            "faixa_brl": des["faixa_brl"],
+            "estado": des["estado"],
+        },
+        "ponte": _ponte(v, dias),
+        "evitavel": {
+            "custo_brl": None,
+            "situacao": "Parcela evitável: não apurada",
+            "condicao": CONDICAO_EVITAVEL,
+            "antes": antes,
+            "verificacoes": verificacoes,
+            "ainda_no_desvio": list(esp["nao_ajustado"]),
+        },
+    }
