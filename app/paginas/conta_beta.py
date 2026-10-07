@@ -6,6 +6,7 @@ from componentes import cabecalho
 
 import euler
 
+
 def renderizar(ctx: dict) -> None:
     cabecalho(
         "Conta e feedback",
