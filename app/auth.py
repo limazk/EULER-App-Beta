@@ -7,6 +7,7 @@ operações administrativas executadas no servidor Streamlit.
 from __future__ import annotations
 
 import os
+import time
 from datetime import UTC, datetime
 
 import streamlit as st
@@ -15,6 +16,8 @@ from supabase import Client, create_client
 TOKEN_ACCESS = "_euler_access_token"
 TOKEN_REFRESH = "_euler_refresh_token"
 CTX = "_euler_auth_context"
+CTX_VALIDATED_AT = "_euler_auth_context_validated_at"
+AUTH_CONTEXT_TTL_SECONDS = 45.0
 
 
 def _modo_teste() -> bool:
@@ -90,14 +93,20 @@ def _cliente_admin() -> Client:
     return create_client(cfg["url"], cfg["secret_key"])
 
 
+def _invalidar_contexto() -> None:
+    """Descarta autorização derivada da sessão sem remover os tokens de login."""
+    _invalidar_contexto()
+    st.session_state.pop(CTX_VALIDATED_AT, None)
+
+
 def _guardar_sessao(sessao) -> None:
     st.session_state[TOKEN_ACCESS] = sessao.access_token
     st.session_state[TOKEN_REFRESH] = sessao.refresh_token
-    st.session_state.pop(CTX, None)
+    _invalidar_contexto()
 
 
 def limpar_sessao() -> None:
-    for chave in (TOKEN_ACCESS, TOKEN_REFRESH, CTX):
+    for chave in (TOKEN_ACCESS, TOKEN_REFRESH, CTX, CTX_VALIDATED_AT):
         st.session_state.pop(chave, None)
 
 
@@ -238,16 +247,26 @@ def _carregar_contexto() -> dict | None:
         "is_superadmin": bool(perfil.get("is_superadmin")),
     }
     st.session_state[CTX] = ctx
+    st.session_state[CTX_VALIDATED_AT] = time.monotonic()
     return ctx
 
 
 def contexto_atual(*, recarregar: bool = False) -> dict | None:
+    """Reutiliza por poucos segundos o contexto já validado nesta sessão."""
     if _modo_teste():
         ctx = st.session_state.get(CTX) or _contexto_teste()
         st.session_state[CTX] = ctx
         return ctx
-    if not recarregar and st.session_state.get(CTX):
-        return st.session_state[CTX]
+
+    ctx = st.session_state.get(CTX)
+    validado_em = st.session_state.get(CTX_VALIDATED_AT)
+    dentro_do_ttl = (
+        ctx is not None
+        and validado_em is not None
+        and time.monotonic() - float(validado_em) < AUTH_CONTEXT_TTL_SECONDS
+    )
+    if not recarregar and dentro_do_ttl:
+        return ctx
     return _carregar_contexto()
 
 
@@ -348,7 +367,7 @@ def exigir_acesso() -> dict:
         _tela_login()
         st.stop()
 
-    ctx = contexto_atual(recarregar=True)
+    ctx = contexto_atual()
     if not ctx:
         limpar_sessao()
         st.error("Não foi possível carregar seu perfil.")
