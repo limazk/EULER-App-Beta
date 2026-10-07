@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="64" y1="40" x2="448" y2="472" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0F2230"/>
+      <stop offset="1" stop-color="#081018"/>
+    </linearGradient>
+    <linearGradient id="blueLeft" x1="150" y1="368" x2="278" y2="106" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0874F9"/>
+      <stop offset="0.58" stop-color="#14B5F3"/>
+      <stop offset="1" stop-color="#52E5FF"/>
+    </linearGradient>
+    <linearGradient id="blueRight" x1="275" y1="124" x2="378" y2="363" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#4DE7FF"/>
+      <stop offset="0.55" stop-color="#149FF5"/>
+      <stop offset="1" stop-color="#086FEB"/>
+    </linearGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="10" result="blur"/>
+      <feColorMatrix in="blur" type="matrix"
+        values="0 0 0 0 0.05
+                0 0 0 0 0.55
+                0 0 0 0 1
+                0 0 0 .26 0"/>
+      <feMerge><feMergeNode/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect x="12" y="12" width="488" height="488" rx="112" fill="url(#bg)"/>
+  <rect x="12.5" y="12.5" width="487" height="487" rx="111.5" stroke="#294252" stroke-opacity=".65"/>
+
+  <g filter="url(#glow)">
+    <!-- haste/asa esquerda -->
+    <path d="M102 366L238 104C245 90 264 90 271 104L322 202L281 202L255 151L143 366H102Z" fill="url(#blueLeft)"/>
+    <!-- asa superior direita -->
+    <path d="M285 201L326 123C332 112 347 112 353 123L395 201H285Z" fill="url(#blueRight)"/>
+    <!-- asa inferior direita -->
+    <path d="M263 239L395 366H337L263 294V239Z" fill="url(#blueRight)"/>
+    <!-- base esquerda -->
+    <path d="M143 366L210 237L253 281L210 366H143Z" fill="#0B72EA" fill-opacity=".96"/>
+    <!-- recorte interno escuro para preservar o A estilizado -->
+    <path d="M238 218L271 218L303 248L253 248L238 218Z" fill="#09151F"/>
+  </g>
+</svg>
