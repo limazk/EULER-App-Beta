@@ -229,6 +229,20 @@ def _tela_login() -> None:
 
 
 def exigir_acesso() -> dict:
+    # Exclusivo para a suíte automatizada. Produção continua fail-closed sem Supabase.
+    if os.environ.get("EULER_TEST_BYPASS_AUTH") == "1":
+        return {
+            "user_id": "test-user",
+            "email": "test@euler.local",
+            "profile": {
+                "full_name": "Teste automatizado",
+                "status": "active",
+                "is_superadmin": False,
+            },
+            "memberships": [],
+            "is_superadmin": False,
+        }
+
     if not configurado():
         st.error("O login do beta ainda não foi configurado neste ambiente.")
         st.code(
