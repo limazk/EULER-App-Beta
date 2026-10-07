@@ -95,7 +95,7 @@ def _cliente_admin() -> Client:
 
 def _invalidar_contexto() -> None:
     """Descarta autorização derivada da sessão sem remover os tokens de login."""
-    _invalidar_contexto()
+    st.session_state.pop(CTX, None)
     st.session_state.pop(CTX_VALIDATED_AT, None)
 
 
