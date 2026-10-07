@@ -38,6 +38,10 @@ create table if not exists public.memberships (
 create index if not exists memberships_user_id_idx
     on public.memberships(user_id);
 
+create unique index if not exists memberships_one_active_org_per_user_idx
+    on public.memberships(user_id)
+    where status = 'active';
+
 create or replace function public.handle_new_euler_user()
 returns trigger
 language plpgsql
