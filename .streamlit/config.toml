@@ -5,12 +5,12 @@
 # (app/graficos.py, CORES).
 [theme]
 base = "dark"
-primaryColor = "#ECECEC"
-backgroundColor = "#212121"
-secondaryBackgroundColor = "#2A2A2A"
-textColor = "#ECECEC"
-linkColor = "#A8C7FA"
-borderColor = "#363636"
+primaryColor = "#F5F7FA"
+backgroundColor = "#05070B"
+secondaryBackgroundColor = "#0D121B"
+textColor = "#F5F7FA"
+linkColor = "#60A5FA"
+borderColor = "#202733"
 showWidgetBorder = true
 baseRadius = "0.5rem"
 buttonRadius = "0.45rem"
@@ -18,8 +18,8 @@ headingFontWeights = [650, 600, 600, 600, 600, 600]
 headingFontSizes = ["2.1rem", "1.45rem", "1.2rem", "1.05rem", "1rem", "0.95rem"]
 metricValueFontSize = "1.85rem"
 metricValueFontWeight = 600
-dataframeHeaderBackgroundColor = "#2A2A2A"
-chartCategoricalColors = ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "#008300", "#9085e9", "#e66767"]
+dataframeHeaderBackgroundColor = "#111722"
+chartCategoricalColors = ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "#008300", "#38bdf8", "#e66767"]
 yellowBackgroundColor = "#3A3220"
 yellowTextColor = "#F2C94C"
 blueBackgroundColor = "#1F2A3A"
@@ -30,16 +30,16 @@ redBackgroundColor = "#3B2323"
 redTextColor = "#F28B82"
 orangeBackgroundColor = "#3A2A1E"
 orangeTextColor = "#F6AD6B"
-violetBackgroundColor = "#2D2740"
-violetTextColor = "#C3B5FD"
-grayBackgroundColor = "#2E2E2E"
-grayTextColor = "#BDBDBD"
+violetBackgroundColor = "#1F2A3A"
+violetTextColor = "#93C5FD"
+grayBackgroundColor = "#171E29"
+grayTextColor = "#CBD5E1"
 
 [theme.sidebar]
-backgroundColor = "#171717"
-secondaryBackgroundColor = "#262626"
-textColor = "#ECECEC"
-borderColor = "#2A2A2A"
+backgroundColor = "#080B11"
+secondaryBackgroundColor = "#111722"
+textColor = "#F5F7FA"
+borderColor = "#202733"
 
 [browser]
 gatherUsageStats = false

@@ -1,75 +1,135 @@
-"""Entrada curta: acompanhar a planta, analisar dados ou conhecer a demonstração."""
+"""Dashboard inicial: panorama real, estados vazios e atalhos para os fluxos existentes."""
 
+from __future__ import annotations
+
+import armazenamento
 import estado
 import streamlit as st
-from componentes import cartao
+from auth import contexto_atual
+from componentes import cartao, md
 
-from euler.textos import AVISO_PROTOTIPO, ESTAGIOS_MODELO
+from euler.textos import AVISO_PROTOTIPO
+
+
+def _identidade() -> tuple[str, str]:
+    ctx = contexto_atual() or {}
+    perfil = ctx.get("profile") or {}
+    nome = (perfil.get("full_name") or ctx.get("email") or "usuário").split()[0]
+    membros = ctx.get("memberships") or []
+    organizacao = ""
+    if membros:
+        organizacao = (membros[0].get("organizations") or {}).get("name") or ""
+    elif ctx.get("is_superadmin"):
+        organizacao = "Administração EULER"
+    return nome, organizacao
+
+
+def _panorama() -> tuple[list[dict], int]:
+    """Lê somente cadastros do tenant atual; nenhum indicador é estimado."""
+    equipamentos: list[dict] = []
+    analises = 0
+    try:
+        repo = armazenamento.repositorio()
+        for planta in repo.listar_plantas():
+            armazem = repo.armazem(planta["id"])
+            for equipamento in armazem.equipamentos():
+                equipamentos.append({**equipamento, "planta": planta["nome"]})
+            for importacao in repo.listar_importacoes(planta["id"]):
+                analises += len(repo.listar_analises(planta["id"], importacao["id"]))
+    except Exception:  # noqa: BLE001 — dashboard continua útil durante indisponibilidade local
+        return [], 0
+    return equipamentos, analises
+
+
+nome, organizacao = _identidade()
+equipamentos, total_analises = _panorama()
 
 with st.container(key="euler-abertura"):
-    st.html('<div class="euler-sobrelinha">Consumo · custo · próximas verificações</div>')
+    st.html('<div class="euler-sobrelinha">Visão geral</div>')
     st.title("EULER", anchor=False)
-    st.markdown("### Entenda o que mudou. Saiba o que verificar.")
+    st.markdown(f"## Bem-vindo, {nome}")
     st.caption(
-        "Acompanhe combustível e vapor, investigue diferenças e registre o resultado das ações."
+        "Investigue mudanças no consumo, confira as evidências e escolha a próxima verificação."
+        + (f" · {organizacao}" if organizacao else "")
     )
 
-if st.session_state.get("arquivos"):
-    with st.container(border=True):
-        st.markdown("**Continue com os dados carregados**")
-        origem = "Demonstração sintética" if estado.dados_sinteticos() else "Dados enviados"
-        st.caption(f"{origem} · os limites da análise acompanham cada resultado.")
-        a, b = st.columns(2)
-        a.page_link("paginas/saude.py", label="Ver análise", icon=":material/arrow_forward:")
-        b.page_link("paginas/financeiro.py", label="Ver financeiro", icon=":material/payments:")
+st.html('<div class="euler-secao">Panorama</div>')
+k1, k2, k3, k4 = st.columns(4)
+k1.metric("Caldeiras monitoradas", len(equipamentos), border=True)
+k2.metric("Análises realizadas", total_analises, border=True)
+k3.metric("Alertas / condições", "—", border=True, help="Sem total consolidado disponível.")
+k4.metric("Eficiência média", "—", border=True, help="Não calculada sem período selecionado.")
 
-um, dois = st.columns(2)
-with um, cartao("inicio-planta"):
-    st.markdown("#### Minha planta")
-    st.caption("Reúna os registros, veja pendências e acompanhe as ações ao longo do tempo.")
-    st.caption(
-        "Enviar registros → conferir a conta → investigar → registrar ação → verificar "
-        "resultado. Tudo fica salvo na planta."
-    )
-    st.page_link(
-        "paginas/painel.py", label="Abrir painel da planta", icon=":material/space_dashboard:"
-    )
-    st.page_link(
-        "paginas/acompanhamento.py", label="Cadastrar ou atualizar dados", icon=":material/upload:"
-    )
-with dois, cartao("inicio-analise"):
-    st.markdown("#### Analisar um período")
-    st.caption("Use um arquivo ou explore uma demonstração com dados sintéticos.")
-    st.page_link("paginas/importar.py", label="Importar um arquivo", icon=":material/upload_file:")
-    if st.button(
-        "Explorar demonstração", type="primary", icon=":material/play_circle:", key="ato1"
-    ):
-        estado.usar_caso_demo(completo=True)
-        st.switch_page("paginas/saude.py")
+esquerda, direita = st.columns([1.7, 1])
+with esquerda, cartao("status-caldeiras"):
+    st.markdown("### Status das Caldeiras")
+    st.caption("Somente registros cadastrados. Medidas ausentes permanecem como —.")
+    if not equipamentos:
+        st.info("Nenhuma caldeira cadastrada nesta organização.")
+        st.page_link(
+            "paginas/acompanhamento.py",
+            label="Cadastrar ou importar dados",
+            icon=":material/upload:",
+        )
+    else:
+        for equipamento in equipamentos[:6]:
+            nome_eq = equipamento.get("nome") or equipamento.get("id") or "Caldeira"
+            st.markdown(md(f"**{nome_eq}** · {equipamento['planta']}"))
+            c1, c2, c3, c4 = st.columns([1.25, 1, 1, 1])
+            c1.caption("Status  **—**")
+            c2.caption("Pressão  **—**")
+            c3.caption("Temperatura  **—**")
+            c4.caption("Eficiência  **—**")
+            st.divider()
+        st.page_link(
+            "paginas/painel.py", label="Abrir acompanhamento", icon=":material/arrow_forward:"
+        )
 
-with cartao("inicio-evidencias"):
-    st.markdown("**Testado com registros públicos de uma planta brasileira · 660 dias**")
-    st.caption("Veja os resultados, a origem dos dados e o que ainda não foi possível concluir.")
-    st.page_link(
-        "paginas/dados_publicos.py", label="Conhecer os testes reais", icon=":material/science:"
-    )
+with direita, cartao("resumo-dashboard"):
+    st.markdown("### Resumo")
+    st.caption("Indicadores são exibidos apenas quando sustentados pelos dados.")
+    st.markdown("**Conexão**")
+    st.success("Sessão conectada")
+    st.markdown("**Dados da sessão**")
+    if st.session_state.get("arquivos"):
+        st.caption("Há registros carregados nesta sessão.")
+    else:
+        st.caption("Nenhum conjunto de dados carregado.")
+    st.page_link("paginas/plantas.py", label="Ver armazém", icon=":material/inventory_2:")
+
+st.markdown("### Ações Rápidas")
+a1, a2, a3, a4 = st.columns(4)
+with a1, cartao("acao-analise"):
+    st.markdown("**Nova análise**")
+    st.caption("Analisar dados da caldeira")
+    st.page_link("paginas/saude.py", label="Abrir", icon=":material/arrow_forward:")
+with a2, cartao("acao-importar"):
+    st.markdown("**Importar dados**")
+    st.caption("Planilhas e registros")
+    st.page_link("paginas/acompanhamento.py", label="Abrir", icon=":material/arrow_forward:")
+with a3, cartao("acao-dia"):
+    st.markdown("**Dia a Dia**")
+    st.caption("Acompanhar a planta")
+    st.page_link("paginas/painel.py", label="Abrir", icon=":material/arrow_forward:")
+with a4, cartao("acao-mensal"):
+    st.markdown("**Relatório mensal**")
+    st.caption("Conferir fechamentos")
+    st.page_link("paginas/fechamentos.py", label="Abrir", icon=":material/arrow_forward:")
 
 with st.expander("Sobre a demonstração e os limites"):
     st.info(AVISO_PROTOTIPO)
     st.markdown(
-        "A demonstração usa uma caldeira **sintética**, de 20 t/h a cavaco, com oito semanas "
-        "de registros e três fornecedores. O caso público brasileiro é separado dela."
+        "A demonstração usa dados sintéticos. A validação pública separada reúne 660 dias "
+        "de registros de uma planta brasileira."
     )
-    st.caption(
-        "Compare também os mesmos registros sem o cadastro completo de instrumentos: "
-        "a EULER explica quais conclusões ficam limitadas."
-    )
-    if st.button("Ver demonstração com dados incompletos", key="ato2"):
+    c1, c2 = st.columns(2)
+    if c1.button("Explorar demonstração", type="primary", key="ato1"):
+        estado.usar_caso_demo(completo=True)
+        st.switch_page("paginas/saude.py")
+    if c2.button("Ver demonstração com dados incompletos", key="ato2"):
         estado.usar_caso_demo(completo=False)
         st.switch_page("paginas/saude.py")
-    for titulo, texto in ESTAGIOS_MODELO:
-        st.markdown(f"**{titulo}**")
-        st.caption(texto)
-    st.caption(
-        "A EULER investiga e recomenda verificações. Não comanda nem avalia a segurança da caldeira."
-    )
+
+st.caption(
+    "A EULER investiga e recomenda verificações. Não comanda nem avalia a segurança da caldeira."
+)

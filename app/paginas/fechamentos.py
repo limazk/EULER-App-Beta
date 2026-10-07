@@ -19,6 +19,8 @@ from acompanhamento_ui import (
 from componentes import cabecalho, incerteza_explicada, md
 
 from euler.acompanhamento import ESTADOS, abrir_do_fechamento
+from euler.armazem import ORIGEM_DA_CLASSE
+from euler.conta import conclusao_financeira
 from euler.entrega import entrega_do_fechamento, texto_entrega
 from euler.evidencias import ROTULOS
 from euler.fechamento import (
@@ -26,14 +28,15 @@ from euler.fechamento import (
     criar_referencia,
     fechamento,
     fechamentos,
+    fechamentos_vigentes,
     p_atm,
-    periodos_pendentes,
-    produzir_fechamento,
     referencia_vigente,
     referencias,
     reproduzir,
+    revisoes,
 )
 from euler.formato import num
+from euler.mensal import fechar_mes, meses, previa_do_mes, revisar_mes, rotulo_mes
 from euler.painel import texto_fechamento
 from euler.periodos import periodos_entre_estoques
 
@@ -135,6 +138,14 @@ def mostrar_fechamento(a, f, nome_autor) -> None:
             + (f" ({n['politica_custo']['motivo']})" if n["politica_custo"].get("motivo") else "")
         )
         incerteza_explicada((conta.get("desvio") or {}).get("incerteza"), recolhido=True)
+        ponte = (conta.get("variacao") or {}) and conclusao_financeira(conta)["ponte"]
+        if ponte and ponte.get("resposta"):
+            st.markdown(md(f"**Por que a conta mudou:** {ponte['resposta']}"))
+    if r.get("condicoes"):
+        with st.expander("Condições comparadas: carga e regime (não ajustados)"):
+            for frase in r["condicoes"]["frases"]:
+                st.markdown(md(f"- {frase}"))
+            st.caption(r["condicoes"]["nao_ajustado"])
     st.markdown(
         md(f"**O que mudou desde o fechamento anterior:** {r['comparacao_anterior']['frase']}")
     )
@@ -255,7 +266,10 @@ def mostrar_fechamento(a, f, nome_autor) -> None:
                 (st.success if rep["identico"] else st.info)(rep["frase"])
         c1, c2, c3 = st.columns(3)
         c1.download_button(
-            "Baixar relatório", texto_fechamento(f), f"fechamento-{f['id']}.md", "text/markdown"
+            "Baixar relatório",
+            texto_fechamento(f, ORIGEM_DA_CLASSE.get(a.info["classe"])),
+            f"fechamento-{f['id']}.md",
+            "text/markdown",
         )
         c3.download_button(
             "Baixar a entrega do fechamento",
@@ -284,45 +298,172 @@ def mostrar() -> None:
             conteudo(a, eq["id"], nome_autor)
 
 
+COR_ESTADO_MES = {
+    "referencia": "gray",
+    "sem_periodo": "gray",
+    "em_andamento": "blue",
+    "aguarda_anterior": "orange",
+    "pronto": "green",
+    "fechado": "green",
+    "revisar": "red",
+}
+
+
+def _dia(iso: str) -> str:
+    return pd.Timestamp(iso).tz_convert("America/Sao_Paulo").strftime("%d/%m %H:%M")
+
+
+def bloco_mensal(a, equip, nome_autor) -> None:
+    """Fechamento do mês (D111): cobertura, prévia, aprovação e revisão."""
+    planos = meses(a, equip)
+    st.markdown("### Fechamento do mês")
+    if not planos:
+        st.caption(
+            "Sem medições de estoque nos registros: o consumo de um mês só é conhecido entre "
+            "duas medições de estoque."
+        )
+        return
+    st.dataframe(
+        pd.DataFrame(
+            [
+                {
+                    "Mês": p["rotulo"],
+                    "Situação": p["estado_rotulo"],
+                    "Janela": f"{_dia(p['janela'][0])} a {_dia(p['janela'][1])}"
+                    if p["janela"]
+                    else "—",
+                    "Dias do mês com conta": num(p["cobertura"]["dias_com_conta"], 1)
+                    if p["estado"] != "referencia"
+                    else "referência",
+                    "Lacunas": len(p["lacunas"]),
+                }
+                for p in reversed(planos)
+            ]
+        ),
+        hide_index=True,
+        width="stretch",
+    )
+    chaves = [p["mes"] for p in planos]
+    sugerido = next(
+        (p["mes"] for p in planos if p["estado"] in ("revisar", "pronto")),
+        next((p["mes"] for p in reversed(planos) if p["estado"] == "fechado"), chaves[-1]),
+    )
+    chave = st.selectbox(
+        "Mês",
+        chaves[::-1],
+        index=chaves[::-1].index(sugerido),
+        format_func=lambda c: next(p["rotulo"] for p in planos if p["mes"] == c).capitalize(),
+        key="fech_mes_sel",
+    )
+    p = next(x for x in planos if x["mes"] == chave)
+    with st.container(border=True, key="fech-mes"):
+        st.badge(p["estado_rotulo"], color=COR_ESTADO_MES[p["estado"]])
+        st.markdown(md(f"**{p['rotulo'].capitalize()}** · {p['frase']}"))
+        if p["janela"]:
+            st.caption(
+                f"Períodos entre medições de estoque de {_dia(p['janela'][0])} a "
+                f"{_dia(p['janela'][1])}: cada período entra no mês em que termina."
+            )
+        for frase in p["cobertura"]["frases"]:
+            st.markdown(md(f"- {frase}"))
+        if p["trechos"]:
+            st.dataframe(
+                pd.DataFrame(
+                    [
+                        {
+                            "Trecho a fechar": f"{_dia(t['inicio'])} a {_dia(t['fim'])}",
+                            "Períodos": t["periodos"],
+                            "Conta": "sim" if t["valido"] else f"lacuna: {t['motivo']}",
+                        }
+                        for t in p["trechos"]
+                    ]
+                ),
+                hide_index=True,
+                width="stretch",
+            )
+        c1, c2 = st.columns(2)
+        if p["trechos"] and c1.button("Ver prévia do mês", icon=":material/preview:"):
+            with st.spinner("Calculando a prévia (nada é gravado)…"):
+                st.session_state["fech_previa_mes"] = (
+                    chave,
+                    a.revisao,
+                    previa_do_mes(a, equip, chave),
+                )
+        aprovar = c2.button(
+            "Aprovar fechamento do mês",
+            type="primary",
+            disabled=p["estado"] != "pronto",
+            help="Grava um fechamento por trecho; lacunas ficam registradas com o motivo.",
+        )
+        if aprovar and exigir_autor(nome_autor):
+            with st.spinner("Calculando e gravando o fechamento do mês…"):
+                fs = executar(lambda: fechar_mes(a, equip, chave, nome_autor))
+            if fs:
+                st.session_state["acomp_fech"] = fs[-1]["id"]
+                recarregar(f"Fechamento de {p['rotulo']} aprovado: {len(fs)} trecho(s) gravado(s).")
+        prev = st.session_state.get("fech_previa_mes")
+        if prev and prev[0] == chave and prev[1] == a.revisao:
+            st.markdown(":gray-badge[:material/preview: Prévia · ainda não fechado]")
+            for t in prev[2]["previas"]:
+                conta = t.get("conta") or {}
+                valores = ""
+                if conta.get("disponivel"):
+                    valores = (
+                        f" · consumido {brl(conta['consumido']['custo_brl'])} · esperado "
+                        f"{brl(conta['esperado']['custo_brl'])} · diferença "
+                        f"{brl(conta['desvio']['custo_brl'])}"
+                    )
+                st.markdown(
+                    md(f"- **{_dia(t['inicio'])} a {_dia(t['fim'])}:** {t['frase']}{valores}")
+                )
+        if p["estado"] == "revisar":
+            st.warning(
+                "Registros mudaram depois da aprovação nos fechamentos "
+                + ", ".join(f"#{i}" for i in p["a_revisar"])
+                + ". A revisão grava uma nova versão com o motivo; a anterior fica no histórico.",
+                icon=":material/history:",
+            )
+            motivo = st.text_input("Motivo da revisão", key=f"fech_motivo_rev_{chave}")
+            if st.button("Revisar o mês") and exigir_autor(nome_autor):
+                with st.spinner("Recalculando os trechos afetados…"):
+                    fs = executar(lambda: revisar_mes(a, equip, chave, nome_autor, motivo))
+                if fs:
+                    st.session_state["acomp_fech"] = fs[-1]["id"]
+                    recarregar(f"{len(fs)} fechamento(s) de {p['rotulo']} revisado(s).")
+
+
 def conteudo(a, equip, nome_autor) -> None:
     cob = a.cobertura(equip)
     if cob["estado"] != "atualizado":
         st.warning(cob["frase"])
     if not bloco_referencia(a, equip, nome_autor):
         return
-    pend = periodos_pendentes(a, equip)
-    if pend:
-        validos = sum(p["valido"] for p in pend)
-        st.markdown(
-            f"**{len(pend)} período(s) novo(s) para fechar** ({validos} com vapor e combustível conhecidos)."
-        )
-        for p in pend:
-            if not p["valido"]:
-                st.caption(f"{p['inicio']:%d/%m} a {p['fim']:%d/%m}: {p['motivo']}")
-        if st.button("Produzir fechamento", type="primary") and exigir_autor(nome_autor):
-            with st.spinner("Calculando o fechamento…"):
-                f = executar(lambda: produzir_fechamento(a, equip, nome_autor))
-            if f:
-                st.session_state["acomp_fech"] = f["id"]
-                recarregar(f"Fechamento #{f['id']} gravado.")
-    else:
-        st.caption(
-            "Nenhum período novo desde o último fechamento: importe dados novos para continuar."
-        )
+    bloco_mensal(a, equip, nome_autor)
     lista = fechamentos(a, equip)
     if not lista:
         return
+    vigentes = fechamentos_vigentes(a, equip)
+    por = revisoes(a, equip)
     ids = [f["id"] for f in lista]
     atual = st.session_state.get("acomp_fech")
-    escolhido = atual if atual in ids else ids[-1]
+    escolhido = atual if atual in ids else vigentes[-1]["id"]
     mostrar_fechamento(a, fechamento(a, escolhido), nome_autor)
+    if escolhido in por:
+        st.info(
+            f"Esta versão foi revisada pelo fechamento #{por[escolhido]}; fica no histórico.",
+            icon=":material/history:",
+        )
     st.markdown("### Histórico de fechamentos")
-    st.caption("Todos os períodos ficam: favoráveis, desfavoráveis e inconclusivos.")
+    st.caption(
+        "Todos os períodos ficam: favoráveis, desfavoráveis e inconclusivos. Versões revisadas "
+        "continuam aqui, ligadas à revisão."
+    )
     st.dataframe(
         pd.DataFrame(
             [
                 {
                     "#": f["id"],
+                    "Mês": rotulo_mes(f["resultado"]["mes"]) if f["resultado"].get("mes") else "—",
                     "Período": periodo(f),
                     "Situação": f["resultado"]["situacao_frase"],
                     "Desvio": brl(
@@ -330,6 +471,7 @@ def conteudo(a, equip, nome_autor) -> None:
                             "custo_brl"
                         )
                     ),
+                    "Versão": f"revisado por #{por[f['id']]}" if f["id"] in por else "em vigor",
                     "Referência": f"v{f['resultado']['nucleo']['referencia']['versao']}",
                     "Em": data(f["criado_em"]),
                 }
@@ -345,7 +487,7 @@ def conteudo(a, equip, nome_autor) -> None:
         "Ver outro fechamento",
         ids[::-1],
         index=ids[::-1].index(escolhido),
-        format_func=lambda i: f"#{i}",
+        format_func=lambda i: f"#{i}" + (" (revisado)" if i in por else ""),
     )
     if ver != escolhido:
         st.session_state["acomp_fech"] = ver

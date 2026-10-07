@@ -14,7 +14,7 @@ from euler.vapor import P_ATM_NIVEL_DO_MAR_BAR
 
 STATUS = {
     "sustentada": ("Compatível com os dados (não comprovada)", "blue", ":material/check_circle:"),
-    "oposta": ("Mudou no sentido contrário (compensou parte)", "violet", ":material/swap_vert:"),
+    "oposta": ("Mudou no sentido contrário (compensou parte)", "blue", ":material/swap_vert:"),
     "possivel": ("Continua possível", "orange", ":material/help:"),
     "descartada": ("Enfraquecida nestes dados", "gray", ":material/cancel:"),
     "nao_avaliavel": ("Não dá para avaliar", "gray", ":material/block:"),

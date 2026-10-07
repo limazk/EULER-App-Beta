@@ -1,58 +1,60 @@
-"""Entradas principais da EULER e rotas complementares."""
+"""Rotas do EULER e menu principal inspirado na referência final."""
 
 PRINCIPAIS = (
     ("paginas/inicio.py", "Início", "home"),
-    ("paginas/painel.py", "Minha planta", "space_dashboard"),
-    ("paginas/saude.py", "Análise", "monitor_heart"),
-    ("paginas/financeiro.py", "Financeiro", "payments"),
-    ("paginas/acoes.py", "Ações", "task_alt"),
-    ("paginas/acompanhamento.py", "Dados", "upload"),
+    ("paginas/saude.py", "Análise da Caldeira", "monitor_heart"),
+    ("paginas/painel.py", "Dia a Dia", "today"),
+    ("paginas/diagnostico.py", "Condições", "health_and_safety"),
+    ("paginas/fechamentos.py", "Mensal", "calendar_month"),
+    ("paginas/conta_beta.py", "Atendimento", "support_agent"),
 )
 
-COMPLEMENTARES = {
-    "Aprofundar a análise": (
-        ("paginas/investigacao.py", "Investigar uma mudança", "troubleshoot"),
-        ("paginas/oportunidades.py", "Oportunidades", "flag"),
-        ("paginas/extrato.py", "Fornecedores", "receipt_long"),
-        ("paginas/limites.py", "Qualidade e limites dos dados", "rule"),
-        ("paginas/relatorio.py", "Relatório da análise", "description"),
-    ),
-    "Histórico e cadastro": (
-        ("paginas/conta_beta.py", "Conta e feedback", "account_circle"),
-        ("paginas/fechamentos.py", "Fechamentos", "event_available"),
-        ("paginas/plantas.py", "Plantas e histórico", "database"),
-        ("paginas/importar.py", "Analisar um arquivo avulso", "upload_file"),
-    ),
-    "Validação e referências": (
-        ("paginas/dados_publicos.py", "Testes com dados reais", "science"),
-        ("paginas/diagnostico.py", "Diagnóstico de evidências", "fact_check"),
-        ("paginas/calculadora.py", "Calculadora de referência", "calculate"),
-    ),
-}
+MENU_VISUAL = PRINCIPAIS + (
+    ("paginas/acompanhamento.py", "Importação", "upload"),
+    ("paginas/plantas.py", "Armazém", "inventory_2"),
+    ("paginas/financeiro.py", "Financeiro", "payments"),
+    ("paginas/relatorio.py", "Relatórios", "description"),
+)
 
 ADMIN = ("paginas/admin.py", "Administração", "admin_panel_settings")
 
+COMPLEMENTARES = {
+    "Operação e resultados": MENU_VISUAL[len(PRINCIPAIS) :],
+    "Análise e acompanhamento": (
+        ("paginas/investigacao.py", "Investigar uma mudança", "troubleshoot"),
+        ("paginas/oportunidades.py", "Oportunidades", "flag"),
+        ("paginas/acoes.py", "Ações e verificações", "task_alt"),
+        ("paginas/limites.py", "Qualidade e limites", "rule"),
+    ),
+    "Dados e referências": (
+        ("paginas/extrato.py", "Fornecedores", "receipt_long"),
+        ("paginas/importar.py", "Arquivo avulso", "upload_file"),
+        ("paginas/dados_publicos.py", "Testes com dados reais", "science"),
+        ("paginas/calculadora.py", "Calculadora de referência", "calculate"),
+    ),
+    "Administração": (ADMIN,),
+}
+
 
 def todas_as_paginas(incluir_admin: bool = False) -> tuple:
-    """Registra todas as rotas; o link administrativo só aparece a superadmins."""
-    _ = incluir_admin  # compatibilidade com chamadas existentes
-    return PRINCIPAIS + tuple(p for grupo in COMPLEMENTARES.values() for p in grupo) + (ADMIN,)
+    """Registra todas as rotas; autorização da tela administrativa continua fail-closed."""
+    _ = incluir_admin
+    return PRINCIPAIS + tuple(p for grupo in COMPLEMENTARES.values() for p in grupo)
 
 
 def menu_lateral(st, incluir_admin: bool = False) -> None:
-    """Prioriza o uso diário sem remover ferramentas ou alterar os cálculos."""
+    """Menu diário com os nomes da UX final e ferramentas secundárias preservadas."""
     with st.sidebar:
-        for caminho, titulo, icone in PRINCIPAIS:
+        st.caption("NAVEGAÇÃO")
+        for caminho, titulo, icone in MENU_VISUAL:
             st.page_link(caminho, label=titulo, icon=f":material/{icone}:")
         with st.expander("Mais ferramentas"):
-            for grupo, paginas in COMPLEMENTARES.items():
+            for grupo in ("Análise e acompanhamento", "Dados e referências"):
+                paginas = COMPLEMENTARES[grupo]
                 st.caption(grupo)
                 for caminho, titulo, icone in paginas:
                     st.page_link(caminho, label=titulo, icon=f":material/{icone}:")
         if incluir_admin:
             st.divider()
-            st.page_link(
-                ADMIN[0],
-                label=ADMIN[1],
-                icon=f":material/{ADMIN[2]}:",
-            )
+            st.caption("ADMINISTRAÇÃO")
+            st.page_link(ADMIN[0], label=ADMIN[1], icon=f":material/{ADMIN[2]}:")

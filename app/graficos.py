@@ -13,7 +13,7 @@ from componentes import COR_COMPARACAO, COR_REFERENCIA
 
 # Paleta categórica validada para fundo escuro (validador da paleta, superfície #212121:
 # faixa de luminosidade, croma, separação para daltonismo e contraste ≥ 3:1).
-CORES = ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "#008300", "#9085e9", "#e66767"]
+CORES = ["#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "#008300", "#38bdf8", "#e66767"]
 TINTA = "#ECECEC"
 TINTA_SECUNDARIA = "#A3A3A3"
 GRADE = "#333333"

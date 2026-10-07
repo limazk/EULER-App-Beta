@@ -9,6 +9,7 @@ from __future__ import annotations
 import os
 import time
 from datetime import UTC, datetime
+from html import escape
 
 import streamlit as st
 
@@ -284,7 +285,7 @@ def registrar_atividade(ctx: dict) -> None:
         st.session_state["_euler_last_seen_failed"] = True
 
 
-def _tela_login() -> None:
+def _conteudo_login() -> None:
     st.markdown("# EULER")
     st.caption("Beta · investigação física para caldeiras industriais")
 
@@ -348,6 +349,25 @@ def _tela_login() -> None:
                     st.error(mensagem)
 
 
+def _tela_login() -> None:
+    """Apresenta autenticação real no card da nova identidade visual."""
+    from componentes import seletor_tema
+
+    seletor_tema(login=True)
+    with st.container(key="euler-login"):
+        _conteudo_login()
+
+
+def _tela_indisponivel(titulo: str, mensagem: str) -> None:
+    """Estado recuperável para conexão/configuração, sem prometer modo offline."""
+    with st.container(key="euler-login"):
+        st.markdown("# :material/wifi_off:")
+        st.markdown(f"## {titulo}")
+        st.caption(mensagem)
+        if st.button("Tentar novamente", type="primary", use_container_width=True):
+            st.rerun()
+
+
 def exigir_acesso() -> dict:
     # Exclusivo para a suíte automatizada. Produção continua fail-closed sem Supabase.
     if _modo_teste():
@@ -356,10 +376,10 @@ def exigir_acesso() -> dict:
         return ctx
 
     if not configurado():
-        st.error("O login do beta ainda não foi configurado neste ambiente.")
-        st.code(
-            "SUPABASE_URL=...\nSUPABASE_PUBLISHABLE_KEY=...\nSUPABASE_SECRET_KEY=...",
-            language="text",
+        _tela_indisponivel(
+            "Serviço temporariamente indisponível",
+            "O acesso ao EULER ainda não está configurado neste ambiente. "
+            "Confira a conexão ou tente novamente em alguns instantes.",
         )
         st.caption("Veja docs/beta/SETUP_SUPABASE.md.")
         st.stop()
@@ -371,7 +391,10 @@ def exigir_acesso() -> dict:
     ctx = contexto_atual()
     if not ctx:
         limpar_sessao()
-        st.error("Não foi possível carregar seu perfil.")
+        _tela_indisponivel(
+            "Sem conexão com o servidor",
+            "Não foi possível carregar seu perfil. Verifique a conexão e tente novamente.",
+        )
         st.stop()
 
     status = ctx["profile"].get("status", "pending")
@@ -423,14 +446,24 @@ def painel_conta_sidebar(ctx: dict) -> None:
     perfil = ctx["profile"]
     with st.sidebar:
         st.divider()
-        st.caption("CONTA")
-        st.write(perfil.get("full_name") or ctx.get("email") or "Usuário")
+        nome = perfil.get("full_name") or ctx.get("email") or "Usuário"
+        inicial = nome.strip()[:1].upper() or "E"
+        papel = "Administrador EULER" if ctx.get("is_superadmin") else "Usuário"
+        organizacao = ""
         if ctx["memberships"]:
-            org = ctx["memberships"][0].get("organizations") or {}
+            membership = ctx["memberships"][0]
+            org = membership.get("organizations") or {}
             if org:
-                st.caption(org.get("name", "Organização"))
-        if ctx.get("is_superadmin"):
-            st.caption("Administrador EULER")
+                organizacao = org.get("name", "Organização")
+            papel = (membership.get("role") or papel).capitalize()
+        st.html(
+            '<div class="euler-user-card">'
+            f'<span class="euler-user-avatar">{escape(inicial)}</span>'
+            '<span class="euler-user-copy">'
+            f"<strong>{escape(nome)}</strong><small>{escape(papel)}"
+            + (f" · {escape(organizacao)}" if organizacao else "")
+            + "</small></span></div>"
+        )
         if st.button("Sair", key="logout-euler", use_container_width=True):
             sair()
             st.rerun()
