@@ -126,8 +126,8 @@ def cadastrar(nome: str, email: str, senha: str) -> tuple[bool, str]:
         if resposta.session:
             _guardar_sessao(resposta.session)
         return True, "Cadastro criado. Sua conta ficará aguardando aprovação."
-    except Exception as exc:  # noqa: BLE001
-        return False, f"Não foi possível criar a conta: {exc}"
+    except Exception:  # noqa: BLE001
+        return False, "Não foi possível criar a conta. Confira os dados ou tente novamente."
 
 
 def entrar(email: str, senha: str) -> tuple[bool, str]:
@@ -141,6 +141,61 @@ def entrar(email: str, senha: str) -> tuple[bool, str]:
         return True, ""
     except Exception:  # noqa: BLE001
         return False, "E-mail ou senha inválidos."
+
+
+def recuperar_senha(email: str) -> tuple[bool, str]:
+    """Solicita ao Supabase um link de recuperação sem revelar se a conta existe."""
+    email = email.strip().lower()
+    if "@" not in email:
+        return False, "Informe um e-mail válido."
+    try:
+        opcoes = {}
+        if redirecionamento := os.environ.get("EULER_PASSWORD_RESET_REDIRECT_URL"):
+            opcoes["redirect_to"] = redirecionamento
+        _cliente_usuario().auth.reset_password_for_email(email, opcoes or None)
+        return True, "Se o e-mail estiver cadastrado, você receberá um link para redefinir a senha."
+    except Exception:  # noqa: BLE001
+        return False, "Não foi possível enviar o link agora. Tente novamente em alguns minutos."
+
+
+def redefinir_senha(senha: str, confirmar: str) -> tuple[bool, str]:
+    if len(senha) < 8:
+        return False, "A nova senha precisa ter pelo menos 8 caracteres."
+    if senha != confirmar:
+        return False, "As senhas não coincidem."
+    try:
+        cliente = _cliente_usuario()
+        cliente.auth.update_user({"password": senha})
+        cliente.auth.sign_out()
+        limpar_sessao()
+        st.session_state.pop("_euler_password_recovery", None)
+        return True, "Senha atualizada. Você já pode entrar."
+    except Exception:  # noqa: BLE001
+        return False, "O link expirou ou já foi usado. Solicite uma nova recuperação."
+
+
+def _receber_recuperacao() -> bool:
+    """Troca o código PKCE da URL por uma sessão apta a atualizar a senha."""
+    if st.session_state.get("_euler_password_recovery"):
+        return True
+    token_hash = st.query_params.get("token_hash")
+    codigo = st.query_params.get("code")
+    if not token_hash and not codigo:
+        return False
+    try:
+        cliente = _cliente_usuario()
+        if token_hash:
+            resposta = cliente.auth.verify_otp({"token_hash": token_hash, "type": "recovery"})
+        else:
+            resposta = cliente.auth.exchange_code_for_session({"auth_code": codigo})
+        if resposta.session:
+            _guardar_sessao(resposta.session)
+            st.session_state["_euler_password_recovery"] = True
+            st.query_params.clear()
+            return True
+    except Exception:  # noqa: BLE001
+        st.error("O link de recuperação expirou ou é inválido. Solicite um novo link.")
+    return False
 
 
 def sair() -> None:
@@ -215,8 +270,25 @@ def registrar_atividade(ctx: dict) -> None:
 
 
 def _tela_login() -> None:
-    st.markdown("## Acessar a EULER")
-    st.caption("Beta fechado · contas novas precisam de aprovação.")
+    st.markdown("# EULER")
+    st.caption("Beta · investigação física para caldeiras industriais")
+
+    if _receber_recuperacao():
+        st.subheader("Definir nova senha")
+        with st.form("redefinir-senha"):
+            nova = st.text_input("Nova senha", type="password")
+            confirmar_nova = st.text_input("Confirmar nova senha", type="password")
+            atualizar = st.form_submit_button(
+                "Atualizar senha", type="primary", use_container_width=True
+            )
+        if atualizar:
+            with st.spinner("Atualizando senha…"):
+                ok, mensagem = redefinir_senha(nova, confirmar_nova)
+            (st.success if ok else st.error)(mensagem)
+        return
+
+    st.markdown("## Acessar")
+    st.caption("Contas novas precisam de aprovação.")
 
     aba_login, aba_cadastro = st.tabs(["Entrar", "Criar conta"])
     with aba_login:
@@ -225,10 +297,20 @@ def _tela_login() -> None:
             senha = st.text_input("Senha", type="password")
             enviar = st.form_submit_button("Entrar", type="primary", use_container_width=True)
         if enviar:
-            ok, mensagem = entrar(email, senha)
+            with st.spinner("Entrando…"):
+                ok, mensagem = entrar(email, senha)
             if ok:
                 st.rerun()
             st.error(mensagem)
+
+        with st.expander("Esqueci minha senha"):
+            with st.form("recuperar-senha"):
+                email_recuperacao = st.text_input("E-mail da conta")
+                recuperar = st.form_submit_button("Enviar link", use_container_width=True)
+            if recuperar:
+                with st.spinner("Enviando link…"):
+                    ok, mensagem = recuperar_senha(email_recuperacao)
+                (st.success if ok else st.error)(mensagem)
 
     with aba_cadastro:
         with st.form("cadastro-euler"):
@@ -241,7 +323,8 @@ def _tela_login() -> None:
             if senha_nova != confirmar:
                 st.error("As senhas não coincidem.")
             else:
-                ok, mensagem = cadastrar(nome, email_novo, senha_nova)
+                with st.spinner("Criando conta…"):
+                    ok, mensagem = cadastrar(nome, email_novo, senha_nova)
                 if ok:
                     st.success(mensagem)
                     if st.session_state.get(TOKEN_ACCESS):
