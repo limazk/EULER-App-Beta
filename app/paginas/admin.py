@@ -141,9 +141,7 @@ if not feedbacks:
 for item in feedbacks[:50]:
     with st.container(border=True):
         st.write(f"**{item.get('type', 'feedback').title()}**")
-        st.caption(
-            f"{item.get('created_at', '')} · usuário {item.get('user_id', '')}"
-        )
+        st.caption(f"{item.get('created_at', '')} · usuário {item.get('user_id', '')}")
         if item.get("page"):
             st.caption(f"Tela: {item['page']}")
         st.write(item.get("message", ""))
