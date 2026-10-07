@@ -22,6 +22,51 @@ def ambiente(tmp_path, monkeypatch):
     yield estado, armazenamento, sessao
 
 
+
+def test_repositorio_beta_isola_biblioteca_por_organizacao(ambiente, monkeypatch):
+    _, arm, _ = ambiente
+    auth = importlib.import_module("auth")
+
+    monkeypatch.setattr(
+        auth,
+        "contexto_atual",
+        lambda: {
+            "user_id": "usuario-a",
+            "is_superadmin": False,
+            "memberships": [{"organization_id": "11111111-1111-1111-1111-111111111111"}],
+        },
+    )
+    raiz_a = arm.repositorio().raiz
+
+    monkeypatch.setattr(
+        auth,
+        "contexto_atual",
+        lambda: {
+            "user_id": "usuario-b",
+            "is_superadmin": False,
+            "memberships": [{"organization_id": "22222222-2222-2222-2222-222222222222"}],
+        },
+    )
+    raiz_b = arm.repositorio().raiz
+
+    assert raiz_a != raiz_b
+    assert raiz_a.parent.name == "tenants"
+    assert raiz_b.parent.name == "tenants"
+    assert raiz_a.name == "11111111-1111-1111-1111-111111111111"
+    assert raiz_b.name == "22222222-2222-2222-2222-222222222222"
+
+
+def test_repositorio_beta_recusa_usuario_sem_organizacao(ambiente, monkeypatch):
+    _, arm, _ = ambiente
+    auth = importlib.import_module("auth")
+    monkeypatch.setattr(
+        auth,
+        "contexto_atual",
+        lambda: {"user_id": "usuario", "is_superadmin": False, "memberships": []},
+    )
+    with pytest.raises(ValueError, match="organização"):
+        arm.repositorio()
+
 def test_reabrir_apos_sessao_nova_preserva_original_altitude_e_sintetico(ambiente):
     estado, arm, sessao = ambiente
     planta = arm.repositorio().criar_planta("Planta A")
