@@ -60,7 +60,7 @@ jobs:
         run: npm install
 
       - name: Generate EULER app icons
-        run: npm run tauri icon ../../app/imagens/euler_app_icone.png
+        run: npm run tauri icon ../../app/imagens/euler_app_icone.svg
 
       - name: Build installers
         run: npm run build -- --bundles ${{ matrix.bundles }}
