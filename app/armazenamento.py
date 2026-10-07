@@ -12,13 +12,32 @@ import sqlite3
 
 import streamlit as st
 
-from euler.persistencia import Repositorio
+from euler.persistencia import Repositorio, raiz_padrao
 
 ERROS = (ValueError, OSError, sqlite3.Error)
 
 
 def repositorio() -> Repositorio:
-    return Repositorio()
+    """Isola a biblioteca local por organização durante o beta multiusuário."""
+    try:
+        from auth import contexto_atual
+
+        ctx = contexto_atual()
+    except ImportError:
+        ctx = None
+
+    if not ctx:
+        return Repositorio()
+
+    memberships = ctx.get("memberships") or []
+    if memberships:
+        tenant_id = memberships[0]["organization_id"]
+    elif ctx.get("is_superadmin"):
+        tenant_id = f"admin-{ctx['user_id']}"
+    else:
+        raise ValueError("Usuário autenticado ainda não possui organização.")
+
+    return Repositorio(raiz_padrao() / "tenants" / tenant_id)
 
 
 def contexto() -> dict | None:
