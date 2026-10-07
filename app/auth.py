@@ -152,7 +152,7 @@ def recuperar_senha(email: str) -> tuple[bool, str]:
         opcoes = {}
         if redirecionamento := os.environ.get("EULER_PASSWORD_RESET_REDIRECT_URL"):
             opcoes["redirect_to"] = redirecionamento
-        _cliente_usuario().auth.reset_password_email(email, opcoes or None)
+        _cliente_usuario().auth.reset_password_for_email(email, opcoes or None)
         return True, "Se o e-mail estiver cadastrado, você receberá um link para redefinir a senha."
     except Exception:  # noqa: BLE001
         return False, "Não foi possível enviar o link agora. Tente novamente em alguns minutos."

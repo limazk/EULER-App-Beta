@@ -14,7 +14,7 @@ def test_recuperacao_normaliza_email_e_nao_enumera_usuario(monkeypatch):
     chamadas = []
     cliente = SimpleNamespace(
         auth=SimpleNamespace(
-            reset_password_email=lambda email, options: chamadas.append((email, options))
+            reset_password_for_email=lambda email, options: chamadas.append((email, options))
         )
     )
     monkeypatch.setattr(auth, "_cliente_usuario", lambda: cliente)
