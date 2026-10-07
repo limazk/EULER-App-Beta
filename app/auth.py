@@ -19,6 +19,24 @@ TOKEN_REFRESH = "_euler_refresh_token"
 CTX = "_euler_auth_context"
 
 
+def _modo_teste() -> bool:
+    return os.environ.get("EULER_TEST_BYPASS_AUTH") == "1"
+
+
+def _contexto_teste() -> dict:
+    return {
+        "user_id": "test-user",
+        "email": "test@euler.local",
+        "profile": {
+            "full_name": "Teste automatizado",
+            "status": "active",
+            "is_superadmin": True,
+        },
+        "memberships": [],
+        "is_superadmin": True,
+    }
+
+
 def _segredo(*nomes: str) -> str:
     for nome in nomes:
         valor = os.environ.get(nome)
@@ -174,6 +192,10 @@ def _carregar_contexto() -> dict | None:
 
 
 def contexto_atual(*, recarregar: bool = False) -> dict | None:
+    if _modo_teste():
+        ctx = st.session_state.get(CTX) or _contexto_teste()
+        st.session_state[CTX] = ctx
+        return ctx
     if not recarregar and st.session_state.get(CTX):
         return st.session_state[CTX]
     return _carregar_contexto()
@@ -230,18 +252,10 @@ def _tela_login() -> None:
 
 def exigir_acesso() -> dict:
     # Exclusivo para a suíte automatizada. Produção continua fail-closed sem Supabase.
-    if os.environ.get("EULER_TEST_BYPASS_AUTH") == "1":
-        return {
-            "user_id": "test-user",
-            "email": "test@euler.local",
-            "profile": {
-                "full_name": "Teste automatizado",
-                "status": "active",
-                "is_superadmin": False,
-            },
-            "memberships": [],
-            "is_superadmin": False,
-        }
+    if _modo_teste():
+        ctx = _contexto_teste()
+        st.session_state[CTX] = ctx
+        return ctx
 
     if not configurado():
         st.error("O login do beta ainda não foi configurado neste ambiente.")
@@ -333,6 +347,8 @@ def exigir_superadmin() -> dict:
 
 
 def listar_perfis() -> list[dict]:
+    if _modo_teste():
+        return []
     resposta = (
         _cliente_admin().table("profiles").select("*").order("created_at", desc=True).execute()
     )
@@ -350,6 +366,8 @@ def atualizar_status_usuario(user_id: str, status: str) -> None:
 
 
 def listar_organizacoes() -> list[dict]:
+    if _modo_teste():
+        return []
     resposta = _cliente_admin().table("organizations").select("*").order("name").execute()
     return resposta.data or []
 
@@ -414,6 +432,8 @@ def enviar_feedback(tipo: str, mensagem: str, pagina: str = "") -> None:
 
 
 def listar_feedback() -> list[dict]:
+    if _modo_teste():
+        return []
     resposta = (
         _cliente_admin()
         .table("feedback")
