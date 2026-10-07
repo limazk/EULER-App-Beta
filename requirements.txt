@@ -1,5 +1,6 @@
 # Para rodar o app num servidor (ex.: Streamlit Community Cloud): só o necessário para o app,
-# nas versões em que os testes passaram (requirements-lock.txt). O "." instala o motor (euler).
+# nas versões em que os testes passaram (requirements-lock.txt). O "." instala o motor (euler)supabase>=2.28,<3
+.
 # Para desenvolver: pip install -e ".[dev]".
 pandas==3.0.6
 numpy==2.4.6
