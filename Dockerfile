@@ -14,7 +14,10 @@ COPY euler ./euler
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app ./app
+COPY .streamlit/config.toml ./.streamlit/config.toml
 COPY templates ./templates
+COPY demo ./demo
+COPY validation ./validation
 COPY docs ./docs
 
 EXPOSE 8501
