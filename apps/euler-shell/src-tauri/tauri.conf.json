@@ -1,0 +1,37 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "EULER",
+  "version": "0.1.0-beta.1",
+  "identifier": "com.euler.app",
+  "build": {
+    "devUrl": "https://euler-app-beta.onrender.com",
+    "frontendDist": "https://euler-app-beta.onrender.com"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "EULER",
+        "url": "https://euler-app-beta.onrender.com",
+        "width": 1440,
+        "height": 900,
+        "minWidth": 960,
+        "minHeight": 640,
+        "center": true,
+        "resizable": true,
+        "fullscreen": false,
+        "devtools": false
+      }
+    ],
+    "security": {
+      "capabilities": []
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "category": "Business",
+    "shortDescription": "Investigação do consumo de combustível em caldeiras industriais",
+    "longDescription": "EULER é um software de investigação e diagnóstico para análise do consumo de combustível e desempenho de caldeiras industriais."
+  }
+}
