@@ -459,7 +459,7 @@ def atualizar_status_usuario(user_id: str, status: str) -> None:
     if status == "active":
         dados["approved_at"] = datetime.now(UTC).isoformat()
     _cliente_admin().table("profiles").update(dados).eq("id", user_id).execute()
-    st.session_state.pop(CTX, None)
+    _invalidar_contexto()
 
 
 def listar_organizacoes() -> list[dict]:
@@ -485,7 +485,7 @@ def atualizar_status_organizacao(organization_id: str, status: str) -> None:
     _cliente_admin().table("organizations").update({"status": status}).eq(
         "id", organization_id
     ).execute()
-    st.session_state.pop(CTX, None)
+    _invalidar_contexto()
 
 
 def vincular_usuario(user_id: str, organization_id: str, role: str) -> None:
@@ -500,6 +500,7 @@ def vincular_usuario(user_id: str, organization_id: str, role: str) -> None:
         },
         on_conflict="organization_id,user_id",
     ).execute()
+    _invalidar_contexto()
 
 
 def enviar_feedback(tipo: str, mensagem: str, pagina: str = "") -> None:
