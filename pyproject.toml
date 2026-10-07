@@ -16,6 +16,11 @@ dependencies = [
     "streamlit>=1.64,<2",
     "openpyxl>=3.1",
     "supabase==2.32.0",
+    # Dependências sensíveis do cliente são fixadas também no install editável/CI.
+    # Os subpacotes Supabase são fixados pelo próprio supabase==2.32.0.
+    "httpx==0.28.1",
+    "pydantic==2.13.5",
+    "yarl==1.25.1",
 ]
 
 [project.optional-dependencies]
