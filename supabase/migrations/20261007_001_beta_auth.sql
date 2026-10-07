@@ -42,6 +42,24 @@ create unique index if not exists memberships_one_active_org_per_user_idx
     on public.memberships(user_id)
     where status = 'active';
 
+create table if not exists public.feedback (
+    id uuid primary key default gen_random_uuid(),
+    user_id uuid not null references auth.users(id) on delete cascade,
+    organization_id uuid references public.organizations(id) on delete set null,
+    type text not null check (type in ('bug', 'melhoria', 'duvida', 'outro')),
+    message text not null check (char_length(message) between 5 and 4000),
+    page text not null default '',
+    status text not null default 'open'
+        check (status in ('open', 'reviewing', 'resolved')),
+    created_at timestamptz not null default now()
+);
+
+create index if not exists feedback_user_id_idx
+    on public.feedback(user_id);
+
+create index if not exists feedback_organization_id_idx
+    on public.feedback(organization_id);
+
 create or replace function public.handle_new_euler_user()
 returns trigger
 language plpgsql
@@ -70,14 +88,17 @@ for each row execute procedure public.handle_new_euler_user();
 alter table public.profiles enable row level security;
 alter table public.organizations enable row level security;
 alter table public.memberships enable row level security;
+alter table public.feedback enable row level security;
 
 revoke all on public.profiles from anon, authenticated;
 revoke all on public.organizations from anon, authenticated;
 revoke all on public.memberships from anon, authenticated;
+revoke all on public.feedback from anon, authenticated;
 
 grant select on public.profiles to authenticated;
 grant select on public.organizations to authenticated;
 grant select on public.memberships to authenticated;
+grant select, insert on public.feedback to authenticated;
 
 drop policy if exists "profile próprio" on public.profiles;
 create policy "profile próprio"
@@ -90,6 +111,18 @@ create policy "membership própria"
 on public.memberships for select
 to authenticated
 using ((select auth.uid()) = user_id);
+
+drop policy if exists "feedback próprio leitura" on public.feedback;
+create policy "feedback próprio leitura"
+on public.feedback for select
+to authenticated
+using ((select auth.uid()) = user_id);
+
+drop policy if exists "feedback próprio envio" on public.feedback;
+create policy "feedback próprio envio"
+on public.feedback for insert
+to authenticated
+with check ((select auth.uid()) = user_id);
 
 drop policy if exists "organizações do usuário" on public.organizations;
 create policy "organizações do usuário"
