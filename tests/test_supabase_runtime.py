@@ -1,12 +1,13 @@
 """Smoke tests do runtime Supabase sem acessar a rede."""
 
+import sys
 from importlib import import_module
 from importlib.metadata import version
 from pathlib import Path
-import sys
+
+from supabase.client import ClientOptions
 
 from supabase import Client, create_client
-from supabase.client import ClientOptions
 
 APP = Path(__file__).resolve().parents[1] / "app"
 sys.path.insert(0, str(APP))
