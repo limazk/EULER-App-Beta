@@ -128,7 +128,7 @@ def entrar(email: str, senha: str) -> tuple[bool, str]:
 def sair() -> None:
     try:
         cliente = _cliente_usuario()
-        cliente.auth.sign_out({"scope": "local"})
+        cliente.auth.sign_out()
     except Exception:  # noqa: BLE001
         st.session_state["_euler_remote_signout_failed"] = True
     limpar_sessao()
