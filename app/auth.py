@@ -290,6 +290,19 @@ def exigir_acesso() -> dict:
             st.rerun()
         st.stop()
 
+    if not ctx.get("is_superadmin") and ctx.get("memberships"):
+        org = ctx["memberships"][0].get("organizations") or {}
+        if org.get("status") != "active":
+            st.markdown("## Empresa temporariamente suspensa")
+            st.warning(
+                "O acesso desta organização está suspenso. "
+                "Entre em contato com a administração da EULER."
+            )
+            if st.button("Sair", key="sair-org-suspensa"):
+                sair()
+                st.rerun()
+            st.stop()
+
     registrar_atividade(ctx)
     return ctx
 
@@ -349,6 +362,15 @@ def criar_organizacao(nome: str, slug: str) -> None:
     _cliente_admin().table("organizations").insert(
         {"name": nome, "slug": slug, "status": "active"}
     ).execute()
+
+
+def atualizar_status_organizacao(organization_id: str, status: str) -> None:
+    if status not in {"active", "suspended"}:
+        raise ValueError("Status de organização inválido.")
+    _cliente_admin().table("organizations").update({"status": status}).eq(
+        "id", organization_id
+    ).execute()
+    st.session_state.pop(CTX, None)
 
 
 def vincular_usuario(user_id: str, organization_id: str, role: str) -> None:
