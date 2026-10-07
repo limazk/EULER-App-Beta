@@ -3,7 +3,6 @@
 import re
 
 import streamlit as st
-
 from auth import (
     atualizar_status_usuario,
     criar_organizacao,
@@ -80,7 +79,7 @@ if criar:
         criar_organizacao(nome, slug_limpo)
         st.success("Organização criada.")
         st.rerun()
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         st.error(f"Não foi possível criar: {exc}")
 
 if organizacoes and perfis:
@@ -114,5 +113,5 @@ if organizacoes and perfis:
                     role,
                 )
                 st.success("Usuário vinculado.")
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001
                 st.error(f"Não foi possível vincular: {exc}")
