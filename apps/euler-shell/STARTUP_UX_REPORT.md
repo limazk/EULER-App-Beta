@@ -2,9 +2,9 @@
 
 ## Status
 
-PARCIALMENTE CONCLUÍDO
+CONCLUÍDO
 
-A implementação está concluída dentro do escopo. A validação automática passou no CI geral e no build Windows. O build Linux não chegou à compilação do projeto porque o runner do GitHub Actions permaneceu preso na etapa **Linux dependencies** (`apt-get`), antes de Node, Rust e Tauri serem executados.
+A implementação e a validação automática estão concluídas dentro do escopo. O CI geral, o build Linux e o build Windows passaram com sucesso. O Linux gerou AppImage e `.deb`, e o Windows gerou o instalador NSIS. O PR está pronto para revisão do coordenador e merge após a revisão.
 
 ## Branch
 
@@ -71,14 +71,15 @@ A página local usa CSP com conexões, frames, objetos e formulários bloqueados
 ### CI geral
 
 Workflow: `CI`  
-Run: `37672411896`  
+Run: `37674105351`  
 Resultado: **SUCCESS**
 
-O lint passou antes da suíte de testes e o job completo terminou com sucesso.
+O lint e a suíte de testes terminaram com sucesso no commit validado.
 
 ### Tauri Windows
 
 Workflow: `Tauri Shell`  
+Run: `37674105361`  
 Job: `Build Windows`  
 Resultado: **SUCCESS**
 
@@ -87,12 +88,11 @@ Etapas confirmadas:
 - checkout;
 - Node;
 - Rust;
-- npm install;
 - geração de ícones;
 - build NSIS;
 - upload do instalador.
 
-Uma execução anterior do mesmo código funcional também concluiu Windows com sucesso.
+Artifact publicado pelo workflow: `euler-windows`.
 
 ### Fluxos cobertos pela implementação
 
@@ -108,25 +108,19 @@ Os cenários de rede são tratados pela splash. Não há teste automatizado end-
 
 ## Linux
 
-**Validação pendente por infraestrutura do runner.**
+**Validado com sucesso.**
 
 Workflow: `Tauri Shell`  
-Job: `Build Linux`
+Run: `37674105361`  
+Job: `Build Linux`  
+Resultado: **SUCCESS**
 
-O runner permaneceu em:
+A etapa `Linux dependencies`, que havia travado em uma execução anterior, concluiu normalmente. Node, Rust e Tauri foram executados e os bundles foram gerados com sucesso:
 
-`Linux dependencies`
+- `EULER_0.1.0-beta.1_amd64.AppImage`;
+- `EULER_0.1.0-beta.1_amd64.deb`.
 
-antes de chegar a:
-
-- Setup Node;
-- Setup Rust;
-- npm install;
-- Tauri build.
-
-Portanto, não há evidência de erro Linux no código nesta execução; a compilação Linux simplesmente não foi alcançada.
-
-O build Linux deve ser reexecutado quando o runner/apt estiver saudável.
+Artifact publicado pelo workflow: `euler-linux`.
 
 ## Windows
 
@@ -136,11 +130,9 @@ O NSIS foi compilado e enviado como artifact pelo workflow.
 
 ## Pendências
 
-1. Reexecutar o job Linux até ele ultrapassar a instalação de dependências e validar AppImage + `.deb`.
-2. Fazer teste manual em desktop com Render realmente em cold start.
-3. Fazer teste manual sem internet para verificar a mensagem do WebView em cada plataforma.
+**Nenhuma pendência bloqueante dentro do escopo do Startup UX.**
 
-Não há pendência conhecida de implementação dentro do escopo do startup UX.
+Testes manuais adicionais com cold start real do Render e perda real de rede continuam recomendados como validação complementar, mas não há falha conhecida de implementação ou de build impedindo revisão/merge.
 
 ## Riscos conhecidos
 
@@ -152,26 +144,19 @@ Não há pendência conhecida de implementação dentro do escopo do startup UX.
 
 ## Próximo passo recomendado
 
-Reexecutar somente a validação Linux. Se AppImage e `.deb` forem gerados, marcar este trabalho como concluído e liberar o PR para revisão do coordenador.
+Revisão final do coordenador e merge do PR #18 em `feature/auth-beta`. O Chat 3 não deve fazer o merge por conta própria.
 
-## Prompt de continuação
+## Handoff final
 
-Continue a tarefa **EULER Desktop — Startup UX**.
+Status final do **EULER Desktop — Startup UX**:
 
-- Repositório: `limazk/EULER-App-Beta`
-- Branch existente: `tauri/startup-ux`
-- Último commit funcional antes deste relatório: `907a4fab917190a70665b0337663f2ec208404fe`
-- PR: `#18`
-- Implementação já concluída: splash local, cold-start UX, offline, retry, janela remota oculta, navegação restrita e segurança sem novas permissões.
-- CI geral: sucesso.
-- Windows NSIS: sucesso.
-- Única validação pendente: Linux.
-- O workflow Linux ficou preso em `Linux dependencies` antes de compilar.
-
-Próximo passo:
-
-1. verifique o estado mais recente do PR #18;
-2. reexecute o job/workflow Linux quando possível;
-3. confirme AppImage e `.deb`;
-4. se Linux passar, atualize este relatório de PARCIALMENTE CONCLUÍDO para CONCLUÍDO;
-5. não faça merge.
+- Repositório: `limazk/EULER-App-Beta`;
+- Branch: `tauri/startup-ux`;
+- PR: `#18`;
+- implementação: concluída;
+- CI geral: verde;
+- Linux AppImage + `.deb`: verde;
+- Windows NSIS: verde;
+- artifacts Linux e Windows: publicados;
+- pendências bloqueantes: nenhuma;
+- ação seguinte: revisão do coordenador e merge.
