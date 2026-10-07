@@ -1,4 +1,4 @@
-"""Seis entradas diárias, com todas as demais rotas preservadas em menu recolhido."""
+"""Entradas principais da EULER e rotas complementares."""
 
 PRINCIPAIS = (
     ("paginas/inicio.py", "Início", "home"),
@@ -29,13 +29,18 @@ COMPLEMENTARES = {
     ),
 }
 
-
-def todas_as_paginas() -> tuple:
-    """Inclui rotas recolhidas para preservar links diretos e navegação interna."""
-    return PRINCIPAIS + tuple(p for grupo in COMPLEMENTARES.values() for p in grupo)
+ADMIN = ("paginas/admin.py", "Administração", "admin_panel_settings")
 
 
-def menu_lateral(st) -> None:
+def todas_as_paginas(incluir_admin: bool = False) -> tuple:
+    """Inclui rotas recolhidas e, para superadmin, a administração do beta."""
+    paginas = PRINCIPAIS + tuple(p for grupo in COMPLEMENTARES.values() for p in grupo)
+    if incluir_admin:
+        paginas += (ADMIN,)
+    return paginas
+
+
+def menu_lateral(st, incluir_admin: bool = False) -> None:
     """Prioriza o uso diário sem remover ferramentas ou alterar os cálculos."""
     with st.sidebar:
         for caminho, titulo, icone in PRINCIPAIS:
@@ -45,3 +50,10 @@ def menu_lateral(st) -> None:
                 st.caption(grupo)
                 for caminho, titulo, icone in paginas:
                     st.page_link(caminho, label=titulo, icon=f":material/{icone}:")
+        if incluir_admin:
+            st.divider()
+            st.page_link(
+                ADMIN[0],
+                label=ADMIN[1],
+                icon=f":material/{ADMIN[2]}:",
+            )
