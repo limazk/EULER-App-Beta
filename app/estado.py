@@ -17,6 +17,8 @@ from euler.io import Pacote, fontes_de_arquivos, importar_pacote
 from euler.vapor import p_atm_por_altitude_bar
 
 RAIZ = Path(__file__).resolve().parents[1]
+ARQUIVOS_HASH = "_euler_arquivos_hash"
+ASSINATURA_CACHE = "_euler_assinatura_cache"
 
 
 @st.cache_data(show_spinner="Importando…")
@@ -32,11 +34,47 @@ def ler_pasta(pasta: Path) -> dict[str, bytes]:
     return {p.name: p.read_bytes() for p in sorted(pasta.glob("*.csv"))}
 
 
+def _hash_arquivos(arquivos: tuple[tuple[str, bytes], ...]) -> str:
+    """Fingerprint barato dos dados para saber se a assinatura final ainda é reutilizável."""
+    h = hashlib.sha256()
+    for nome, dados in arquivos:
+        h.update(nome.encode())
+        h.update(dados)
+    return h.hexdigest()
+
+
+def _metadados_motor() -> tuple[tuple[str, int, int, int], ...]:
+    """Metadados baratos; mudança normal de código força nova leitura do motor."""
+    itens = []
+    for caminho in sorted((RAIZ / "euler").rglob("*.py")):
+        stat = caminho.stat()
+        itens.append(
+            (
+                caminho.relative_to(RAIZ).as_posix(),
+                stat.st_mtime_ns,
+                stat.st_ctime_ns,
+                stat.st_size,
+            )
+        )
+    return tuple(itens)
+
+
+def _atualizar_hash_com_motor(h, metadados) -> None:
+    """Reproduz exatamente a sequência antiga de bytes usada pela assinatura."""
+    for relativo, *_ in metadados:
+        caminho = RAIZ / relativo
+        h.update(relativo.encode())
+        h.update(caminho.read_bytes().replace(b"\r\n", b"\n"))
+
+
 def definir_arquivos(arquivos: dict[str, bytes], rotulo: str, sinteticos: bool = False) -> None:
     """Troca os dados da sessão. `sinteticos`: exemplos do próprio projeto (marcados como tal)."""
     for chave in ("persistencia", "persistencia_erro", "persistencia_aviso", "saude_incerteza"):
         st.session_state.pop(chave, None)
-    st.session_state["arquivos"] = tuple(sorted(arquivos.items()))
+    normalizados = tuple(sorted(arquivos.items()))
+    st.session_state["arquivos"] = normalizados
+    st.session_state[ARQUIVOS_HASH] = _hash_arquivos(normalizados)
+    st.session_state.pop(ASSINATURA_CACHE, None)
     st.session_state["rotulo_dados"] = rotulo
     st.session_state["dados_sinteticos"] = sinteticos
     esquecer_resultados()
@@ -68,6 +106,8 @@ def limpar_dados() -> None:
             "persistencia",
             "persistencia_erro",
             "persistencia_aviso",
+            ARQUIVOS_HASH,
+            ASSINATURA_CACHE,
         ) or chave.startswith(("fin_recuperacao_", "envio_", "altitude_envio_")):
             st.session_state.pop(chave, None)
     st.session_state["importacao_geracao"] = st.session_state.get("importacao_geracao", 0) + 1
@@ -91,21 +131,39 @@ def dados_sinteticos() -> bool:
 
 
 def assinatura() -> str | None:
-    """Identifica os dados em uso (conteúdo dos arquivos + altitude); None sem dados."""
+    """Identifica os dados em uso sem reler todo o motor em cada rerun."""
     arquivos = st.session_state.get("arquivos")
     if not arquivos:
         return None
-    h = hashlib.sha256(repr(st.session_state.get("altitude_m")).encode())
+
     ctx = st.session_state.get("persistencia", {})
+    metadados = _metadados_motor()
+    arquivos_hash = st.session_state.get(ARQUIVOS_HASH)
+    if not arquivos_hash:
+        arquivos_hash = _hash_arquivos(arquivos)
+        st.session_state[ARQUIVOS_HASH] = arquivos_hash
+
+    chave = (
+        repr(st.session_state.get("altitude_m")),
+        ctx.get("planta_id"),
+        ctx.get("importacao_id"),
+        metadados,
+        arquivos_hash,
+    )
+    guardada = st.session_state.get(ASSINATURA_CACHE)
+    if guardada and guardada.get("chave") == chave:
+        return guardada["valor"]
+
+    # Mantém exatamente o algoritmo antigo para não invalidar histórico só pela otimização.
+    h = hashlib.sha256(repr(st.session_state.get("altitude_m")).encode())
     h.update(repr((ctx.get("planta_id"), ctx.get("importacao_id"))).encode())
-    # Uma edição no motor também invalida os resultados guardados da sessão.
-    for caminho in sorted((RAIZ / "euler").rglob("*.py")):
-        h.update(caminho.relative_to(RAIZ).as_posix().encode())
-        h.update(caminho.read_bytes().replace(b"\r\n", b"\n"))
+    _atualizar_hash_com_motor(h, metadados)
     for nome, dados in arquivos:
         h.update(nome.encode())
         h.update(dados)
-    return h.hexdigest()[:16]
+    valor = h.hexdigest()[:16]
+    st.session_state[ASSINATURA_CACHE] = {"chave": chave, "valor": valor}
+    return valor
 
 
 def esquecer_resultados() -> None:
