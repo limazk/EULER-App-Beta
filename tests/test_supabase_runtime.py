@@ -63,3 +63,26 @@ def test_clientes_euler_constroem_sem_rede(monkeypatch):
 
     assert isinstance(usuario, Client)
     assert isinstance(admin, Client)
+
+
+def test_arquivos_de_dependencias_concordam_com_stack_supabase():
+    raiz = Path(__file__).resolve().parents[1]
+    requirements = (raiz / "requirements.txt").read_text(encoding="utf-8")
+    lock = (raiz / "requirements-lock.txt").read_text(encoding="utf-8")
+    pyproject = (raiz / "pyproject.toml").read_text(encoding="utf-8")
+
+    for pacote, esperado in SUPABASE_STACK.items():
+        pino = f"{pacote}=={esperado}"
+        assert pino in requirements
+        assert pino in lock
+
+    for pino in ("supabase==2.32.0", "httpx==0.28.1", "pydantic==2.13.5", "yarl==1.25.1"):
+        assert pino in pyproject
+
+
+def test_docker_instala_com_constraints_e_verifica_dependencias():
+    dockerfile = (Path(__file__).resolve().parents[1] / "Dockerfile").read_text(encoding="utf-8")
+
+    assert "requirements-lock.txt" in dockerfile
+    assert "-c requirements-lock.txt" in dockerfile
+    assert "pip check" in dockerfile
