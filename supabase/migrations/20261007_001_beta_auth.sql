@@ -60,6 +60,8 @@ begin
 end;
 $$;
 
+revoke execute on function public.handle_new_euler_user() from public, anon, authenticated;
+
 drop trigger if exists on_auth_user_created_euler on auth.users;
 create trigger on_auth_user_created_euler
 after insert on auth.users
