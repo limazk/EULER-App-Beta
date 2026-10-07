@@ -260,6 +260,9 @@ def mostrar() -> None:
         resumo = resumo_do_mes(a, eq["id"], plano["mes"], plano=plano) if plano else None
         if resumo:
             registro_do_mes(resumo)
+        if vigentes:
+            st.markdown(f"### Último fechamento · #{vigentes[-1]['id']}")
+        st.markdown("### O que olhar primeiro")
         cinco_respostas(f, resumo, a.pacote(eq["id"]) if f is not None else None, fila, p)
         historico(a, eq["id"], dados["meses"])
         if vigentes:

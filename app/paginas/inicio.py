@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import armazenamento
+import estado
 import streamlit as st
 from auth import contexto_atual
 from componentes import cartao, md
+
+from euler.textos import AVISO_PROTOTIPO
 
 
 def _identidade() -> tuple[str, str]:
@@ -43,7 +46,8 @@ equipamentos, total_analises = _panorama()
 
 with st.container(key="euler-abertura"):
     st.html('<div class="euler-sobrelinha">Visão geral</div>')
-    st.title(f"Bem-vindo, {nome}", anchor=False)
+    st.title("EULER", anchor=False)
+    st.markdown(f"## Bem-vindo, {nome}")
     st.caption(
         "Investigue mudanças no consumo, confira as evidências e escolha a próxima verificação."
         + (f" · {organizacao}" if organizacao else "")
@@ -111,6 +115,20 @@ with a4, cartao("acao-mensal"):
     st.markdown("**Relatório mensal**")
     st.caption("Conferir fechamentos")
     st.page_link("paginas/fechamentos.py", label="Abrir", icon=":material/arrow_forward:")
+
+with st.expander("Sobre a demonstração e os limites"):
+    st.info(AVISO_PROTOTIPO)
+    st.markdown(
+        "A demonstração usa dados sintéticos. A validação pública separada reúne 660 dias "
+        "de registros de uma planta brasileira."
+    )
+    c1, c2 = st.columns(2)
+    if c1.button("Explorar demonstração", type="primary", key="ato1"):
+        estado.usar_caso_demo(completo=True)
+        st.switch_page("paginas/saude.py")
+    if c2.button("Ver demonstração com dados incompletos", key="ato2"):
+        estado.usar_caso_demo(completo=False)
+        st.switch_page("paginas/saude.py")
 
 st.caption(
     "A EULER investiga e recomenda verificações. Não comanda nem avalia a segurança da caldeira."
