@@ -1,7 +1,7 @@
 """Valida o ambiente do EULER Beta sem nunca exibir valores de segredos.
 
 Uso:
-    python scripts/beta_check.py            # variáveis + conexão Supabase
+    python scripts/beta_check.py            # variáveis + cliente público + tabelas (admin, se houver secret)
     python scripts/beta_check.py --offline  # somente variáveis de ambiente
 
 Lê apenas variáveis de ambiente. Não modifica dados.
@@ -81,32 +81,30 @@ def checar_supabase(env: dict[str, str]) -> list[str]:
     from supabase import create_client
 
     opcoes = ClientOptions(auto_refresh_token=False, persist_session=False)
-    problemas: list[str] = []
     try:
-        anon = create_client(url, publica, options=opcoes)
+        create_client(url, publica, options=opcoes)
     except Exception as exc:  # noqa: BLE001
-        print(f"Supabase: FALHA ao criar cliente ({type(exc).__name__})")
+        print(f"Supabase: FALHA ao criar cliente público ({type(exc).__name__})")
         return ["Supabase indisponível"]
-
-    # Com RLS, o cliente anônimo pode receber 0 linhas, mas a tabela precisa existir.
-    for tabela in TABELAS:
-        erro = _consultar(anon, tabela)
-        print(f"Tabela {tabela}: {'OK' if erro is None else f'FALHA ({erro})'}")
-        if erro:
-            problemas.append(f"tabela {tabela}")
+    # Sem sessão, o papel anon não tem grant nas tabelas: não consultar com este cliente.
+    print("Cliente público: OK")
 
     if not secreta:
-        print("SUPABASE_SECRET_KEY ausente — teste administrativo ignorado.")
-        return problemas
+        print("SUPABASE_SECRET_KEY ausente — verificação administrativa das tabelas ignorada.")
+        return []
 
     try:
         admin = create_client(url, secreta, options=opcoes)
-        erro = _consultar(admin, "profiles")
     except Exception as exc:  # noqa: BLE001
-        erro = type(exc).__name__
-    print(f"Admin profiles: {'OK' if erro is None else f'FALHA ({erro})'}")
-    if erro:
-        problemas.append("consulta administrativa")
+        print(f"Cliente administrativo: FALHA ({type(exc).__name__})")
+        return ["cliente administrativo"]
+
+    problemas: list[str] = []
+    for tabela in TABELAS:
+        erro = _consultar(admin, tabela)
+        print(f"Tabela {tabela} (admin): {'OK' if erro is None else f'FALHA ({erro})'}")
+        if erro:
+            problemas.append(f"tabela {tabela}")
     return problemas
 
 

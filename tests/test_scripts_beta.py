@@ -49,9 +49,21 @@ def test_beta_check_aponta_ausentes_e_url_invalida(capsys):
     assert "SUPABASE_SECRET_KEY ausente" not in problemas  # opcional
 
 
-def test_beta_check_sem_secret_ignora_admin(monkeypatch, capsys):
+PUBLICA = "sb_publishable_NAO_IMPRIMIR"
+SECRETA = "sb_secret_NAO_IMPRIMIR"
+
+
+@pytest.fixture
+def supabase_falso(monkeypatch):
+    """Módulos falsos: registra as tabelas consultadas por cada chave, sem rede."""
+    consultas: dict[str, list[str]] = {}
+
     class Cliente:
-        def table(self, _):
+        def __init__(self, chave):
+            self.chave = chave
+
+        def table(self, nome):
+            consultas.setdefault(self.chave, []).append(nome)
             return self
 
         def select(self, *a, **k):
@@ -63,15 +75,33 @@ def test_beta_check_sem_secret_ignora_admin(monkeypatch, capsys):
         def execute(self):
             return SimpleNamespace(data=[])
 
-    # Módulos falsos: o teste não depende do pacote supabase nem de rede.
-    falso = SimpleNamespace(create_client=lambda *a, **k: Cliente())
+    falso = SimpleNamespace(create_client=lambda url, chave, **k: Cliente(chave))
     opcoes = SimpleNamespace(ClientOptions=lambda **k: None)
     monkeypatch.setitem(sys.modules, "supabase", falso)
     monkeypatch.setitem(sys.modules, "supabase.lib", SimpleNamespace())
     monkeypatch.setitem(sys.modules, "supabase.lib.client_options", opcoes)
-    env = {"SUPABASE_URL": "https://abc.supabase.co", "SUPABASE_PUBLISHABLE_KEY": "x"}
+    return consultas
+
+
+def test_beta_check_sem_secret_nao_consulta_tabelas(supabase_falso, capsys):
+    env = {"SUPABASE_URL": "https://abc.supabase.co", "SUPABASE_PUBLISHABLE_KEY": PUBLICA}
     assert beta_check.checar_supabase(env) == []
-    assert "teste administrativo ignorado" in capsys.readouterr().out
+    saida = capsys.readouterr().out
+    assert supabase_falso == {}  # cliente público nunca consulta tabelas
+    assert "verificação administrativa das tabelas ignorada" in saida
+    assert PUBLICA not in saida
+
+
+def test_beta_check_com_secret_admin_verifica_tabelas(supabase_falso, capsys):
+    env = {
+        "SUPABASE_URL": "https://abc.supabase.co",
+        "SUPABASE_PUBLISHABLE_KEY": PUBLICA,
+        "SUPABASE_SECRET_KEY": SECRETA,
+    }
+    assert beta_check.checar_supabase(env) == []
+    saida = capsys.readouterr().out
+    assert supabase_falso == {SECRETA: list(beta_check.TABELAS)}
+    assert PUBLICA not in saida and SECRETA not in saida
 
 
 # ---------- bootstrap_superadmin ----------
