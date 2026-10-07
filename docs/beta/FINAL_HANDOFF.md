@@ -2,51 +2,65 @@
 
 Data do snapshot: 07/10/2026  
 Branch base: `feature/auth-beta`  
-Commit observado: `7c6e8ac6ba523a0ae07e23dafccd9c3e3f168122`
+Base observada: `9a7c8f1f5847c37b916d7ff87e65da2679726ce3`
+
+## Estado atual
+
+A integração técnica planejada para esta fase está concluída em `feature/auth-beta`. O domínio do Adryan já faz parte da branch após o merge do PR #19.
+
+Isso **não** significa que o Beta já foi promovido para `main`. O PR #3 continua **Draft** e a validação final integrada será executada pelo Codex após o merge do PR #20.
+
+## PRs da etapa
+
+| PR | Papel | Estado |
+|---|---|---|
+| #15 | Cache do contexto de autenticação | **MERGED** |
+| #16 | Cache compatível da assinatura dos dados | **MERGED** |
+| #17 | Dependências Supabase reproduzíveis | **MERGED** |
+| #18 | Startup UX do Tauri | **MERGED** |
+| #19 | Integração do core Adryan | **MERGED** |
+| #20 | Checklist, release notes e handoff final | **EM REVISÃO** |
+| #3 | `feature/auth-beta -> main` | **DRAFT** |
+
+## Integração Adryan
+
+O PR #19 foi mesclado em `feature/auth-beta`.
+
+- Merge SHA: `9a7c8f1f5847c37b916d7ff87e65da2679726ce3`.
+- Último head validado antes do merge: `b5a87378beac14995d2fbfcdbb6be298e8558e00`.
+- Módulos integrados incluem mensal, dia a dia, condições, atendimento e dependências internas necessárias.
+- A interface mensal completa continua fora do escopo dessa integração.
+
+### Evidências finais do #19
+
+- testes direcionados: **97 passed**;
+- suíte completa: **815 passed / 34 skipped**;
+- CI: **verde**;
+- `ruff check .`: **verde**;
+- format: **255 arquivos corretamente formatados**;
+- `tests/golden/**`: **intacto**;
+- tolerâncias científicas: **intactas**;
+- asserts removidos: **nenhum**;
+- tolerâncias aumentadas: **nenhuma**;
+- conflitos: **nenhum**.
+
+O único apontamento conhecido dessa validação são avisos não bloqueantes sobre Node.js 20 nas GitHub Actions.
 
 ## Arquitetura do Beta
 
 O EULER Beta permanece organizado em camadas:
 
-- **`app/`** — interface Streamlit, autenticação, navegação, administração e integração da experiência de usuário;
-- **`euler/`** — motor científico e módulos de domínio;
-- **Supabase** — autenticação, identidade, organizações e papéis do Beta; a chave secreta permanece somente no servidor;
-- **SQLite por organização** — persistência científica local no Beta, usando diretório persistente configurado por `EULER_DADOS_DIR`;
-- **`apps/euler-shell/`** — shell Tauri 2 que carrega a aplicação web hospedada sem expor permissões nativas ao conteúdo remoto;
-- **Docker/Render** — empacotamento e execução do serviço Streamlit;
-- **GitHub Actions** — CI e builds desktop Linux/Windows.
+- **`app/`** — interface Streamlit, autenticação, navegação e administração;
+- **`euler/`** — motor científico e módulos de domínio, incluindo o core integrado pelo PR #19;
+- **Supabase** — autenticação, identidade, organizações e papéis do Beta;
+- **SQLite por organização** — persistência científica local do Beta;
+- **`apps/euler-shell/`** — shell Tauri 2 para a aplicação web hospedada;
+- **Docker/Render** — empacotamento e execução do serviço;
+- **GitHub Actions** — CI e builds desktop.
 
-O shell desktop não reimplementa o motor. Ele continua sendo um cliente do Beta web hospedado.
+## Validação local de referência
 
-## PRs que formaram esta etapa
-
-| PR | Papel | Estado no snapshot |
-|---|---|---|
-| #15 | Cache do contexto de autenticação | Mesclado |
-| #16 | Cache compatível da assinatura dos dados | Mesclado |
-| #17 | Dependências Supabase reproduzíveis | Mesclado |
-| #18 | Startup UX do Tauri | Mesclado |
-| #19 | Integração do core Adryan | Aberto; ainda não integrado |
-| #3 | Integração geral do Beta em `main` | Draft |
-
-## Integração Adryan
-
-O PR #19 integra os módulos de domínio mensal, dia a dia, condições e atendimento, além das dependências internas e testes diretamente relacionados.
-
-No estado deste documento:
-
-- o PR #19 está aberto e mergeável;
-- os testes locais reportados no PR passaram (`799 passed, 34 skipped`);
-- o CI do PR passou na base anterior;
-- `tests/golden/**` e tolerâncias foram declarados intactos;
-- a interface mensal completa ficou fora do escopo;
-- o PR ainda precisa ser atualizado/revalidado sobre a base que já contém o #18 antes do merge final.
-
-Não considerar a integração Adryan como parte do Beta publicado antes desse fechamento.
-
-## Como validar localmente
-
-### 1. Preparar o ambiente Python
+Preparação:
 
 ```bash
 git clone https://github.com/limazk/EULER-App-Beta.git
@@ -60,42 +74,21 @@ source .venv/bin/activate
 python -m pip install -e ".[dev]"
 ```
 
-No Windows, ative o ambiente virtual com o caminho equivalente em `.venv\\Scripts`.
-
-### 2. Rodar testes
-
-Para a suíte usada durante a integração Beta:
+Suíte e qualidade:
 
 ```bash
 EULER_TEST_BYPASS_AUTH=1 pytest -q -p no:cacheprovider
-```
-
-Também é possível executar:
-
-```bash
-pytest -q
+ruff check .
 ruff format --check .
 ```
 
-### 3. Lint
-
-O comando oficial do projeto é:
-
-```bash
-ruff check .
-```
-
-Há uma dívida técnica conhecida: no estado auditado, esse comando encontra `I001` de ordenação de imports em `app/auth.py`. Não mascarar a falha nem alterar golden/tolerâncias para obter verde; corrigir `app/auth.py` somente em tarefa autorizada.
-
-### 4. Validar Supabase
-
-Sem acesso à rede, valide o ambiente/configuração:
+Validação de ambiente Supabase:
 
 ```bash
 python scripts/beta_check.py --offline
 ```
 
-Com as variáveis reais configuradas em ambiente seguro:
+Com credenciais reais configuradas em ambiente seguro, a validação operacional externa pode ser executada com:
 
 ```bash
 python scripts/beta_check.py
@@ -103,88 +96,28 @@ python scripts/beta_check.py
 
 Nunca use `EULER_TEST_BYPASS_AUTH=1` em servidor público e nunca versione `SUPABASE_SECRET_KEY`.
 
-### 5. Rodar o app web
+## Estado de liberação
 
-```bash
-streamlit run app/main.py
-```
+### `feature/auth-beta`
 
-O fluxo operacional de validação deve cobrir, quando houver Supabase real disponível:
+**Integração técnica concluída, aguardando validação final.**
 
-1. cadastro de tester;
-2. conta pendente;
-3. aprovação por superadmin;
-4. vínculo a organização;
-5. acesso ao software;
-6. persistência da planta;
-7. suspensão e bloqueio do usuário.
+A branch já contém os PRs #15, #16, #17, #18 e #19.
 
-## Como gerar e verificar builds
+### `main`
 
-### Docker / web
+**Ainda não promovida.**
 
-Gerar a imagem:
+O PR #3 continua Draft. Os checks antigos do #3 não devem ser usados como evidência da versão final integrada.
 
-```bash
-docker build -t euler-beta .
-```
+## Próximo passo obrigatório
 
-O deploy deve fornecer `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SECRET_KEY` e `EULER_DADOS_DIR` em ambiente seguro.
+Depois do merge do PR #20:
 
-### Tauri local
+1. obter o novo SHA de `feature/auth-beta`;
+2. executar a validação final integrada com o Codex sobre esse SHA;
+3. confirmar novamente testes, lint, format, CI, golden e tolerâncias;
+4. somente então reavaliar o PR #3 para sair de Draft.
 
-Pré-requisitos: Node.js, Rust e dependências de sistema do Tauri 2.
+Nenhuma promoção para `main` deve ocorrer antes dessa validação.
 
-```bash
-cd apps/euler-shell
-npm install
-npm run build
-```
-
-O bundler gera os instaladores do sistema operacional em que o build é executado.
-
-### GitHub Actions
-
-O workflow **Tauri Shell** valida:
-
-- Linux: AppImage + `.deb`;
-- Windows: NSIS `.exe`.
-
-No PR #18, ambos passaram e publicaram os artifacts `euler-linux` e `euler-windows`.
-
-Após o merge do #18, uma nova execução de CI/Tauri da base `feature/auth-beta` estava em andamento no momento deste snapshot. Verificar que essa execução e a execução posterior ao merge do #19 terminem verdes antes da promoção final.
-
-## Auditoria de coerência documental
-
-Foram encontradas as seguintes diferenças entre documentação histórica e o estado atual:
-
-1. **`apps/euler-shell/STARTUP_UX_REPORT.md`** ainda diz que o próximo passo é revisar/mesclar o PR #18. Esse passo já ocorreu; o PR #18 está mesclado.
-2. **`docs/beta/CODEX_HANDOFF.md`** representa uma etapa anterior e instrui o Codex a não alterar `euler/`; isso não descreve o escopo atual do PR #19, que é justamente uma integração controlada do domínio. Tratar esse arquivo como handoff histórico, não como instrução atual.
-3. **`docs/beta/ADRYAN_INTEGRATION_PLAN.md`** usa commits-base antigos e descreve uma sequência planejada. A estratégia continua útil, mas o estado de execução deve ser lido pelos PRs #15–#19.
-4. **`docs/beta/CHANGELOG.md`** ainda resume apenas a fundação inicial do Beta e não inclui as melhorias dos PRs #15–#18 nem o estado pendente do #19.
-5. **`README.md`** contém uma seção de deploy via Streamlit Community Cloud apontando para o repositório/branch de origem do Adryan, o que não representa a branch Beta atual. Não foi alterado nesta tarefa porque o escopo autorizado é somente documentação final em `docs/beta/`.
-
-Nenhuma dessas inconsistências foi corrigida fora dos três arquivos autorizados nesta tarefa.
-
-## Itens para versões ou tarefas futuras
-
-- concluir, atualizar e mesclar o PR #19;
-- portar a interface mensal completa somente depois da integração segura do domínio;
-- corrigir a ordenação de imports em `app/auth.py` em tarefa isolada;
-- concluir/registrar teste integrado com Supabase real antes da liberação que exigir essa garantia;
-- assinatura de binários;
-- updater nativo;
-- backend científico offline para desktop, se virar requisito de produto;
-- validação manual adicional de cold start, perda real de rede e diferenças entre WebView2/WebKitGTK;
-- rever a estratégia de persistência quando o Beta precisar escalar além do modelo atual de uma instância com disco persistente.
-
-## Condição de saída
-
-Antes de promover `feature/auth-beta` para `main`:
-
-- PR #19 integrado e revalidado;
-- CI final verde;
-- builds Linux/Windows finais verdes;
-- golden/tolerâncias sem mudança;
-- dívida de lint tratada ou explicitamente aceita;
-- PR #3 revisado e retirado de Draft somente quando o estado integrado estiver pronto.
