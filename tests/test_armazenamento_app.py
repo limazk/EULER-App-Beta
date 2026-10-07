@@ -22,7 +22,6 @@ def ambiente(tmp_path, monkeypatch):
     yield estado, armazenamento, sessao
 
 
-
 def test_repositorio_beta_isola_biblioteca_por_organizacao(ambiente, monkeypatch):
     _, arm, _ = ambiente
     auth = importlib.import_module("auth")
@@ -66,6 +65,7 @@ def test_repositorio_beta_recusa_usuario_sem_organizacao(ambiente, monkeypatch):
     )
     with pytest.raises(ValueError, match="organização"):
         arm.repositorio()
+
 
 def test_reabrir_apos_sessao_nova_preserva_original_altitude_e_sintetico(ambiente):
     estado, arm, sessao = ambiente
