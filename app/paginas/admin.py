@@ -4,6 +4,7 @@ import re
 
 import streamlit as st
 from auth import (
+    atualizar_status_organizacao,
     atualizar_status_usuario,
     criar_organizacao,
     exigir_superadmin,
@@ -82,6 +83,20 @@ if criar:
         st.rerun()
     except Exception as exc:  # noqa: BLE001
         st.error(f"Não foi possível criar: {exc}")
+
+if organizacoes:
+    st.subheader("Organizações cadastradas")
+    for org in organizacoes:
+        with st.container(border=True):
+            st.write(f"**{org['name']}**")
+            st.caption(f"{org.get('slug', '')} · {org.get('status', '')}")
+            c_ativar, c_suspender = st.columns(2)
+            if c_ativar.button("Reativar", key=f"org-ativar-{org['id']}"):
+                atualizar_status_organizacao(org["id"], "active")
+                st.rerun()
+            if c_suspender.button("Suspender", key=f"org-suspender-{org['id']}"):
+                atualizar_status_organizacao(org["id"], "suspended")
+                st.rerun()
 
 if organizacoes and perfis:
     st.subheader("Vincular usuário")
