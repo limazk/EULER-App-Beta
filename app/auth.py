@@ -10,8 +10,6 @@ import os
 from datetime import UTC, datetime
 
 import streamlit as st
-from supabase.lib.client_options import ClientOptions
-
 from supabase import Client, create_client
 
 TOKEN_ACCESS = "_euler_access_token"
@@ -85,14 +83,11 @@ def _cliente_admin() -> Client:
     cfg = configuracao()
     if not cfg["url"] or not cfg["secret_key"]:
         raise RuntimeError("SUPABASE_SECRET_KEY não configurada no servidor.")
-    return create_client(
-        cfg["url"],
-        cfg["secret_key"],
-        options=ClientOptions(
-            auto_refresh_token=False,
-            persist_session=False,
-        ),
-    )
+    # Workaround para regressão do supabase-py em ClientOptions que pode lançar
+    # AttributeError: 'ClientOptions' object has no attribute 'storage'.
+    # O cliente administrativo roda apenas no servidor e não cria sessão de usuário,
+    # então os defaults do SDK são suficientes aqui.
+    return create_client(cfg["url"], cfg["secret_key"])
 
 
 def _guardar_sessao(sessao) -> None:
