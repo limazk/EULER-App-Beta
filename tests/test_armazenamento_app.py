@@ -24,6 +24,7 @@ def ambiente(tmp_path, monkeypatch):
 
 def test_repositorio_beta_isola_biblioteca_por_organizacao(ambiente, monkeypatch):
     _, arm, _ = ambiente
+    monkeypatch.delenv("EULER_TEST_BYPASS_AUTH", raising=False)
     auth = importlib.import_module("auth")
 
     monkeypatch.setattr(
@@ -57,6 +58,7 @@ def test_repositorio_beta_isola_biblioteca_por_organizacao(ambiente, monkeypatch
 
 def test_repositorio_beta_recusa_usuario_sem_organizacao(ambiente, monkeypatch):
     _, arm, _ = ambiente
+    monkeypatch.delenv("EULER_TEST_BYPASS_AUTH", raising=False)
     auth = importlib.import_module("auth")
     monkeypatch.setattr(
         auth,
