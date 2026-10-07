@@ -4,11 +4,24 @@
   "version": "0.1.0-beta.1",
   "identifier": "com.euler.app",
   "build": {
-    "devUrl": "https://euler-app-beta.onrender.com",
-    "frontendDist": "https://euler-app-beta.onrender.com"
+    "frontendDist": "../dist"
   },
   "app": {
     "windows": [
+      {
+        "label": "splash",
+        "title": "EULER",
+        "url": "index.html",
+        "width": 620,
+        "height": 420,
+        "minWidth": 520,
+        "minHeight": 360,
+        "center": true,
+        "resizable": false,
+        "fullscreen": false,
+        "devtools": false,
+        "visible": true
+      },
       {
         "label": "main",
         "title": "EULER",
@@ -20,11 +33,14 @@
         "center": true,
         "resizable": true,
         "fullscreen": false,
-        "devtools": false
+        "devtools": false,
+        "visible": false,
+        "focus": false
       }
     ],
     "security": {
-      "capabilities": []
+      "capabilities": [],
+      "csp": "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'"
     }
   },
   "bundle": {
