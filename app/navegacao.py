@@ -34,11 +34,9 @@ ADMIN = ("paginas/admin.py", "Administração", "admin_panel_settings")
 
 
 def todas_as_paginas(incluir_admin: bool = False) -> tuple:
-    """Inclui rotas recolhidas e, para superadmin, a administração do beta."""
-    paginas = PRINCIPAIS + tuple(p for grupo in COMPLEMENTARES.values() for p in grupo)
-    if incluir_admin:
-        paginas += (ADMIN,)
-    return paginas
+    """Registra todas as rotas; o link administrativo só aparece a superadmins."""
+    _ = incluir_admin  # compatibilidade com chamadas existentes
+    return PRINCIPAIS + tuple(p for grupo in COMPLEMENTARES.values() for p in grupo) + (ADMIN,)
 
 
 def menu_lateral(st, incluir_admin: bool = False) -> None:
