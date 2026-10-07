@@ -11,6 +11,7 @@ import time
 from datetime import UTC, datetime
 
 import streamlit as st
+
 from supabase import Client, create_client
 
 TOKEN_ACCESS = "_euler_access_token"
