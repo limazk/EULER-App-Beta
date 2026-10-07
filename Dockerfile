@@ -8,9 +8,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-COPY pyproject.toml requirements.txt ./
+COPY pyproject.toml requirements.txt requirements-lock.txt ./
 COPY euler ./euler
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt -c requirements-lock.txt \
+    && pip check
 
 COPY app ./app
 COPY .streamlit/config.toml ./.streamlit/config.toml
