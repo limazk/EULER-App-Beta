@@ -16,3 +16,8 @@ euler_analises_*.json
 demo/video/*.webm
 demo/video/_gravando/
 demo/previa/
+# Segredos locais nunca pertencem ao repositório.
+.env
+.env.*
+!.env.example
+.streamlit/secrets.toml
