@@ -269,6 +269,17 @@ def exigir_acesso() -> dict:
             st.rerun()
         st.stop()
 
+    if not ctx.get("is_superadmin") and not ctx.get("memberships"):
+        st.markdown("## Conta aprovada")
+        st.info(
+            "Seu acesso foi aprovado. Falta um administrador vincular sua conta "
+            "a uma empresa antes de liberar os dados da EULER."
+        )
+        if st.button("Sair", key="sair-sem-organizacao"):
+            sair()
+            st.rerun()
+        st.stop()
+
     registrar_atividade(ctx)
     return ctx
 
