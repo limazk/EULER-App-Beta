@@ -7,6 +7,7 @@ from auth import (
     atualizar_status_usuario,
     criar_organizacao,
     exigir_superadmin,
+    listar_feedback,
     listar_organizacoes,
     listar_perfis,
     vincular_usuario,
@@ -115,3 +116,19 @@ if organizacoes and perfis:
                 st.success("Usuário vinculado.")
             except Exception as exc:  # noqa: BLE001
                 st.error(f"Não foi possível vincular: {exc}")
+
+
+st.divider()
+st.subheader("Feedback do beta")
+feedbacks = listar_feedback()
+if not feedbacks:
+    st.caption("Nenhum feedback enviado ainda.")
+for item in feedbacks[:50]:
+    with st.container(border=True):
+        st.write(f"**{item.get('type', 'feedback').title()}**")
+        st.caption(
+            f"{item.get('created_at', '')} · usuário {item.get('user_id', '')}"
+        )
+        if item.get("page"):
+            st.caption(f"Tela: {item['page']}")
+        st.write(item.get("message", ""))
