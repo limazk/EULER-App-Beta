@@ -26,7 +26,7 @@ Rodar:
 ```bash
 ruff check .
 ruff format --check .
-pytest -q
+EULER_TEST_BYPASS_AUTH=1 pytest -q
 ```
 
 Se algo falhar, corrigir somente a causa real. Não editar `tests/golden/`.
