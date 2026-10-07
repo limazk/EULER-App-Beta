@@ -1,10 +1,10 @@
 """Conta do beta, vínculo organizacional e envio de feedback."""
 
 import streamlit as st
-
-import euler
 from auth import contexto_atual, enviar_feedback
 from componentes import cabecalho
+
+import euler
 
 ctx = contexto_atual(recarregar=True)
 if not ctx:
