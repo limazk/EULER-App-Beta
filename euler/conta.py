@@ -65,6 +65,42 @@ def _t(v: float) -> str:
     return f"{num(abs(v), 1)} t"
 
 
+# Por que um desvio não ficou estabelecido (D110): cada caso tem o seu motivo, nunca um
+# motivo genérico que possa ser o errado.
+FRASE_INCONCLUSIVO = {
+    "faixa_inclui_zero": "a diferença cabe na incerteza das medições",
+    "cenario_do_patio": (
+        "num cenário do pátio (combustível queimado diferente do recebido) a diferença pode "
+        "ser zero"
+    ),
+    "sem_faixa": (
+        "sem a incerteza declarada de todos os instrumentos, não dá para saber se a "
+        "diferença é maior que o erro de medição"
+    ),
+}
+
+
+def motivo_inconclusivo(desvio: dict | None) -> str | None:
+    """Motivo de um desvio não estabelecido, derivado do próprio resultado gravado.
+
+    "sem_faixa": falta incerteza para a faixa; "faixa_inclui_zero": a faixa das medições
+    inclui zero; "cenario_do_patio": a faixa principal exclui zero, mas um cenário do pátio
+    (recebido × queimado) a cruza. None quando o desvio está estabelecido ou indisponível.
+    Funciona também com fechamentos antigos (usa só `estado` e `faixa_t`).
+    """
+    if not desvio:
+        return None
+    estado = desvio.get("estado")
+    if estado == "sem_faixa":
+        return "sem_faixa"
+    if estado != "nao_estabelecido":
+        return None
+    faixa = desvio.get("faixa_t")
+    if faixa and faixa[0] <= 0 <= faixa[1]:
+        return "faixa_inclui_zero"
+    return "cenario_do_patio"
+
+
 def explicar_conta(
     *,
     combustivel_ref_t: float | None,
@@ -604,6 +640,7 @@ def _ponte(v: dict, dias: dict | None) -> dict:
             "disponivel": False,
             "motivo": "As parcelas não fecham a variação total; a ponte não é mostrada.",
         }
+    nao_separados = [x["titulo"] for x in v["componentes"] if not x["separado"]]
     return {
         "disponivel": True,
         "motivo": None,
@@ -612,8 +649,45 @@ def _ponte(v: dict, dias: dict | None) -> dict:
         "variacao_brl": total,
         "dias": dias,
         "grupos": grupos,
-        "nao_separados": [x["titulo"] for x in v["componentes"] if not x["separado"]],
+        "nao_separados": nao_separados,
+        "resposta": resposta_da_ponte(grupos, total, nao_separados),
     }
+
+
+_PARTE_DA_PONTE = {
+    "producao": "pela produção de vapor",
+    "preco": "pelo preço do combustível",
+    "ajustes": "pelas condições medidas",
+    "sem_explicacao": "pelo consumo nas condições comparadas",
+}
+
+
+def resposta_da_ponte(grupos: list[dict], total: float, nao_separados=()) -> str:
+    """Uma frase para a pergunta do gestor: a conta mudou por produção, por preço ou por
+    consumo nas condições comparadas? (D112). Só reorganiza a ponte, em ordem de tamanho."""
+    partes = []
+    for g in sorted(
+        (g for g in grupos if g["custo_brl"] is not None and abs(g["custo_brl"]) >= 0.5),
+        key=lambda g: -abs(g["custo_brl"]),
+    ):
+        nota = f" — {g['nota']}" if g.get("nota") and g["id"] != "sem_explicacao" else ""
+        sentido = "a mais" if g["custo_brl"] > 0 else "a menos"
+        partes.append(f"{_brl(abs(g['custo_brl']))} {sentido} {_PARTE_DA_PONTE[g['id']]}{nota}")
+    if abs(total) < 0.5:
+        frase = "Em relação à referência, a conta ficou igual"
+    else:
+        frase = (
+            f"Em relação à referência, a conta {'subiu' if total > 0 else 'caiu'} "
+            f"{_brl(abs(total))}"
+        )
+    frase += (": " + "; ".join(partes) + ".") if partes else "."
+    if nao_separados:
+        frase += (
+            " Não separados, continuam dentro do consumo nas condições comparadas: "
+            + ", ".join(t.lower() for t in nao_separados)
+            + "."
+        )
+    return frase
 
 
 def conclusao_financeira(conta: dict, oportunidades=(), dias: dict | None = None) -> dict:
@@ -670,11 +744,8 @@ def conclusao_financeira(conta: dict, oportunidades=(), dias: dict | None = None
         inc = des.get("incerteza") or {}
         partes = [
             "Confirmar que a diferença existe: "
-            + (
-                "a faixa das medições inclui zero."
-                if des["estado"] == "nao_estabelecido"
-                else "falta a incerteza de algum instrumento para calcular a faixa."
-            ),
+            + FRASE_INCONCLUSIVO[motivo_inconclusivo(des)]
+            + ".",
             inc.get("frase_origem"),
             (inc.get("melhor") or {}).get("frase"),
         ]

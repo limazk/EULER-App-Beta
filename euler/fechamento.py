@@ -18,12 +18,14 @@ import hashlib
 import json
 import math
 from functools import lru_cache
+from itertools import pairwise
 from pathlib import Path
 
 import pandas as pd
 
 from euler.armazem import (
     COLUNA_TEMPO,
+    ORIGEM_DA_CLASSE,
     POLITICAS_CUSTO,
     Armazem,
     ErroArmazem,
@@ -31,7 +33,8 @@ from euler.armazem import (
     jdump,
     sha,
 )
-from euler.conta import explicar_conta
+from euler.condicoes import condicoes_comparadas
+from euler.conta import FRASE_INCONCLUSIVO, explicar_conta, motivo_inconclusivo
 from euler.formato import num
 from euler.investigacao import investigar
 from euler.periodos import _cenarios, _lotes_todos, periodos_entre_estoques, vapor_e_combustivel
@@ -316,28 +319,74 @@ def preco_do_periodo(
             "custo_adicional_brl_t": None,
             "motivo": None,
         }
-    vigentes = [
-        p
-        for p in (precos(a, equip_id) if precos_tabela is None else precos_tabela)
-        if _ts(p["valido_de"]) <= inicio
-        and (p["valido_ate"] is None or _ts(p["valido_ate"]) >= fim)
-    ]
-    if not vigentes:
+    return _preco_da_tabela(
+        pacote,
+        inicio,
+        fim,
+        base,
+        precos(a, equip_id) if precos_tabela is None else precos_tabela,
+    )
+
+
+def _fim_validade(p: dict) -> pd.Timestamp | None:
+    return None if p["valido_ate"] is None else _ts(p["valido_ate"])
+
+
+def _preco_da_tabela(pacote, inicio, fim, base: dict, tabela: list[dict]) -> dict:
+    """Política "tabela de preços" (D93, D112).
+
+    Um preço cobre o período inteiro: vale ele. Preços em sequência (o contrato mudou
+    dentro do período): o preço do período é a média dos preços de cada trecho ponderada
+    pelo vapor medido em cada trecho (estimado; supõe o mesmo consumo por tonelada de vapor
+    dentro do período), com o menor e o maior preço guardados como limites. Preços ao
+    mesmo tempo (combustíveis ou fornecedores diferentes), buraco na tabela ou vapor de
+    algum trecho desconhecido: o preço fica ausente, com o motivo.
+    """
+    no_periodo = sorted(
+        (
+            p
+            for p in tabela
+            if _ts(p["valido_de"]) < fim and (_fim_validade(p) is None or _fim_validade(p) > inicio)
+        ),
+        key=lambda p: _ts(p["valido_de"]),
+    )
+    if not no_periodo:
         return {
             **base,
             "preco_brl_t": None,
             "motivo": "Nenhum preço da tabela cobre todo o período.",
         }
-    if len(vigentes) > 1:
+    for x, y in pairwise(no_periodo):
+        if _fim_validade(x) is None or _ts(y["valido_de"]) < _fim_validade(x):
+            return {
+                **base,
+                "preco_brl_t": None,
+                "motivo": (
+                    "Mais de um preço vigente ao mesmo tempo (combustíveis ou fornecedores "
+                    "diferentes): a tabela exige uma regra de rateio ainda não definida."
+                ),
+            }
+    buracos = []
+    if _ts(no_periodo[0]["valido_de"]) > inicio:
+        buracos.append((inicio, _ts(no_periodo[0]["valido_de"])))
+    for x, y in pairwise(no_periodo):
+        if _ts(y["valido_de"]) > _fim_validade(x):
+            buracos.append((_fim_validade(x), _ts(y["valido_de"])))
+    if _fim_validade(no_periodo[-1]) is not None and _fim_validade(no_periodo[-1]) < fim:
+        buracos.append((_fim_validade(no_periodo[-1]), fim))
+    if buracos:
+        trechos = "; ".join(f"{x:%d/%m %H:%M} a {y:%d/%m %H:%M}" for x, y in buracos)
         return {
             **base,
             "preco_brl_t": None,
             "motivo": (
-                "Mais de um preço vigente no período (combustíveis ou fornecedores diferentes): "
-                "a tabela exige uma regra de rateio ainda não definida."
+                f"A tabela não tem preço para todo o período (sem preço de {trechos}). "
+                "Cadastre o preço seguinte começando no dia em que o anterior termina."
             ),
         }
-    p = vigentes[0]
+    if len(no_periodo) > 1:
+        return _preco_em_trechos(pacote, inicio, fim, base, no_periodo)
+    p = no_periodo[0]
     adicional = p["custo_adicional_brl_t"] or 0.0
     return {
         **base,
@@ -348,6 +397,58 @@ def preco_do_periodo(
         "origem": p["origem"],
         "combustivel": p["combustivel"],
         "motivo": None,
+    }
+
+
+def _preco_em_trechos(pacote, inicio, fim, base: dict, sequencia: list[dict]) -> dict:
+    """Preço que muda dentro do período: média ponderada pelo vapor medido em cada trecho."""
+    trechos = []
+    for p in sequencia:
+        t0 = max(inicio, _ts(p["valido_de"]))
+        t1 = fim if _fim_validade(p) is None else min(fim, _fim_validade(p))
+        vapor = vapor_e_combustivel(pacote, t0, t1).vapor_t
+        trechos.append(
+            {
+                "inicio": t0.isoformat(),
+                "fim": t1.isoformat(),
+                "preco_brl_t": p["preco_brl_t"] + (p["custo_adicional_brl_t"] or 0.0),
+                "vapor_t": None if vapor is None else float(vapor.valor),
+                "origem": p["origem"],
+            }
+        )
+    descricao = "; ".join(
+        f"R$ {num(t['preco_brl_t'], 2)}/t de {_ts(t['inicio']):%d/%m} a {_ts(t['fim']):%d/%m}"
+        for t in trechos
+    )
+    if any(t["vapor_t"] is None or t["vapor_t"] <= 0 for t in trechos):
+        return {
+            **base,
+            "preco_brl_t": None,
+            "trechos": trechos,
+            "motivo": (
+                f"O preço mudou dentro do período ({descricao}) e o vapor de algum trecho não é "
+                "conhecido: sem base para o rateio, o preço fica ausente."
+            ),
+        }
+    total = sum(t["vapor_t"] for t in trechos)
+    preco = sum(t["vapor_t"] * t["preco_brl_t"] for t in trechos) / total
+    menor, maior = min(t["preco_brl_t"] for t in trechos), max(t["preco_brl_t"] for t in trechos)
+    return {
+        **base,
+        "preco_brl_t": preco,
+        "preco_min_brl_t": menor,
+        "preco_max_brl_t": maior,
+        "rateio": "vapor medido em cada trecho",
+        "trechos": trechos,
+        "origem": "; ".join(dict.fromkeys(t["origem"] for t in trechos)),
+        "combustivel": sequencia[0]["combustivel"],
+        "custo_adicional_brl_t": None,
+        "motivo": (
+            f"O preço mudou dentro do período ({descricao}). Preço do período estimado: média "
+            "ponderada pelo vapor medido em cada trecho (supõe o mesmo consumo por tonelada de "
+            f"vapor no período); o preço real ficou entre R$ {num(menor, 2)} e "
+            f"R$ {num(maior, 2)}/t."
+        ),
     }
 
 
@@ -402,6 +503,37 @@ def fechamentos(a: Armazem, equip_id: str) -> list[dict]:
     ]
 
 
+def fechamentos_vigentes(a: Armazem, equip_id: str) -> list[dict]:
+    """Fechamentos em vigor, em ordem do período (D111).
+
+    Um fechamento revisado sai desta lista (fica no histórico, ligado à revisão que o
+    substituiu). A ordem é a do fim do período, não a da gravação: a revisão de um mês
+    antigo continua no lugar daquele mês.
+    """
+    todos = fechamentos(a, equip_id)
+    revisados = {f["resultado"].get("revisa") for f in todos} - {None}
+    return sorted(
+        (f for f in todos if f["id"] not in revisados), key=lambda f: (_ts(f["fim"]), f["id"])
+    )
+
+
+def revisoes(a: Armazem, equip_id: str) -> dict[int, int]:
+    """{fechamento revisado: fechamento que o substituiu}."""
+    return {
+        f["resultado"]["revisa"]: f["id"]
+        for f in fechamentos(a, equip_id)
+        if f["resultado"].get("revisa") is not None
+    }
+
+
+def dados_mudaram(a: Armazem, equip_id: str, f: dict) -> bool:
+    """Os registros que alimentam o fechamento (até o fim do período, mais instrumentos)
+    mudaram depois que ele foi gravado? Dados acrescentados depois do fim não contam."""
+    return _dados_referencia_sha(a, equip_id, f["fim"], f["revisao_dados"]) != (
+        _dados_referencia_sha(a, equip_id, f["fim"])
+    )
+
+
 def fechamento(a: Armazem, fechamento_id: int) -> dict:
     r = a.con.execute("SELECT * FROM fechamento WHERE id=?", (fechamento_id,)).fetchone()
     if r is None:
@@ -441,7 +573,7 @@ def periodos_pendentes(a: Armazem, equip_id: str) -> list[dict]:
     a indicação de quais têm vapor e combustível conhecidos."""
     pacote = a.pacote(equip_id, p_atm_bar=p_atm(a, equip_id))
     ref = referencia_vigente(a, equip_id)
-    anteriores = fechamentos(a, equip_id)
+    anteriores = fechamentos_vigentes(a, equip_id)
     corte = max(
         [_ts(f["fim"]) for f in anteriores] + ([_ts(ref["fim"])] if ref else []),
         default=None,
@@ -479,13 +611,14 @@ def _nucleo(a, equip_id, pacote, ref, inicio, fim, politica, precos_fixados=None
                 "preco_brl_gj": entradas.get("preco_brl_gj")
                 if politica == "recebimentos_do_periodo"
                 else None,
-                # cenários de preço por lote só fazem sentido na política de recebimentos
+                # cenários de preço: por lote na política de recebimentos; na tabela, o
+                # menor e o maior preço quando o preço muda dentro do período (D112)
                 "preco_min_brl_t": entradas.get("preco_min_brl_t")
                 if politica == "recebimentos_do_periodo"
-                else None,
+                else preco.get("preco_min_brl_t"),
                 "preco_max_brl_t": entradas.get("preco_max_brl_t")
                 if politica == "recebimentos_do_periodo"
-                else None,
+                else preco.get("preco_max_brl_t"),
                 "cenarios_qualidade_pct": tuple(entradas["cenarios_qualidade_pct"])
                 if entradas.get("cenarios_qualidade_pct")
                 else None,
@@ -577,6 +710,20 @@ def _situacao(nucleo: dict) -> str | None:
     return conta["desvio"]["estado"] if conta.get("disponivel") else None
 
 
+def frase_situacao(nucleo: dict) -> str:
+    """Frase curta da situação, com o motivo certo quando o desvio não foi estabelecido."""
+    situacao = _situacao(nucleo)
+    if situacao == "nao_estabelecido":
+        motivo = motivo_inconclusivo(nucleo["explicacao_conta"].get("desvio"))
+        if motivo == "cenario_do_patio":
+            return (
+                "Diferença não estabelecida: "
+                + FRASE_INCONCLUSIVO[motivo]
+                + "; sem mudança de desempenho estabelecida."
+            )
+    return SITUACAO.get(situacao, "Conta indisponível neste período.")
+
+
 def _comparar_com_anterior(nucleo: dict, anterior: dict | None) -> dict:
     if anterior is None:
         return {"existe": False, "frase": "Primeiro fechamento deste equipamento."}
@@ -628,17 +775,137 @@ def _comparar_com_anterior(nucleo: dict, anterior: dict | None) -> dict:
     }
 
 
+def _periodo_a_fechar(a: Armazem, equip_id: str) -> tuple:
+    """(início, fim) que o próximo fechamento cobre: os períodos completos ainda não fechados."""
+    pendentes = periodos_pendentes(a, equip_id)
+    if not pendentes:
+        raise ErroArmazem(
+            "Sem período novo completo (entre medições de estoque) desde o último "
+            "fechamento: o acompanhamento não tem dados novos para fechar."
+        )
+    # períodos válidos consecutivos; um período inválido no início é fechado sozinho,
+    # para a lacuna ficar registrada com o motivo (nunca pulada em silêncio)
+    validos = sequencia_valida(pendentes) or pendentes[:1]
+    return validos[0]["inicio"], validos[-1]["fim"]
+
+
+_FORA_DA_FAIXA = {"acima", "abaixo"}
+
+
+def mudanca_de_situacao(antes: str | None, novo: str | None) -> str:
+    """Como a situação do período novo se compara à do último fechamento (D108).
+
+    "saiu_da_faixa": de dentro da incerteza para acima/abaixo (estabelecido);
+    "voltou_a_faixa": o contrário; "continua": a mesma situação; "indefinida": sem
+    situação de um dos lados, sem faixa, referência diferente ou troca de acima por abaixo.
+    """
+    if antes is None or novo is None or "sem_faixa" in (antes, novo):
+        return "indefinida"
+    if antes == novo:
+        return "continua"
+    if novo in _FORA_DA_FAIXA and antes not in _FORA_DA_FAIXA:
+        return "saiu_da_faixa"
+    if antes in _FORA_DA_FAIXA and novo not in _FORA_DA_FAIXA:
+        return "voltou_a_faixa"
+    return "indefinida"
+
+
+def previa_do_proximo_fechamento(a: Armazem, equip_id: str) -> dict | None:
+    """Prévia, sem gravar nada, do período completo novo desde o último fechamento (D108).
+
+    Usa a mesma conta do fechamento (`_nucleo`) para o período que `produzir_fechamento`
+    fecharia agora, e compara a situação com a do último fechamento. Nada entra no
+    histórico; a prévia não substitui o fechamento. None quando ainda não há fechamento,
+    referência ou período novo completo. Se a referência teve os dados alterados, devolve
+    só o motivo (a conta não é feita).
+
+    Saída: inicio, fim (ISO), situacao, situacao_frase, anterior (situação do último
+    fechamento), mudanca ("saiu_da_faixa", "voltou_a_faixa", "continua" ou "indefinida"),
+    frase (texto curto para o Painel) e revisao_dados.
+    """
+    ref = referencia_vigente(a, equip_id)
+    anteriores = fechamentos_vigentes(a, equip_id)
+    pendentes = periodos_pendentes(a, equip_id) if ref and anteriores else []
+    if not pendentes:
+        return None
+    original_sha = ref["dados"].get("dados_referencia_sha") or _dados_referencia_sha(
+        a, equip_id, ref["fim"], ref["revisao"]
+    )
+    if _dados_referencia_sha(a, equip_id, ref["fim"]) != original_sha:
+        return {"motivo": "Os dados da referência foram alterados: a prévia não é calculada."}
+    validos = sequencia_valida(pendentes) or pendentes[:1]
+    inicio, fim = _ts(validos[0]["inicio"]), _ts(validos[-1]["fim"])
+    revisao = a.revisao
+    if not validos[0]["valido"]:
+        frase = f"A conta deste período não pode ser feita: {validos[0]['motivo']}"
+        return {
+            "inicio": inicio.isoformat(),
+            "fim": fim.isoformat(),
+            "situacao": None,
+            "situacao_frase": frase,
+            "anterior": anteriores[-1]["resultado"]["situacao"],
+            "mudanca": "indefinida",
+            "frase": frase,
+            "revisao_dados": revisao,
+        }
+    pacote = a.pacote(equip_id, revisao=revisao, p_atm_bar=p_atm(a, equip_id))
+    politica = a.equipamento(equip_id)["config"]["politica_custo"]
+    nucleo = _nucleo(a, equip_id, pacote, ref, inicio, fim, politica)
+    novo = _situacao(nucleo)
+    ultimo = anteriores[-1]
+    antes = ultimo["resultado"]["situacao"] if ultimo["referencia_id"] == ref["id"] else None
+    mudanca = mudanca_de_situacao(antes, novo)
+    situacao_frase = frase_situacao(nucleo)
+    frase = {
+        "saiu_da_faixa": "Pela prévia, o consumo saiu da faixa da referência. ",
+        "voltou_a_faixa": "Pela prévia, o consumo voltou para dentro da faixa da referência. ",
+        "continua": "Pela prévia, a situação continua a mesma do último fechamento. ",
+        "indefinida": "",
+    }[mudanca] + situacao_frase
+    return {
+        "inicio": inicio.isoformat(),
+        "fim": fim.isoformat(),
+        "situacao": novo,
+        "situacao_frase": situacao_frase,
+        "anterior": antes,
+        "mudanca": mudanca,
+        "frase": frase,
+        "revisao_dados": revisao,
+    }
+
+
 def produzir_fechamento(
     a: Armazem,
     equip_id: str,
     autor: str,
     inicio=None,
     fim=None,
+    *,
+    mes: str | None = None,
+    revisa: int | None = None,
+    motivo: str | None = None,
 ) -> dict:
-    """Fecha o período (padrão: todos os períodos completos ainda não fechados)."""
+    """Fecha o período (padrão: todos os períodos completos ainda não fechados).
+
+    `mes` ("AAAA-MM") marca o fechamento como parte do fechamento mensal (D111).
+    `revisa`: id de um fechamento em vigor que este substitui (mesma janela, se `inicio` e
+    `fim` não forem dados), com `motivo` obrigatório; o antigo fica no histórico.
+    """
     ref = referencia_vigente(a, equip_id)
     if not (autor or "").strip():
         raise ErroArmazem("Informe o autor do fechamento.")
+    antigo = None
+    if revisa is not None:
+        antigo = fechamento(a, revisa)
+        if antigo["equipamento_id"] != equip_id:
+            raise ErroArmazem("O fechamento a revisar é de outro equipamento.")
+        if revisa in revisoes(a, equip_id):
+            raise ErroArmazem("Este fechamento já foi revisado; revise a versão em vigor.")
+        if not (motivo or "").strip():
+            raise ErroArmazem("A revisão de um fechamento exige motivo.")
+        if inicio is None or fim is None:
+            inicio, fim = antigo["inicio"], antigo["fim"]
+        mes = mes or antigo["resultado"].get("mes")
     if ref is None:
         raise ErroArmazem("Defina a referência do equipamento antes do primeiro fechamento.")
     original_sha = ref["dados"].get("dados_referencia_sha") or _dados_referencia_sha(
@@ -649,23 +916,18 @@ def produzir_fechamento(
             "Os dados da referência foram alterados. Registre uma nova versão da referência com motivo antes de fechar outro período."
         )
     if inicio is None or fim is None:
-        pendentes = periodos_pendentes(a, equip_id)
-        if not pendentes:
-            raise ErroArmazem(
-                "Sem período novo completo (entre medições de estoque) desde o último "
-                "fechamento: o acompanhamento não tem dados novos para fechar."
-            )
-        # períodos válidos consecutivos; um período inválido no início é fechado sozinho,
-        # para a lacuna ficar registrada com o motivo (nunca pulada em silêncio)
-        validos = sequencia_valida(pendentes) or pendentes[:1]
-        inicio, fim = validos[0]["inicio"], validos[-1]["fim"]
+        inicio, fim = _periodo_a_fechar(a, equip_id)
     inicio, fim = _ts(inicio), _ts(fim)
     revisao = a.revisao
     politica = a.equipamento(equip_id)["config"]["politica_custo"]
     pressao_atm = p_atm(a, equip_id)
     pacote = a.pacote(equip_id, revisao=revisao, p_atm_bar=pressao_atm)
     nucleo = _nucleo(a, equip_id, pacote, ref, inicio, fim, politica)
-    anteriores = fechamentos(a, equip_id)
+    anteriores = [
+        f
+        for f in fechamentos_vigentes(a, equip_id)
+        if f["id"] != revisa and _ts(f["fim"]) <= inicio
+    ]
     from euler.acompanhamento import contexto_para_fechamento
 
     premissas = {
@@ -684,12 +946,19 @@ def produzir_fechamento(
         "nucleo": nucleo,
         "nucleo_sha": sha(nucleo),
         "situacao": _situacao(nucleo),
-        "situacao_frase": SITUACAO.get(_situacao(nucleo), "Conta indisponível neste período."),
+        "situacao_frase": frase_situacao(nucleo),
+        # origem dos dados da planta (D110): os relatórios exportados levam o selo
+        "origem_dados": ORIGEM_DA_CLASSE.get(a.info["classe"]),
         "comparacao_anterior": _comparar_com_anterior(
             nucleo, anteriores[-1] if anteriores else None
         ),
         "contexto": contexto_para_fechamento(a, equip_id, inicio, fim, nucleo),
         "cobertura": a.cobertura(equip_id),
+        # carga e regime nos dois períodos: o que não foi ajustado (D113)
+        "condicoes": condicoes_comparadas(pacote, ref["inicio"], ref["fim"], inicio, fim),
+        "mes": mes,
+        "revisa": revisa,
+        "motivo_revisao": (motivo or "").strip() if revisa is not None else None,
     }
     with a._transacao() as cur:
         cur.execute(
@@ -718,8 +987,18 @@ def produzir_fechamento(
             fid,
             "produzido",
             autor,
-            {"situacao": resultado["situacao"]},
+            {"situacao": resultado["situacao"], "mes": mes, "revisa": revisa},
         )
+        if revisa is not None:
+            a._evento(
+                cur,
+                equip_id,
+                "fechamento",
+                revisa,
+                "revisado",
+                autor,
+                {"por": fid, "motivo": resultado["motivo_revisao"]},
+            )
     return fechamento(a, fid)
 
 
