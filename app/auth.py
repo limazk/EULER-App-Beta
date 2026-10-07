@@ -143,13 +143,7 @@ def _carregar_contexto() -> dict | None:
     if not usuario:
         return None
     cliente = _cliente_usuario()
-    perfil_resp = (
-        cliente.table("profiles")
-        .select("*")
-        .eq("id", str(usuario.id))
-        .limit(1)
-        .execute()
-    )
+    perfil_resp = cliente.table("profiles").select("*").eq("id", str(usuario.id)).limit(1).execute()
     if not perfil_resp.data:
         return None
     perfil = perfil_resp.data[0]
@@ -182,9 +176,9 @@ def registrar_atividade(ctx: dict) -> None:
         return
     try:
         admin = _cliente_admin()
-        admin.table("profiles").update(
-            {"last_seen_at": datetime.now(UTC).isoformat()}
-        ).eq("id", ctx["user_id"]).execute()
+        admin.table("profiles").update({"last_seen_at": datetime.now(UTC).isoformat()}).eq(
+            "id", ctx["user_id"]
+        ).execute()
         st.session_state["_euler_last_seen_registered"] = True
     except Exception:  # noqa: BLE001
         st.session_state["_euler_last_seen_failed"] = True
@@ -211,12 +205,8 @@ def _tela_login() -> None:
             nome = st.text_input("Nome completo")
             email_novo = st.text_input("E-mail", key="cadastro-email")
             senha_nova = st.text_input("Senha", type="password", key="cadastro-senha")
-            confirmar = st.text_input(
-                "Confirmar senha", type="password", key="cadastro-confirmar"
-            )
-            criar = st.form_submit_button(
-                "Criar conta", type="primary", use_container_width=True
-            )
+            confirmar = st.text_input("Confirmar senha", type="password", key="cadastro-confirmar")
+            criar = st.form_submit_button("Criar conta", type="primary", use_container_width=True)
         if criar:
             if senha_nova != confirmar:
                 st.error("As senhas não coincidem.")
@@ -234,9 +224,7 @@ def exigir_acesso() -> dict:
     if not configurado():
         st.error("O login do beta ainda não foi configurado neste ambiente.")
         st.code(
-            "SUPABASE_URL=...\n"
-            "SUPABASE_PUBLISHABLE_KEY=...\n"
-            "SUPABASE_SECRET_KEY=...",
+            "SUPABASE_URL=...\nSUPABASE_PUBLISHABLE_KEY=...\nSUPABASE_SECRET_KEY=...",
             language="text",
         )
         st.caption("Veja docs/beta/SETUP_SUPABASE.md.")
@@ -311,11 +299,7 @@ def exigir_superadmin() -> dict:
 
 def listar_perfis() -> list[dict]:
     resposta = (
-        _cliente_admin()
-        .table("profiles")
-        .select("*")
-        .order("created_at", desc=True)
-        .execute()
+        _cliente_admin().table("profiles").select("*").order("created_at", desc=True).execute()
     )
     return resposta.data or []
 
@@ -331,13 +315,7 @@ def atualizar_status_usuario(user_id: str, status: str) -> None:
 
 
 def listar_organizacoes() -> list[dict]:
-    resposta = (
-        _cliente_admin()
-        .table("organizations")
-        .select("*")
-        .order("name")
-        .execute()
-    )
+    resposta = _cliente_admin().table("organizations").select("*").order("name").execute()
     return resposta.data or []
 
 
