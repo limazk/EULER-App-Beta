@@ -31,6 +31,20 @@ SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
 SUPABASE_SECRET_KEY=sb_secret_...
 ```
 
+Para recuperação de senha, cadastre a URL pública do app nas Redirect URLs do Supabase e configure:
+
+```text
+EULER_PASSWORD_RESET_REDIRECT_URL=https://SEU-APP.onrender.com
+```
+
+No template **Reset Password**, use o redirecionamento com o token de uso único:
+
+```text
+{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=recovery
+```
+
+Essa configuração do template é uma pendência externa; não é feita pelo aplicativo.
+
 Projetos antigos podem mostrar `ANON_KEY` e `SERVICE_ROLE_KEY`; o código aceita os
 nomes antigos como fallback.
 

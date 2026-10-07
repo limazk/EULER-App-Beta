@@ -55,6 +55,9 @@ a:focus-visible, button:focus-visible, input:focus-visible {{
   .stMainBlockContainer {{ padding: 1.25rem 1rem 2rem; }}
   .st-key-cartao-saude-selo {{ padding: 1rem; }}
   .st-key-euler-abertura {{ padding: 1.25rem !important; }}
+  [data-testid="stMetricValue"] {{ font-size: 1.35rem; overflow-wrap: anywhere; }}
+  [data-testid="stForm"] button {{ width: 100%; }}
+  [data-testid="stDataFrame"] {{ max-width: calc(100vw - 2rem); overflow-x: auto; }}
 }}
 [data-testid="stSidebarContent"] [data-testid="stCaptionContainer"] {{ color: var(--euler-fraco); }}
 

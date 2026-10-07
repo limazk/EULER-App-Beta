@@ -16,24 +16,35 @@ def renderizar(ctx: dict) -> None:
 
     perfil = ctx["profile"]
     st.subheader("Sua conta")
-    c1, c2, c3 = st.columns(3)
-    c1.metric("Nome", perfil.get("full_name") or "Não informado")
-    c2.metric("Status", perfil.get("status", "desconhecido"))
-    c3.metric("Versão", euler.__version__)
-    st.caption(ctx.get("email") or "E-mail indisponível")
+    memberships = ctx.get("memberships") or []
+    membership = memberships[0] if memberships else {}
+    org = membership.get("organizations") or {}
+    papeis = {
+        "admin": "Administrador da empresa",
+        "engineer": "Engenheiro",
+        "operator": "Operador",
+        "viewer": "Visualizador",
+    }
+    dados = {
+        "Nome": perfil.get("full_name") or "Não informado",
+        "E-mail": ctx.get("email") or "Não informado",
+        "Status": perfil.get("status", "desconhecido").title(),
+        "Empresa": org.get("name")
+        or ("Administração global" if ctx.get("is_superadmin") else "Sem vínculo"),
+        "Perfil": papeis.get(
+            membership.get("role"),
+            membership.get("role") or "Superadmin" if ctx.get("is_superadmin") else "Sem perfil",
+        ),
+        "Versão": euler.__version__,
+    }
+    for inicio in (0, 3):
+        colunas = st.columns(3)
+        for coluna, (rotulo, valor) in zip(colunas, list(dados.items())[inicio : inicio + 3]):
+            coluna.metric(rotulo, valor)
 
     st.subheader("Empresa e acesso")
-    memberships = ctx.get("memberships") or []
     if memberships:
-        membership = memberships[0]
-        org = membership.get("organizations") or {}
         st.write(f"**{org.get('name', 'Organização')}**")
-        papeis = {
-            "admin": "Administrador da empresa",
-            "engineer": "Engenheiro",
-            "operator": "Operador",
-            "viewer": "Visualizador",
-        }
         st.caption(f"Perfil: {papeis.get(membership.get('role'), membership.get('role', ''))}")
     elif ctx.get("is_superadmin"):
         st.info("Conta de administração global da EULER.")
@@ -69,8 +80,8 @@ def renderizar(ctx: dict) -> None:
             st.success("Feedback enviado. Obrigado por ajudar a testar a EULER.")
         except (RuntimeError, ValueError) as exc:
             st.error(str(exc))
-        except Exception as exc:  # noqa: BLE001
-            st.error(f"Não foi possível enviar o feedback: {exc}")
+        except Exception:  # noqa: BLE001
+            st.error("Não foi possível enviar o feedback agora. Tente novamente.")
 
 
 ctx = contexto_atual(recarregar=True)
