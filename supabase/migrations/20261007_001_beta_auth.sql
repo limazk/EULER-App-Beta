@@ -122,7 +122,21 @@ drop policy if exists "feedback próprio envio" on public.feedback;
 create policy "feedback próprio envio"
 on public.feedback for insert
 to authenticated
-with check ((select auth.uid()) = user_id);
+with check (
+    (select auth.uid()) = user_id
+    and (
+        organization_id is null
+        or exists (
+            select 1
+            from public.memberships m
+            join public.organizations o on o.id = m.organization_id
+            where m.user_id = (select auth.uid())
+              and m.organization_id = feedback.organization_id
+              and m.status = 'active'
+              and o.status = 'active'
+        )
+    )
+);
 
 drop policy if exists "organizações do usuário" on public.organizations;
 create policy "organizações do usuário"
