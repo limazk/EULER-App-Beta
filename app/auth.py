@@ -12,6 +12,7 @@ from datetime import UTC, datetime
 import streamlit as st
 
 from supabase import Client, create_client
+from supabase.lib.client_options import ClientOptions
 
 TOKEN_ACCESS = "_euler_access_token"
 TOKEN_REFRESH = "_euler_refresh_token"
@@ -66,7 +67,14 @@ def _cliente_admin() -> Client:
     cfg = configuracao()
     if not cfg["url"] or not cfg["secret_key"]:
         raise RuntimeError("SUPABASE_SECRET_KEY não configurada no servidor.")
-    return create_client(cfg["url"], cfg["secret_key"])
+    return create_client(
+        cfg["url"],
+        cfg["secret_key"],
+        options=ClientOptions(
+            auto_refresh_token=False,
+            persist_session=False,
+        ),
+    )
 
 
 def _guardar_sessao(sessao) -> None:
