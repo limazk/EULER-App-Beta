@@ -18,6 +18,7 @@ COMPLEMENTARES = {
         ("paginas/relatorio.py", "Relatório da análise", "description"),
     ),
     "Histórico e cadastro": (
+        ("paginas/conta_beta.py", "Conta e feedback", "account_circle"),
         ("paginas/fechamentos.py", "Fechamentos", "event_available"),
         ("paginas/plantas.py", "Plantas e histórico", "database"),
         ("paginas/importar.py", "Analisar um arquivo avulso", "upload_file"),
