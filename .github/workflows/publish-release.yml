@@ -92,11 +92,22 @@ jobs:
           path: release-assets
 
       - name: List release files
-        run: find release-assets -type f -maxdepth 5 -print
+        run: find release-assets -maxdepth 5 -type f -print
 
       - name: Create or update beta release
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_NOTES: |
+            Primeira versão instalável do EULER Beta.
+
+            Linux:
+            - AppImage
+            - pacote .deb
+
+            Windows:
+            - instalador NSIS (.exe)
+
+            EULER — Precision for Industry
         run: |
           set -euo pipefail
 
@@ -108,16 +119,7 @@ jobs:
               --target "$GITHUB_SHA" \
               --title "$RELEASE_TITLE" \
               --prerelease \
-              --notes "Primeira versão instalável do EULER Beta.
-
-Linux:
-- AppImage
-- pacote .deb
-
-Windows:
-- instalador NSIS (.exe)
-
-EULER — Precision for Industry"
+              --notes "$RELEASE_NOTES"
           fi
 
           while IFS= read -r -d '' file; do
