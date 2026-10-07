@@ -1,31 +1,29 @@
-"""Entradas principais da EULER e rotas complementares."""
+"""Rotas do EULER e menu principal inspirado na referência final."""
 
 PRINCIPAIS = (
     ("paginas/inicio.py", "Início", "home"),
-    ("paginas/painel.py", "Minha planta", "space_dashboard"),
-    ("paginas/saude.py", "Análise", "monitor_heart"),
+    ("paginas/saude.py", "Análise da Caldeira", "monitor_heart"),
+    ("paginas/painel.py", "Dia a Dia", "today"),
+    ("paginas/diagnostico.py", "Condições", "health_and_safety"),
+    ("paginas/fechamentos.py", "Mensal", "calendar_month"),
+    ("paginas/conta_beta.py", "Atendimento", "support_agent"),
+    ("paginas/acompanhamento.py", "Importação", "upload"),
+    ("paginas/plantas.py", "Armazém", "inventory_2"),
     ("paginas/financeiro.py", "Financeiro", "payments"),
-    ("paginas/acoes.py", "Ações", "task_alt"),
-    ("paginas/acompanhamento.py", "Dados", "upload"),
+    ("paginas/relatorio.py", "Relatórios", "description"),
 )
 
 COMPLEMENTARES = {
-    "Aprofundar a análise": (
+    "Análise e acompanhamento": (
         ("paginas/investigacao.py", "Investigar uma mudança", "troubleshoot"),
         ("paginas/oportunidades.py", "Oportunidades", "flag"),
+        ("paginas/acoes.py", "Ações e verificações", "task_alt"),
+        ("paginas/limites.py", "Qualidade e limites", "rule"),
+    ),
+    "Dados e referências": (
         ("paginas/extrato.py", "Fornecedores", "receipt_long"),
-        ("paginas/limites.py", "Qualidade e limites dos dados", "rule"),
-        ("paginas/relatorio.py", "Relatório da análise", "description"),
-    ),
-    "Histórico e cadastro": (
-        ("paginas/conta_beta.py", "Conta e feedback", "account_circle"),
-        ("paginas/fechamentos.py", "Fechamentos", "event_available"),
-        ("paginas/plantas.py", "Plantas e histórico", "database"),
-        ("paginas/importar.py", "Analisar um arquivo avulso", "upload_file"),
-    ),
-    "Validação e referências": (
+        ("paginas/importar.py", "Arquivo avulso", "upload_file"),
         ("paginas/dados_publicos.py", "Testes com dados reais", "science"),
-        ("paginas/diagnostico.py", "Diagnóstico de evidências", "fact_check"),
         ("paginas/calculadora.py", "Calculadora de referência", "calculate"),
     ),
 }
@@ -34,14 +32,15 @@ ADMIN = ("paginas/admin.py", "Administração", "admin_panel_settings")
 
 
 def todas_as_paginas(incluir_admin: bool = False) -> tuple:
-    """Registra todas as rotas; o link administrativo só aparece a superadmins."""
-    _ = incluir_admin  # compatibilidade com chamadas existentes
-    return PRINCIPAIS + tuple(p for grupo in COMPLEMENTARES.values() for p in grupo) + (ADMIN,)
+    """Registra todas as rotas; autorização da tela administrativa continua fail-closed."""
+    paginas = PRINCIPAIS + tuple(p for grupo in COMPLEMENTARES.values() for p in grupo)
+    return paginas + ((ADMIN,) if incluir_admin else ())
 
 
 def menu_lateral(st, incluir_admin: bool = False) -> None:
-    """Prioriza o uso diário sem remover ferramentas ou alterar os cálculos."""
+    """Menu diário com os nomes da UX final e ferramentas secundárias preservadas."""
     with st.sidebar:
+        st.caption("NAVEGAÇÃO")
         for caminho, titulo, icone in PRINCIPAIS:
             st.page_link(caminho, label=titulo, icon=f":material/{icone}:")
         with st.expander("Mais ferramentas"):
@@ -51,8 +50,5 @@ def menu_lateral(st, incluir_admin: bool = False) -> None:
                     st.page_link(caminho, label=titulo, icon=f":material/{icone}:")
         if incluir_admin:
             st.divider()
-            st.page_link(
-                ADMIN[0],
-                label=ADMIN[1],
-                icon=f":material/{ADMIN[2]}:",
-            )
+            st.caption("ADMINISTRAÇÃO")
+            st.page_link(ADMIN[0], label=ADMIN[1], icon=f":material/{ADMIN[2]}:")

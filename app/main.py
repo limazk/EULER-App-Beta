@@ -8,7 +8,7 @@ import os
 import estado
 import streamlit as st
 from auth import exigir_acesso, painel_conta_sidebar
-from componentes import ICONE, LOGO, MARCA, aplicar_estilo, rodape
+from componentes import ICONE, LOGO, MARCA, aplicar_estilo, barra_superior, rodape
 from navegacao import menu_lateral, todas_as_paginas
 
 import euler
@@ -25,6 +25,7 @@ aplicar_estilo()
 # O beta exige identidade antes de expor qualquer tela ou dado da EULER.
 contexto_usuario = exigir_acesso()
 incluir_admin = bool(contexto_usuario.get("is_superadmin"))
+barra_superior(contexto_usuario)
 
 paginas = [
     st.Page(caminho, title=titulo, icon=f":material/{icone}:", default=i == 0)

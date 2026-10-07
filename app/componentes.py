@@ -19,6 +19,31 @@ LOGO = IMAGENS / "euler_logo.svg"
 MARCA = IMAGENS / "euler_marca.svg"
 ICONE = IMAGENS / "euler_icone.svg"
 
+TEMAS = {
+    "dark": {
+        "fundo": "#05070B",
+        "lateral": "#080B11",
+        "cartao": "#0D121B",
+        "cartao_secundario": "#111722",
+        "linha": "#202733",
+        "hover": "#171E29",
+        "texto": "#F5F7FA",
+        "suave": "#9BA6B5",
+        "sombra": "rgba(0, 0, 0, .32)",
+    },
+    "light": {
+        "fundo": "#F5F7FA",
+        "lateral": "#FFFFFF",
+        "cartao": "#FFFFFF",
+        "cartao_secundario": "#F8FAFC",
+        "linha": "#DDE2E9",
+        "hover": "#EEF2F6",
+        "texto": "#101318",
+        "suave": "#626D7C",
+        "sombra": "rgba(16, 19, 24, .08)",
+    },
+}
+
 # Cores dos dois períodos comparados (as mesmas nas faixas do gráfico e na linha do tempo):
 # referência em azul-ardósia, comparação em âmbar, as duas escuras para o fundo grafite.
 COR_REFERENCIA = "#2A3646"
@@ -40,7 +65,8 @@ ESTILO = f"""<style>
   --euler-comp-texto: #F2C08F;
   --euler-comp-borda: #6A4A2C;
 }}
-header[data-testid="stHeader"] {{ background: transparent; }}
+header[data-testid="stHeader"] {{ background: transparent; pointer-events: none; }}
+header[data-testid="stHeader"] button {{ pointer-events: auto; }}
 .stMainBlockContainer {{ max-width: 1200px; padding-top: 2.4rem; padding-bottom: 3rem; }}
 /* Hierarquia compacta; informações complementares ficam em expansores. */
 .stMainBlockContainer h2 {{ font-size: 1.35rem; letter-spacing: -.015em; }}
@@ -265,7 +291,144 @@ def carregamento_analise(
 
 def aplicar_estilo() -> None:
     """Injeta o estilo EULER (uma vez por execução, antes da tela)."""
-    st.html(ESTILO)
+    tema = st.session_state.setdefault("euler_tema", "dark")
+    if tema not in TEMAS:
+        tema = "dark"
+        st.session_state["euler_tema"] = tema
+    t = TEMAS[tema]
+    st.html(ESTILO + _estilo_do_tema(t))
+
+
+def _estilo_do_tema(t: dict[str, str]) -> str:
+    """Sobrescreve a base visual sem interferir na lógica das páginas."""
+    return f"""<style>
+:root {{
+  --euler-fundo: {t["fundo"]}; --euler-lateral: {t["lateral"]};
+  --euler-cartao: {t["cartao"]}; --euler-cartao-2: {t["cartao_secundario"]};
+  --euler-linha: {t["linha"]}; --euler-hover: {t["hover"]};
+  --euler-texto: {t["texto"]}; --euler-suave: {t["suave"]};
+}}
+.stApp, [data-testid="stAppViewContainer"], [data-testid="stMain"] {{
+  background: var(--euler-fundo); color: var(--euler-texto);
+}}
+[data-testid="stSidebar"] {{
+  background: var(--euler-lateral); border-right: 1px solid var(--euler-linha);
+  min-width: 248px; max-width: 248px;
+}}
+[data-testid="stSidebarContent"] {{ padding: .75rem .8rem 1rem; }}
+[data-testid="stSidebarNav"] {{ padding-top: .35rem; }}
+[data-testid="stSidebar"] a[data-testid="stPageLink-NavLink"] {{
+  min-height: 42px; border-radius: 8px; padding: .55rem .7rem; margin: 2px 0;
+  color: var(--euler-suave); border: 1px solid transparent;
+}}
+[data-testid="stSidebar"] a[data-testid="stPageLink-NavLink"]:hover {{
+  background: var(--euler-hover); color: var(--euler-texto);
+}}
+[data-testid="stSidebar"] a[data-testid="stPageLink-NavLink"][aria-current="page"] {{
+  background: var(--euler-hover); color: var(--euler-texto); border-color: var(--euler-linha);
+}}
+.stMainBlockContainer {{ max-width: 1260px; padding: 3.6rem 2rem 3rem; }}
+p, label, [data-testid="stMarkdownContainer"], [data-testid="stMetricValue"] {{
+  color: var(--euler-texto);
+}}
+[data-testid="stCaptionContainer"], [data-testid="stMetricLabel"] p {{
+  color: var(--euler-suave) !important;
+}}
+[data-testid="stVerticalBlockBorderWrapper"] {{
+  border-color: var(--euler-linha) !important; border-radius: 12px !important;
+  background: var(--euler-cartao); box-shadow: 0 10px 26px {t["sombra"]};
+}}
+[data-testid="stMetric"] {{
+  background: var(--euler-cartao); border: 1px solid var(--euler-linha);
+  border-radius: 12px; padding: 1rem 1.05rem;
+}}
+[data-testid="stMetricValue"] {{ font-size: 1.55rem; font-weight: 650; }}
+[data-testid="stForm"], [data-testid="stExpander"] details,
+[data-baseweb="input"] > div, [data-baseweb="select"] > div, textarea {{
+  background: var(--euler-cartao-2) !important; border-color: var(--euler-linha) !important;
+  color: var(--euler-texto) !important;
+}}
+[data-testid="stBaseButton-primary"] {{
+  background: var(--euler-texto); color: var(--euler-fundo); border-color: var(--euler-texto);
+  border-radius: 8px; min-height: 40px;
+}}
+[data-testid="stBaseButton-secondary"], [data-testid="stPageLink"] a {{
+  background: var(--euler-cartao); border-color: var(--euler-linha); color: var(--euler-texto);
+  border-radius: 8px;
+}}
+[data-testid="stBaseButton-secondary"]:hover, [data-testid="stPageLink"] a:hover {{
+  background: var(--euler-hover); border-color: var(--euler-suave); color: var(--euler-texto);
+}}
+.st-key-euler-topbar {{
+  min-height: 52px; padding: .35rem .15rem .75rem; margin-bottom: .4rem;
+  border-bottom: 1px solid var(--euler-linha); align-items: center;
+}}
+.st-key-euler-topbar [data-testid="stButton"] button {{ min-height: 36px; }}
+.euler-connected {{ display:inline-flex; align-items:center; gap:.45rem; padding:.38rem .65rem;
+  border:1px solid var(--euler-linha); border-radius:999px; color:#34D399; font-size:.8rem;
+  background:var(--euler-cartao); }}
+.euler-connected::before {{ content:""; width:7px; height:7px; border-radius:50%; background:#34D399; }}
+.euler-page-kicker {{ color: var(--euler-suave); font-size: .82rem; }}
+.euler-user-card {{ display:flex; align-items:center; gap:.7rem; padding:.75rem; margin:.25rem 0 .55rem;
+  background:var(--euler-cartao); border:1px solid var(--euler-linha); border-radius:10px; }}
+.euler-user-avatar {{ display:grid; place-items:center; width:34px; height:34px; border-radius:50%;
+  background:var(--euler-hover); color:var(--euler-texto); font-weight:700; }}
+.euler-user-copy {{ display:flex; flex-direction:column; min-width:0; }}
+.euler-user-copy strong {{ color:var(--euler-texto); font-size:.88rem; white-space:nowrap;
+  overflow:hidden; text-overflow:ellipsis; }}
+.euler-user-copy small {{ color:var(--euler-suave); font-size:.72rem; white-space:nowrap;
+  overflow:hidden; text-overflow:ellipsis; }}
+.st-key-euler-abertura {{ background: var(--euler-cartao); border-color: var(--euler-linha);
+  box-shadow: 0 14px 34px {t["sombra"]}; padding: 1.55rem 1.7rem; }}
+.st-key-euler-abertura h1 {{ font-size: 2rem; letter-spacing: -.03em; }}
+.st-key-euler-cabecalho {{ border-bottom-color: var(--euler-linha); }}
+.st-key-euler-login {{ max-width: 440px; margin: 3vh auto 0; padding: 1.6rem 1.7rem 1.8rem;
+  background: var(--euler-cartao); border: 1px solid var(--euler-linha); border-radius: 14px;
+  box-shadow: 0 24px 70px {t["sombra"]}; }}
+.st-key-euler-login h1 {{ text-align:center; letter-spacing:.13em; font-size:1.7rem; }}
+.st-key-euler-login > div {{ gap: .65rem; }}
+.st-key-euler-login [data-testid="stForm"] {{ border: 0; padding: .35rem 0; }}
+@media(max-width: 900px) {{
+  [data-testid="stSidebar"] {{ min-width: 220px; max-width: 220px; }}
+  .stMainBlockContainer {{ padding: 3.5rem 1.15rem 2rem; }}
+}}
+@media(max-width: 640px) {{
+  .stMainBlockContainer {{ padding: 3.4rem .85rem 2rem; }}
+  .st-key-euler-topbar {{ min-height: 44px; }}
+  [data-testid="stHorizontalBlock"] {{ flex-wrap: wrap; }}
+}}
+</style>"""
+
+
+def alternar_tema() -> None:
+    """Alterna o tema na sessão corrente."""
+    st.session_state["euler_tema"] = (
+        "light" if st.session_state.get("euler_tema", "dark") == "dark" else "dark"
+    )
+
+
+def seletor_tema(*, login: bool = False) -> None:
+    """Controle de tema reutilizado no shell e na autenticação."""
+    claro = st.session_state.get("euler_tema", "dark") == "light"
+    rotulo = "☾  Escuro" if claro else "☀  Claro"
+    if login:
+        _, coluna = st.columns([4, 1])
+        coluna.button(rotulo, key="tema-login", on_click=alternar_tema, help="Alternar tema")
+    else:
+        st.button(rotulo, key="tema-shell", on_click=alternar_tema, help="Alternar tema")
+
+
+def barra_superior(ctx: dict) -> None:
+    """Header enxuto com estado da sessão e troca instantânea de tema."""
+    with st.container(key="euler-topbar"):
+        contexto, status, tema = st.columns([6, 1.25, 1.1], vertical_alignment="center")
+        perfil = ctx.get("profile") or {}
+        contexto.html(
+            f'<div class="euler-page-kicker">EULER · {escape(perfil.get("full_name") or "Sessão ativa")}</div>'
+        )
+        status.html('<div class="euler-connected">Conectado</div>')
+        with tema:
+            seletor_tema()
 
 
 def cabecalho(titulo: str, resumo: str = "", sobrelinha: str = "") -> None:
