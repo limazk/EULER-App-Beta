@@ -187,7 +187,7 @@ def registrar_atividade(ctx: dict) -> None:
         ).eq("id", ctx["user_id"]).execute()
         st.session_state["_euler_last_seen_registered"] = True
     except Exception:  # noqa: BLE001
-        pass
+        st.session_state["_euler_last_seen_failed"] = True
 
 
 def _tela_login() -> None:
