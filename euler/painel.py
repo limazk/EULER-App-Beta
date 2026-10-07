@@ -22,7 +22,7 @@ from euler.acompanhamento import (
     ultima_avaliacao,
 )
 from euler.armazem import Armazem
-from euler.fechamento import fechamentos, referencia_vigente
+from euler.fechamento import fechamentos_vigentes, referencia_vigente
 from euler.formato import num
 
 CATEGORIAS = {
@@ -63,7 +63,7 @@ def _persistencia(fs: list[dict]) -> int:
 def fila_de_atencao(a: Armazem, equip_id: str) -> list[dict]:
     """O que olhar primeiro, com os critérios de cada item à vista."""
     itens = []
-    fs = fechamentos(a, equip_id)
+    fs = fechamentos_vigentes(a, equip_id)
     ultimo = fs[-1] if fs else None
     persist = _persistencia(fs)
     abertas = investigacoes(a, equip_id, abertas=True)
@@ -198,7 +198,7 @@ def _janelas_sobrepostas(itens: list[dict]) -> set[int]:
 def painel(a: Armazem, equip_id: str) -> dict:
     """Visão executiva do acompanhamento: o que mudou, o que está aberto, o que foi
     verificado e o que ainda falta. Cada número diz de onde vem."""
-    fs = fechamentos(a, equip_id)
+    fs = fechamentos_vigentes(a, equip_id)
     ultimo = fs[-1] if fs else None
     todas = investigacoes(a, equip_id)
     abertas = [x for x in todas if x["estado"] != "encerrada"]
@@ -303,8 +303,23 @@ def painel(a: Armazem, equip_id: str) -> dict:
     }
 
 
-def texto_fechamento(f: dict) -> str:
-    """Relatório em Markdown gerado do mesmo objeto que a tela mostra."""
+SELO_ORIGEM = {
+    "sintetico": "> **DADOS SINTÉTICOS** · não representam uma planta real.",
+    "publico": "> **DADOS PÚBLICOS** · de fonte pública, não de um cliente.",
+}
+
+
+def selo_origem(origem: str | None) -> list[str]:
+    """Linhas do selo de origem dos dados para os relatórios exportados (D110)."""
+    return [SELO_ORIGEM[origem], ""] if origem in SELO_ORIGEM else []
+
+
+def texto_fechamento(f: dict, origem: str | None = None) -> str:
+    """Relatório em Markdown gerado do mesmo objeto que a tela mostra.
+
+    `origem`: origem dos dados da planta ("sintetico", "publico", "real"), para fechamentos
+    gravados antes de o resultado guardar a origem; a gravada no fechamento tem prioridade.
+    """
     r = f["resultado"]
     n = r["nucleo"]
     conta = n["explicacao_conta"]
@@ -312,6 +327,7 @@ def texto_fechamento(f: dict) -> str:
     linhas = [
         f"# Fechamento #{f['id']} · {f['equipamento_id']}",
         "",
+        *selo_origem(r.get("origem_dados") or origem),
         (
             f"Período: {pd.Timestamp(n['periodo']['inicio']):%d/%m/%Y} a "
             f"{pd.Timestamp(n['periodo']['fim']):%d/%m/%Y} · referência v{n['referencia']['versao']} "
@@ -404,5 +420,5 @@ def indicadores_internos(a: Armazem, equip_id: str) -> dict:
         "usos_de_perfil": sum(p["usos"] for p in perfis),
         "correcoes": sum(e["tipo"] == "correcao" for e in eventos),
         "conflitos_decididos": sum(e["entidade"] == "conflito" for e in eventos),
-        "fechamentos": len(fechamentos(a, equip_id)),
+        "fechamentos": len(fechamentos_vigentes(a, equip_id)),
     }

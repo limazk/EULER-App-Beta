@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "euler-core"
-version = "0.0.1"
+version = "0.1.0b1"
 description = "EULER · investigação física para caldeiras industriais (protótipo, Fase 0)"
 requires-python = ">=3.11"
 # Mínimos = versões testadas (o app usa recursos recentes do Streamlit: navegação por
@@ -15,6 +15,12 @@ dependencies = [
     "iapws>=1.5.5",
     "streamlit>=1.64,<2",
     "openpyxl>=3.1",
+    "supabase==2.32.0",
+    # Dependências sensíveis do cliente são fixadas também no install editável/CI.
+    # Os subpacotes Supabase são fixados pelo próprio supabase==2.32.0.
+    "httpx==0.28.1",
+    "pydantic==2.13.5",
+    "yarl==1.25.1",
 ]
 
 [project.optional-dependencies]

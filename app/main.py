@@ -7,6 +7,7 @@ import os
 
 import estado
 import streamlit as st
+from auth import exigir_acesso, painel_conta_sidebar
 from componentes import ICONE, LOGO, MARCA, aplicar_estilo, rodape
 from navegacao import menu_lateral, todas_as_paginas
 
@@ -21,15 +22,22 @@ st.set_page_config(
 st.logo(str(LOGO), icon_image=str(MARCA), size="large")
 aplicar_estilo()
 
+# O beta exige identidade antes de expor qualquer tela ou dado da EULER.
+contexto_usuario = exigir_acesso()
+incluir_admin = bool(contexto_usuario.get("is_superadmin"))
+
 paginas = [
     st.Page(caminho, title=titulo, icon=f":material/{icone}:", default=i == 0)
-    for i, (caminho, titulo, icone) in enumerate(todas_as_paginas())
+    for i, (caminho, titulo, icone) in enumerate(todas_as_paginas(incluir_admin))
 ]
 navegacao = st.navigation(paginas, position="hidden")
-menu_lateral(st)
+menu_lateral(st, incluir_admin)
+painel_conta_sidebar(contexto_usuario)
+
 # As telas não usam st.stop(): o rodapé de segurança precisa aparecer sempre.
 navegacao.run()
 rodape()
+
 # depois da tela: um clique que troca os dados já aparece nesta mesma execução
 if not st.session_state.get("arquivos"):
     situacao_dados = "sem dados carregados"
@@ -37,7 +45,8 @@ elif estado.dados_sinteticos():
     situacao_dados = "**dados sintéticos** em uso"
 else:
     situacao_dados = "dados enviados em uso · origem conforme arquivos"
-st.sidebar.caption(f"EULER · protótipo v{euler.__version__} · {situacao_dados}")
+st.sidebar.caption(f"EULER · beta v{euler.__version__} · {situacao_dados}")
+
 if st.session_state.get("arquivos"):
     import armazenamento
 

@@ -12,7 +12,7 @@ import estado
 import graficos
 import pandas as pd
 import streamlit as st
-from componentes import cabecalho, cartao, md, proximo_passo, secao
+from componentes import cabecalho, carregamento_analise, cartao, md, proximo_passo, secao
 from formatacao import SERIES, STATUS, diferenca, selo_deteccao, valor_formatado
 
 from euler.capacidades import avaliar
@@ -24,7 +24,7 @@ from euler.textos import PERGUNTA_CENTRAL
 cabecalho("Investigação", PERGUNTA_CENTRAL, "Analisar um período")
 
 
-@st.cache_data(show_spinner="Investigando os dois períodos…", max_entries=64)
+@st.cache_data(show_spinner=False, max_entries=64)
 def _investigar(assinatura: str, ref, comp, _pacote) -> dict:
     """Investigação guardada por dados e períodos: voltar a uma comparação já vista não
     recalcula. O pacote fica fora da chave; a assinatura (arquivos + altitude) o identifica."""
@@ -274,7 +274,15 @@ def mostrar(pacote) -> None:
         st.warning("Os dois períodos se sobrepõem. Escolha períodos separados.")
         return
 
-    j = _investigar(estado.assinatura(), ref, comp, pacote)
+    carregando = st.empty()
+    with carregando.container():
+        carregamento_analise(
+            etapa="Cruzando dados, balanços e hipóteses físicas dos períodos selecionados",
+        )
+    try:
+        j = _investigar(estado.assinatura(), ref, comp, pacote)
+    finally:
+        carregando.empty()
     estado.guardar_investigacao(j)
     from blocos.diagnostico import renderizar as renderizar_diagnostico
 
