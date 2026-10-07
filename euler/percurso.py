@@ -15,7 +15,7 @@ import pandas as pd
 
 from euler.acompanhamento import intervencoes, investigacoes, ultima_avaliacao
 from euler.armazem import Armazem
-from euler.fechamento import fechamentos, periodos_pendentes, referencia_vigente
+from euler.fechamento import fechamentos_vigentes, periodos_pendentes, referencia_vigente
 
 PASSOS = (
     ("registros", "Enviar registros", "dados"),
@@ -46,7 +46,7 @@ def percurso(a: Armazem, equip_id: str, agora=None) -> list[dict]:
     `agora` só serve para testes (data de hoje na cobertura dos registros).
     """
     cob = a.cobertura(equip_id, agora=agora)
-    fs = fechamentos(a, equip_id)
+    fs = fechamentos_vigentes(a, equip_id)
     ultimo = fs[-1] if fs else None
     invs = investigacoes(a, equip_id)
     abertas = [x for x in invs if x["estado"] != "encerrada"]
@@ -131,13 +131,25 @@ def percurso(a: Armazem, equip_id: str, agora=None) -> list[dict]:
     else:
         passos["acao"] = ("bloqueado", "Depende de uma investigação aberta.")
 
-    # 5 · resultado
-    sem_avaliacao = [x for x in acoes if ultima_avaliacao(a, x["id"]) is None]
-    if sem_avaliacao:
-        passos["resultado"] = (
-            "pendente",
-            f"{len(sem_avaliacao)} ação(ões) ainda sem avaliação do resultado.",
-        )
+    # 5 · resultado: "não avaliável" não conclui a etapa (D110)
+    avaliacoes = {x["id"]: ultima_avaliacao(a, x["id"]) for x in acoes}
+    sem_avaliacao = [x for x in acoes if avaliacoes[x["id"]] is None]
+    nao_avaliaveis = [
+        x
+        for x in acoes
+        if avaliacoes[x["id"]] is not None
+        and avaliacoes[x["id"]]["resultado"]["resultado"] == "nao_avaliavel"
+    ]
+    if sem_avaliacao or nao_avaliaveis:
+        partes = []
+        if sem_avaliacao:
+            partes.append(f"{len(sem_avaliacao)} ação(ões) ainda sem avaliação do resultado")
+        if nao_avaliaveis:
+            partes.append(
+                f'{len(nao_avaliaveis)} ação(ões) com avaliação "não avaliável" '
+                "(reavaliar quando houver dados)"
+            )
+        passos["resultado"] = ("pendente", "; ".join(partes) + ".")
     elif acoes:
         passos["resultado"] = ("feito", "Todas as ações registradas já foram avaliadas.")
     else:
