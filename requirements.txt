@@ -7,5 +7,16 @@ scipy==1.17.1
 iapws==1.5.5
 streamlit==1.64.0
 openpyxl==3.1.5
+# Stack Supabase mantida na mesma release. O pacote principal 2.32.0 também
+# declara estes componentes como ==2.32.0; repetimos aqui para o deploy falhar
+# cedo se algum resolvedor/cache tentar montar uma combinação incompatível.
 supabase==2.32.0
+postgrest==2.32.0
+realtime==2.32.0
+storage3==2.32.0
+supabase-auth==2.32.0
+supabase-functions==2.32.0
+httpx==0.28.1
+pydantic==2.13.5
+yarl==1.25.1
 .
