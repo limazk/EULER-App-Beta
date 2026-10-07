@@ -1,5 +1,6 @@
-# Versões exatas do ambiente em que os testes passaram (Python 3.11, Linux), 01/10/2026.
-# Uso: pip install -r requirements-lock.txt && pip install -e . --no-deps
+# Restrições exatas conhecidas do ambiente testado (Python 3.11, Linux), atualizado em 07/10/2026.
+# Produção usa este arquivo como constraints junto de requirements.txt.
+# Desenvolvimento completo pode instalar extras do pyproject; o CI detecta incompatibilidades do SDK.
 altair==6.3.0
 anyio==4.15.1
 attrs==26.1.0
