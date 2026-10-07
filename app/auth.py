@@ -10,6 +10,7 @@ import os
 from datetime import UTC, datetime
 
 import streamlit as st
+
 from supabase import Client, create_client
 
 TOKEN_ACCESS = "_euler_access_token"
@@ -24,7 +25,7 @@ def _segredo(*nomes: str) -> str:
             return valor
         try:
             valor = st.secrets.get(nome)
-        except Exception:
+        except Exception:  # noqa: BLE001
             valor = None
         if valor:
             return str(valor)
@@ -56,7 +57,7 @@ def _cliente_usuario() -> Client:
             sessao = cliente.auth.set_session(access, refresh)
             if sessao and sessao.session:
                 _guardar_sessao(sessao.session)
-        except Exception:
+        except Exception:  # noqa: BLE001
             limpar_sessao()
     return cliente
 
@@ -99,7 +100,7 @@ def cadastrar(nome: str, email: str, senha: str) -> tuple[bool, str]:
         if resposta.session:
             _guardar_sessao(resposta.session)
         return True, "Cadastro criado. Sua conta ficará aguardando aprovação."
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         return False, f"Não foi possível criar a conta: {exc}"
 
 
@@ -112,7 +113,7 @@ def entrar(email: str, senha: str) -> tuple[bool, str]:
             return False, "Login não retornou uma sessão válida."
         _guardar_sessao(resposta.session)
         return True, ""
-    except Exception:
+    except Exception:  # noqa: BLE001
         return False, "E-mail ou senha inválidos."
 
 
@@ -120,8 +121,8 @@ def sair() -> None:
     try:
         cliente = _cliente_usuario()
         cliente.auth.sign_out({"scope": "local"})
-    except Exception:
-        pass
+    except Exception:  # noqa: BLE001
+        st.session_state["_euler_remote_signout_failed"] = True
     limpar_sessao()
 
 
@@ -132,7 +133,7 @@ def _usuario_validado():
     try:
         resposta = _cliente_usuario().auth.get_user(access)
         return resposta.user
-    except Exception:
+    except Exception:  # noqa: BLE001
         limpar_sessao()
         return None
 
@@ -142,7 +143,13 @@ def _carregar_contexto() -> dict | None:
     if not usuario:
         return None
     cliente = _cliente_usuario()
-    perfil_resp = cliente.table("profiles").select("*").eq("id", str(usuario.id)).limit(1).execute()
+    perfil_resp = (
+        cliente.table("profiles")
+        .select("*")
+        .eq("id", str(usuario.id))
+        .limit(1)
+        .execute()
+    )
     if not perfil_resp.data:
         return None
     perfil = perfil_resp.data[0]
@@ -179,7 +186,7 @@ def registrar_atividade(ctx: dict) -> None:
             {"last_seen_at": datetime.now(UTC).isoformat()}
         ).eq("id", ctx["user_id"]).execute()
         st.session_state["_euler_last_seen_registered"] = True
-    except Exception:
+    except Exception:  # noqa: BLE001
         pass
 
 
