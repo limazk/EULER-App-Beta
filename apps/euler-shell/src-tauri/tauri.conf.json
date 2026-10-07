@@ -30,6 +30,12 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.ico"
+    ],
     "category": "Business",
     "shortDescription": "Investigação do consumo de combustível em caldeiras industriais",
     "longDescription": "EULER é um software de investigação e diagnóstico para análise do consumo de combustível e desempenho de caldeiras industriais."
