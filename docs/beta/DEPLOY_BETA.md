@@ -16,10 +16,11 @@ EULER_DADOS_DIR=/var/data/euler
 
 **Nunca** configure `EULER_TEST_BYPASS_AUTH=1` no servidor público.
 
-O container escuta a porta `8501` e inicia com:
+O container usa a variável `PORT` fornecida pelo Render (com `8501` apenas como
+fallback para execução local) e inicia com o equivalente a:
 
 ```bash
-streamlit run app/main.py --server.address=0.0.0.0 --server.port=8501
+streamlit run app/main.py --server.address 0.0.0.0 --server.port $PORT --server.headless true
 ```
 
 ## Persistência
