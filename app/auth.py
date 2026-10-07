@@ -10,9 +10,9 @@ import os
 from datetime import UTC, datetime
 
 import streamlit as st
+from supabase.lib.client_options import ClientOptions
 
 from supabase import Client, create_client
-from supabase.lib.client_options import ClientOptions
 
 TOKEN_ACCESS = "_euler_access_token"
 TOKEN_REFRESH = "_euler_refresh_token"
