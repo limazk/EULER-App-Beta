@@ -149,7 +149,118 @@ a:focus-visible, button:focus-visible, input:focus-visible {{
   border: 1px solid var(--euler-ref-borda); }}
 .euler-tempo-legenda span.q.comp {{ background: var(--euler-comp);
   border: 1px solid var(--euler-comp-borda); }}
+
+/* Carregamento da investigação: feedback visual sem porcentagem inventada. */
+.euler-loading-card {
+  background:
+    radial-gradient(110% 140% at 0% 0%, rgba(236, 236, 236, .055) 0%, rgba(236, 236, 236, 0) 48%),
+    var(--euler-lateral);
+  border: 1px solid #343434;
+  border-radius: 14px;
+  padding: 1rem 1.1rem .95rem;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, .18);
+}
+.euler-loading-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+}
+.euler-loading-brand { display: flex; align-items: center; gap: .8rem; min-width: 0; }
+.euler-loading-icon {
+  width: 38px; height: 38px; flex: 0 0 38px; display: grid; place-items: center;
+  border-radius: 9px; border: 1px solid #3A3A3A; background: #1B1B1B;
+  animation: euler-pulse 1.45s ease-in-out infinite;
+}
+.euler-loading-icon svg { width: 28px; height: 28px; display: block; }
+.euler-loading-copy { min-width: 0; }
+.euler-loading-title {
+  color: var(--euler-texto); font-size: 1rem; font-weight: 650; line-height: 1.25;
+}
+.euler-loading-stage {
+  color: var(--euler-suave); font-size: .88rem; margin-top: .18rem; line-height: 1.35;
+}
+.euler-loading-live {
+  display: inline-flex; align-items: center; gap: .45rem; flex: 0 0 auto;
+  color: #CFCFCF; font-size: .78rem; border: 1px solid #3A3A3A;
+  border-radius: 999px; padding: .35rem .6rem; background: #202020;
+}
+.euler-loading-live::before {
+  content: ""; width: .46rem; height: .46rem; border-radius: 50%; background: #ECECEC;
+  box-shadow: 0 0 0 0 rgba(236, 236, 236, .3);
+  animation: euler-dot 1.45s ease-out infinite;
+}
+.euler-loading-track {
+  position: relative; height: 4px; overflow: hidden; margin: .9rem 0 .75rem;
+  border-radius: 999px; background: #303030;
+}
+.euler-loading-sweep {
+  position: absolute; inset: 0 auto 0 -34%; width: 34%; border-radius: inherit;
+  background: linear-gradient(90deg, transparent, #C9C9C9, transparent);
+  animation: euler-sweep 1.35s ease-in-out infinite;
+}
+.euler-loading-details {
+  display: flex; flex-wrap: wrap; gap: .45rem .55rem; color: var(--euler-fraco);
+  font-size: .78rem;
+}
+.euler-loading-details span {
+  display: inline-flex; align-items: center; gap: .34rem;
+  border: 1px solid #333333; border-radius: 999px; padding: .28rem .5rem;
+  background: #232323;
+}
+.euler-loading-details span::before { content: "·"; color: var(--euler-texto); font-weight: 700; }
+@keyframes euler-pulse {
+  0%, 100% { transform: scale(1); opacity: .9; }
+  50% { transform: scale(1.045); opacity: 1; }
+}
+@keyframes euler-dot {
+  0% { box-shadow: 0 0 0 0 rgba(236, 236, 236, .28); }
+  70% { box-shadow: 0 0 0 7px rgba(236, 236, 236, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(236, 236, 236, 0); }
+}
+@keyframes euler-sweep {
+  0% { left: -34%; }
+  100% { left: 100%; }
+}
+@media(max-width:640px) {
+  .euler-loading-head { align-items: flex-start; }
+  .euler-loading-live { font-size: .72rem; }
+  .euler-loading-details { gap: .35rem; }
+}
 </style>"""
+
+
+def carregamento_analise(
+    titulo: str = "Analisando a caldeira…",
+    etapa: str = "Investigando os períodos selecionados",
+    detalhes: tuple[str, ...] | None = None,
+) -> None:
+    """Feedback visual durante cálculos longos, sem simular porcentagem ou tempo restante."""
+    detalhes = detalhes or (
+        "Consistência dos dados",
+        "Balanços e indicadores",
+        "Hipóteses físicas",
+        "Diagnóstico e evidências",
+    )
+    icone = ICONE.read_text(encoding="utf-8")
+    chips = "".join(f"<span>{escape(item)}</span>" for item in detalhes)
+    st.html(
+        f"""
+        <div class="euler-loading-card" role="status" aria-live="polite">
+          <div class="euler-loading-head">
+            <div class="euler-loading-brand">
+              <div class="euler-loading-icon" aria-hidden="true">{icone}</div>
+              <div class="euler-loading-copy">
+                <div class="euler-loading-title">{escape(titulo)}</div>
+                <div class="euler-loading-stage">{escape(etapa)}</div>
+              </div>
+            </div>
+            <div class="euler-loading-live">Em processamento</div>
+          </div>
+          <div class="euler-loading-track" aria-hidden="true">
+            <div class="euler-loading-sweep"></div>
+          </div>
+          <div class="euler-loading-details">{chips}</div>
+        </div>
+        """
+    )
 
 
 def aplicar_estilo() -> None:
