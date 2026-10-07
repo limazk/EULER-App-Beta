@@ -1,3 +1,3 @@
-"""EULER · investigação física para caldeiras industriais (protótipo, Fase 0)."""
+"""EULER · investigação física para caldeiras industriais (beta)."""
 
-__version__ = "0.0.1"
+__version__ = "0.1.0-beta.1"
