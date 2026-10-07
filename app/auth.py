@@ -363,3 +363,41 @@ def vincular_usuario(user_id: str, organization_id: str, role: str) -> None:
         },
         on_conflict="organization_id,user_id",
     ).execute()
+
+
+def enviar_feedback(tipo: str, mensagem: str, pagina: str = "") -> None:
+    """Registra feedback do usuário autenticado sem expor privilégios administrativos."""
+    tipos = {"bug", "melhoria", "duvida", "outro"}
+    if tipo not in tipos:
+        raise ValueError("Tipo de feedback inválido.")
+    mensagem = mensagem.strip()
+    if len(mensagem) < 5 or len(mensagem) > 4000:
+        raise ValueError("Descreva o feedback entre 5 e 4000 caracteres.")
+
+    ctx = contexto_atual(recarregar=True)
+    if not ctx:
+        raise RuntimeError("Sessão não encontrada.")
+
+    memberships = ctx.get("memberships") or []
+    organization_id = memberships[0]["organization_id"] if memberships else None
+    _cliente_usuario().table("feedback").insert(
+        {
+            "user_id": ctx["user_id"],
+            "organization_id": organization_id,
+            "type": tipo,
+            "message": mensagem,
+            "page": pagina.strip()[:200],
+        }
+    ).execute()
+
+
+def listar_feedback() -> list[dict]:
+    resposta = (
+        _cliente_admin()
+        .table("feedback")
+        .select("*")
+        .order("created_at", desc=True)
+        .limit(100)
+        .execute()
+    )
+    return resposta.data or []
