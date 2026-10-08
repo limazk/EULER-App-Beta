@@ -8,8 +8,9 @@ from blocos.entrega import renderizar as renderizar_entrega
 from blocos.linha_do_tempo import renderizar as renderizar_linha_do_tempo
 from componentes import incerteza_explicada, md
 
+from euler.armazem import ORIGEM_DA_CLASSE
 from euler.conta import conclusao_financeira
-from euler.fechamento import fechamentos
+from euler.fechamento import fechamentos_vigentes
 from euler.formato import num
 from euler.painel import painel, texto_fechamento
 
@@ -18,7 +19,7 @@ def _massa(v):
     return "Não informada" if v is None else f"{num(v, 1)} t"
 
 
-def conta_salva(f: dict) -> None:
+def conta_salva(f: dict, origem: str | None = None) -> None:
     """Mostra o núcleo auditável de um fechamento; todos os valores já vieram do motor."""
     r = f["resultado"]
     n = r["nucleo"]
@@ -132,7 +133,7 @@ def conta_salva(f: dict) -> None:
         )
         st.download_button(
             "Baixar este fechamento",
-            texto_fechamento(f),
+            texto_fechamento(f, origem),
             f"fechamento-{f['id']}.md",
             "text/markdown",
         )
@@ -144,7 +145,7 @@ def mostrar() -> None:
         if ctx is None:
             return
         _, planta, a, eq = ctx
-        fs = fechamentos(a, eq["id"])
+        fs = fechamentos_vigentes(a, eq["id"])
         if not fs:
             st.info(
                 "Ainda não há conta fechada para este equipamento. Defina a referência e produza o primeiro fechamento."
@@ -164,7 +165,7 @@ def mostrar() -> None:
             format_func=lambda i: f"#{i} · {periodo(por_id[i]['resultado']['nucleo']['periodo'])}",
             key=f"fin_fech_{planta['id']}_{eq['id']}",
         )
-        conta_salva(por_id[ident])
+        conta_salva(por_id[ident], ORIGEM_DA_CLASSE.get(planta["classe"]))
         renderizar_entrega(a, eq, ident)
         ver = painel(a, eq["id"])["verificado"]
     st.markdown("### Resultados das ações · histórico do equipamento")
