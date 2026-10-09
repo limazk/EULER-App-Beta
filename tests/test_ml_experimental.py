@@ -43,7 +43,9 @@ def test_ml01_detecta_anomalias_e_reporta_falsos_alarmes():
     teste.loc[indices, "temperatura_c"] += 18
     teste.loc[indices, "o2_pct"] += 2
     teste.loc[indices, "anomalia_real"] = True
-    avaliacao = avaliar_detector(modelo, teste, timestamp="instante", rotulo="anomalia_real")
+    avaliacao = avaliar_detector(
+        modelo, teste, timestamp="instante", rotulo="anomalia_real", escopo=ESCOPO
+    )
     assert avaliacao["modelo"]["revocacao"] == 1.0
     assert avaliacao["modelo"]["taxa_falso_alarme"] <= 0.1
     assert avaliacao["amostras_avaliadas"] == 60
@@ -65,11 +67,15 @@ def test_ml01_missing_nao_vira_score_zero_ou_estado_normal():
 
 
 def test_ml_isola_organizacao_planta_e_equipamento():
-    dados = _base(40)
-    dados["x"] = np.arange(40)
+    limpos = _base(40)
+    limpos["x"] = np.arange(40)
+    modelo = treinar_detector(limpos, timestamp="instante", variaveis=("x",))
+    dados = limpos.copy()
     dados.loc[20, "organizacao_id"] = "outra-org"
     with pytest.raises(AbstencaoML, match="Mistura"):
         treinar_detector(dados, timestamp="instante", variaveis=("x",), escopo=ESCOPO)
+    with pytest.raises(AbstencaoML, match="Mistura"):
+        detectar(modelo, dados, timestamp="instante", escopo=ESCOPO)
 
 
 def test_divisao_temporal_e_ordem_sem_vazamento():

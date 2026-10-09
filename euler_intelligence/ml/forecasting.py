@@ -58,9 +58,13 @@ def treinar_autoregressao(
 
 
 def prever_um_passo(
-    modelo: ModeloAutoregressivo, dados: pd.DataFrame, *, timestamp: str
+    modelo: ModeloAutoregressivo,
+    dados: pd.DataFrame,
+    *,
+    timestamp: str,
+    escopo: EscopoML | None = None,
 ) -> pd.DataFrame:
-    frame = validar_serie(dados, timestamp=timestamp)
+    frame = validar_serie(dados, timestamp=timestamp, escopo=escopo)
     if modelo.alvo not in frame:
         raise AbstencaoML(f"Alvo ausente: {modelo.alvo}.")
     x, y, indices = _janelas(frame[modelo.alvo], modelo.lags)
@@ -114,10 +118,18 @@ def avaliar_previsao_temporal(
     # O contexto anterior é anexado somente para formar lags; métricas usam a fatia futura.
     contexto = partes.treino.tail(lags)
     validacao = prever_um_passo(
-        modelo, pd.concat([contexto, partes.validacao]), timestamp=timestamp
+        modelo,
+        pd.concat([contexto, partes.validacao]),
+        timestamp=timestamp,
+        escopo=escopo,
     )
     contexto_teste = pd.concat([partes.treino, partes.validacao]).tail(lags)
-    teste = prever_um_passo(modelo, pd.concat([contexto_teste, partes.teste]), timestamp=timestamp)
+    teste = prever_um_passo(
+        modelo,
+        pd.concat([contexto_teste, partes.teste]),
+        timestamp=timestamp,
+        escopo=escopo,
+    )
     erro_validacao = np.abs(validacao["observado"] - validacao["previsto"])
     margem_90 = float(np.quantile(erro_validacao, 0.9))
     teste["limite_inferior_90"] = teste["previsto"] - margem_90

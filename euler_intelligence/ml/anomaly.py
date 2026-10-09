@@ -90,10 +90,11 @@ def avaliar_detector(
     *,
     timestamp: str,
     rotulo: str,
+    escopo: EscopoML | None = None,
 ) -> dict:
     if rotulo not in teste:
         raise AbstencaoML(f"Rótulo de avaliação ausente: {rotulo}.")
-    resultado = detectar(modelo, teste, timestamp=timestamp)
+    resultado = detectar(modelo, teste, timestamp=timestamp, escopo=escopo)
     validos = resultado["anomalia"].notna() & teste[rotulo].notna()
     if not validos.any():
         raise AbstencaoML("Nenhuma amostra avaliável.")
