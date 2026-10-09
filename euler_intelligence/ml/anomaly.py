@@ -7,11 +7,12 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
-from .common import AbstencaoML, EscopoML, metricas_binarias, validar_serie
+from .common import AbstencaoML, EscopoML, exigir_escopo, metricas_binarias, validar_serie
 
 
 @dataclass(frozen=True)
 class DetectorAnomalias:
+    escopo: EscopoML
     variaveis: tuple[str, ...]
     centro: tuple[float, ...]
     escala: tuple[float, ...]
@@ -27,7 +28,7 @@ def treinar_detector(
     *,
     timestamp: str,
     variaveis: tuple[str, ...],
-    escopo: EscopoML | None = None,
+    escopo: EscopoML,
     minimo_amostras: int = 30,
 ) -> DetectorAnomalias:
     frame = validar_serie(treino, timestamp=timestamp, escopo=escopo)
@@ -49,13 +50,14 @@ def treinar_detector(
     scores = np.sqrt(np.mean(((valores - centro) / escala) ** 2, axis=1))
     limiar = max(3.5, float(np.quantile(scores, 0.99)))
     return DetectorAnomalias(
-        variaveis,
-        tuple(map(float, centro)),
-        tuple(map(float, escala)),
-        limiar,
-        len(completos),
-        frame[timestamp].iloc[0].isoformat(),
-        frame[timestamp].iloc[-1].isoformat(),
+        escopo=escopo,
+        variaveis=variaveis,
+        centro=tuple(map(float, centro)),
+        escala=tuple(map(float, escala)),
+        limiar=limiar,
+        amostras_treino=len(completos),
+        inicio_treino=frame[timestamp].iloc[0].isoformat(),
+        fim_treino=frame[timestamp].iloc[-1].isoformat(),
     )
 
 
@@ -66,7 +68,14 @@ def detectar(
     timestamp: str,
     escopo: EscopoML | None = None,
 ) -> pd.DataFrame:
+    escopo = exigir_escopo(modelo.escopo, escopo)
     frame = validar_serie(dados, timestamp=timestamp, escopo=escopo)
+    ausentes = [c for c in modelo.variaveis if c not in frame]
+    if ausentes:
+        raise AbstencaoML(f"Variáveis ausentes na inferência: {', '.join(ausentes)}.")
+    fim_treino = pd.Timestamp(modelo.fim_treino)
+    if not frame.empty and frame[timestamp].min() <= fim_treino:
+        raise AbstencaoML("Inferência deve usar período posterior ao fim do treinamento.")
     x = frame.loc[:, modelo.variaveis].apply(pd.to_numeric, errors="coerce")
     completos = x.notna().all(axis=1) & np.isfinite(x).all(axis=1)
     saida = pd.DataFrame({timestamp: frame[timestamp], "score": np.nan})

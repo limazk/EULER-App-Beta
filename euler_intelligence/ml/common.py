@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+import numpy as np
 import pandas as pd
 
 
@@ -29,6 +30,15 @@ class DivisaoTemporal:
     teste: pd.DataFrame
 
 
+def exigir_escopo(modelo: EscopoML, informado: EscopoML | None) -> EscopoML:
+    """Falha fechada: inferência exige o escopo e ele deve ser o do treino."""
+    if informado is None:
+        raise AbstencaoML("Escopo obrigatório para inferência isolada.")
+    if informado != modelo:
+        raise AbstencaoML("Escopo da inferência diverge do escopo do modelo treinado.")
+    return informado
+
+
 def validar_serie(
     dados: pd.DataFrame,
     *,
@@ -39,6 +49,8 @@ def validar_serie(
     if timestamp not in dados:
         raise AbstencaoML(f"Coluna temporal ausente: {timestamp}.")
     frame = dados.copy()
+    if frame.empty:
+        raise AbstencaoML("Série vazia.")
     try:
         frame[timestamp] = pd.to_datetime(frame[timestamp], utc=True)
     except (TypeError, ValueError) as exc:
@@ -60,6 +72,16 @@ def validar_serie(
             if valores != {esperado} or frame[coluna].isna().any():
                 raise AbstencaoML(f"Mistura ou divergência de escopo em {coluna}.")
     return frame
+
+
+def validar_regularidade(dados: pd.DataFrame, *, timestamp: str) -> pd.Timedelta:
+    """Exige uma cadência única e positiva para que lags tenham duração conhecida."""
+    if len(dados) < 2:
+        raise AbstencaoML("Amostras insuficientes para determinar a frequência temporal.")
+    passos = dados[timestamp].diff().dropna()
+    if (passos <= pd.Timedelta(0)).any() or passos.nunique() != 1:
+        raise AbstencaoML("Intervalos temporais irregulares; horizonte em passos é ambíguo.")
+    return passos.iloc[0]
 
 
 def dividir_temporalmente(
@@ -90,8 +112,14 @@ def dividir_temporalmente(
 
 
 def metricas_binarias(esperado, previsto) -> dict[str, float | int]:
-    y = pd.Series(esperado, dtype=bool)
-    p = pd.Series(previsto, dtype=bool)
+    y = np.asarray(esperado)
+    p = np.asarray(previsto)
+    if y.ndim != 1 or p.ndim != 1 or len(y) != len(p) or not len(y):
+        raise AbstencaoML("Rótulos binários precisam ter vetores não vazios do mesmo tamanho.")
+    if pd.isna(y).any() or pd.isna(p).any():
+        raise AbstencaoML("Rótulos binários não aceitam valores ausentes.")
+    if y.dtype.kind != "b" or p.dtype.kind != "b":
+        raise AbstencaoML("Rótulos e previsões devem ser booleanos, sem coerção implícita.")
     tp = int((y & p).sum())
     fp = int((~y & p).sum())
     fn = int((y & ~p).sum())
