@@ -186,6 +186,33 @@ def test_expiracao_remove_dados_antes_de_nova_autenticacao(monkeypatch):
     assert auth.TOKEN_ACCESS not in sessao
 
 
+def test_falha_ao_carregar_autorizacao_descarta_sessao_e_dados(monkeypatch):
+    auth = importlib.import_module("auth")
+    sessao = {
+        auth.TOKEN_ACCESS: "access-valido",
+        auth.TOKEN_REFRESH: "refresh-valido",
+        auth.SESSION_USER_ID: "usuario-a",
+        "arquivos": (("dados-a.csv", b"segredo-a"),),
+        "investigacao": {"json": {"privado": True}},
+        "dashboard_planta": "planta-a",
+    }
+
+    class ClienteIndisponivel:
+        def table(self, _nome):
+            raise RuntimeError("falha de comunicação simulada")
+
+    monkeypatch.setattr(auth.st, "session_state", sessao)
+    monkeypatch.setattr(
+        auth,
+        "_usuario_validado",
+        lambda: SimpleNamespace(id="usuario-a", email="a@example.invalid"),
+    )
+    monkeypatch.setattr(auth, "_cliente_usuario", ClienteIndisponivel)
+
+    assert auth._carregar_contexto() is None
+    assert sessao == {}
+
+
 def test_renovacao_de_token_do_mesmo_usuario_preserva_trabalho(monkeypatch):
     auth = importlib.import_module("auth")
     sessao = {
