@@ -20,9 +20,37 @@ O PR #22 de fechamentos financeiros não faz parte da entrega inicial de UX.
 | 04 | Dashboard | `app/paginas/inicio.py`, widgets próprios | Sem dados fictícios nem indicadores sem período |
 | 05 | Análises e gráficos | `app/graficos.py`, telas de análise | Unidades, fontes, limitações e incertezas preservadas |
 | 06 | Planta e rotina mensal | Telas operacionais, sem tocar no PR #22 antes do merge | Fechamento, ações e histórico íntegros |
-| 07 | ML experimental | Módulos e testes novos em `euler_intelligence/ml/**` | Backtest temporal, comparação com baseline; desligado por padrão |
+| 07 | **ML obrigatório para Beta v3** | Modelos, avaliação e testes em `euler_intelligence/ml/**`, branch/PR separados | Detecção de anomalias, previsão de consumo e diagnóstico de resíduos físico-estatísticos demonstráveis com validação temporal; uso industrial desligado até homologação |
 | 08 | Preparação da IA | Recuperação autorizada de evidências e validação | Nenhum provedor selecionado ou chamado |
 | 09 | Beta e qualidade | Testes de fluxos, segurança, visual e documentação | CI verde e checklist de revisão humana |
+
+## Escopo obrigatório de Machine Learning antes da Beta v3
+
+Decisão de produto: a EULER 3.0 Beta **não será considerada completa** com apenas
+interfaces e contratos vazios de ML. Após o PR visual do Codex, executar PR(s)
+isolados de ML, sem editar o motor físico ou `tests/golden/**`:
+
+1. **ML-01 — Anomalias:** detectar desvios relevantes em dados industriais
+   temporalmente ordenados, com referência, evidência e possibilidade de
+   abstenção quando a amostra for insuficiente.
+2. **ML-02 — Previsão de consumo:** produzir previsão e intervalo de incerteza
+   quando justificáveis, comparando desempenho com baseline simples;
+   não confundir custo estimado com economia verificada.
+3. **ML-03 — Resíduos físico-estatísticos:** analisar discrepâncias entre
+   medições e saídas existentes do motor físico, sem ajustar equações nem
+   emitir comandos operacionais.
+
+Critérios mínimos de aceite: (a) pipelines executáveis de treinamento e
+inferência offline, não somente scaffolds; (b) dados sintéticos ou públicos
+com origem claramente identificada; (c) testes de dados ausentes/inválidos,
+poucas amostras, divisão temporal sem vazamento e resultados reproduzíveis;
+(d) comparação com baseline e documentação de métricas, limitações e
+versões do modelo; (e) nenhum acesso entre organizações, telemetria externa
+ou uso automático de dados reais sem autorização; (f) CI e revisão técnica.
+
+A **disponibilidade em produção permanecerá desligada** até validação
+industrial e aprovação humana, mesmo que a Beta inclua demonstrações e
+experimentos funcionais. IA generativa permanece fora deste requisito.
 
 ## Divisão entre agentes
 
