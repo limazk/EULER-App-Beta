@@ -111,4 +111,6 @@ def test_interface_exibe_dados_persistidos_com_origem_periodo_e_unidade(
     assert "registros persistidos da planta" in textos
     assert "Origem" in textos and "sintético" in textos
     assert "Unidade:" in textos
+    assert not any("sem dados carregados" in item.value for item in at.caption)
+    assert any("dados persistidos selecionados" in item.value for item in at.caption)
     assert "arquivos" not in at.session_state

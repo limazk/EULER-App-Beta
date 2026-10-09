@@ -440,6 +440,11 @@ p, label, [data-testid="stMarkdownContainer"], [data-testid="stMetricValue"] {{
   .st-key-euler-topbar {{ min-height: 44px; }}
   [data-testid="stHorizontalBlock"] {{ flex-wrap: wrap; }}
 }}
+/* O Streamlit translada a lateral recolhida; retire também sua largura do fluxo. */
+[data-testid="stAppViewContainer"]:has([data-testid="stExpandSidebarButton"])
+  [data-testid="stSidebar"] {{
+  min-width: 0; max-width: 0; width: 0 !important; flex-basis: 0 !important; border-right: 0;
+}}
 </style>"""
 
 

@@ -384,7 +384,14 @@ def _seletor_persistido():
     repo = arm.repositorio()
     plantas = {planta["id"]: planta for planta in repo.listar_plantas()}
     if not plantas:
-        st.info("Nenhuma planta persistida nesta organização. O dashboard permanece sem dados.")
+        st.session_state.pop("dashboard_contexto_persistido", None)
+        if st.session_state.get("arquivos"):
+            st.info(
+                "Nenhuma planta persistida nesta organização. O dashboard exibe somente "
+                "os dados identificados desta sessão; salve-os para reabrir depois."
+            )
+        else:
+            st.info("Nenhuma planta persistida nesta organização. O dashboard permanece sem dados.")
         return None, None
 
     with st.expander("Contexto de dados persistidos", expanded=True):
@@ -402,6 +409,7 @@ def _seletor_persistido():
             armazem.fechar()
         versoes = repo.listar_importacoes(planta_id)
         if not equipamentos:
+            st.session_state.pop("dashboard_contexto_persistido", None)
             st.info("Esta planta ainda não tem equipamento associado aos registros persistidos.")
             if versoes:
                 _abrir_versao(repo, planta, versoes)
@@ -414,6 +422,11 @@ def _seletor_persistido():
             key=f"dashboard_equipamento_{planta_id}",
         )
         persistido = carregar_dashboard(repo, planta_id, equipamento_id)
+        st.session_state["dashboard_contexto_persistido"] = {
+            "planta_id": planta_id,
+            "equipamento_id": equipamento_id,
+            "origem": persistido.origem,
+        }
         fechamentos = {item["id"]: item for item in persistido.fechamentos}
         opcoes = list(reversed(fechamentos)) + ["serie_completa"]
         periodo_id = st.selectbox(

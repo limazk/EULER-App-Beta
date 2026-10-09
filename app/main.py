@@ -40,7 +40,9 @@ navegacao.run()
 rodape()
 
 # depois da tela: um clique que troca os dados já aparece nesta mesma execução
-if not st.session_state.get("arquivos"):
+if st.session_state.get("dashboard_contexto_persistido"):
+    situacao_dados = "dados persistidos selecionados"
+elif not st.session_state.get("arquivos"):
     situacao_dados = "sem dados carregados"
 elif estado.dados_sinteticos():
     situacao_dados = "**dados sintéticos** em uso"

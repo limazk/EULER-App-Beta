@@ -16,6 +16,26 @@ def test_identidade_v3_usa_paleta_aprovada_sem_roxo():
     assert "violet" not in ESTILO.lower()
 
 
+def test_sidebar_recolhida_nao_reserva_largura_vazia():
+    from componentes import _estilo_do_tema
+
+    css = _estilo_do_tema(
+        {
+            "fundo": "#000000",
+            "lateral": "#000000",
+            "cartao": "#000000",
+            "cartao_secundario": "#000000",
+            "linha": "#000000",
+            "hover": "#000000",
+            "texto": "#FFFFFF",
+            "suave": "#FFFFFF",
+            "sombra": "transparent",
+        }
+    )
+    assert ':has([data-testid="stExpandSidebarButton"])' in css
+    assert "flex-basis: 0 !important" in css
+
+
 def test_navegacao_v3_agrupa_modulos_sem_perder_rotas():
     assert [pagina[1] for pagina in PRINCIPAIS] == [
         "Dashboard",
@@ -56,3 +76,5 @@ def test_dashboard_com_demo_mostra_historico_sem_simular_conexao(tmp_path, monke
     assert at.get("vega_lite_chart")
     assert any("não significa conexão com sensores" in texto.value for texto in at.caption)
     assert any("Demonstração sintética" in texto.value for texto in at.get("html"))
+    assert any("exibe somente" in texto.value for texto in at.info)
+    assert not any("permanece sem dados" in texto.value for texto in at.info)
