@@ -128,6 +128,42 @@ def test_limpar_sessao_remove_timestamp_do_contexto(monkeypatch):
     assert sessao == {"outra_chave": "preservar"}
 
 
+def test_membership_atual_acompanha_organizacao_ativa_selecionada(monkeypatch):
+    auth = importlib.import_module("auth")
+    ctx = {
+        "memberships": [
+            {
+                "organization_id": "org-a",
+                "role": "viewer",
+                "organizations": {"name": "A", "status": "active"},
+            },
+            {
+                "organization_id": "org-b",
+                "role": "operator",
+                "organizations": {"name": "B", "status": "active"},
+            },
+        ]
+    }
+    monkeypatch.setattr(auth.st, "session_state", {auth.ORGANIZACAO_SELECIONADA: "org-b"})
+
+    assert auth._membership_atual(ctx)["organization_id"] == "org-b"
+
+
+def test_membership_atual_nao_aceita_organizacao_suspensa_ou_ausente(monkeypatch):
+    auth = importlib.import_module("auth")
+    ctx = {
+        "memberships": [
+            {
+                "organization_id": "org-suspensa",
+                "organizations": {"name": "Suspensa", "status": "suspended"},
+            }
+        ]
+    }
+    monkeypatch.setattr(auth.st, "session_state", {auth.ORGANIZACAO_SELECIONADA: "org-suspensa"})
+
+    assert auth._membership_atual(ctx) is None
+
+
 def test_exigir_acesso_nao_revalida_em_todo_rerun(monkeypatch):
     auth = importlib.import_module("auth")
     ctx = {

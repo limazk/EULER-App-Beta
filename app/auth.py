@@ -20,6 +20,7 @@ TOKEN_REFRESH = "_euler_refresh_token"
 CTX = "_euler_auth_context"
 CTX_VALIDATED_AT = "_euler_auth_context_validated_at"
 AUTH_CONTEXT_TTL_SECONDS = 45.0
+ORGANIZACAO_SELECIONADA = "_euler_organization_id"
 
 
 def _modo_teste() -> bool:
@@ -108,7 +109,15 @@ def _guardar_sessao(sessao) -> None:
 
 
 def limpar_sessao() -> None:
-    for chave in (TOKEN_ACCESS, TOKEN_REFRESH, CTX, CTX_VALIDATED_AT):
+    for chave in (
+        TOKEN_ACCESS,
+        TOKEN_REFRESH,
+        CTX,
+        CTX_VALIDATED_AT,
+        "_euler_organization_id",
+        "_euler_active_organization_id",
+        "_euler_organization_user_id",
+    ):
         st.session_state.pop(chave, None)
 
 
@@ -272,6 +281,23 @@ def contexto_atual(*, recarregar: bool = False) -> dict | None:
     return _carregar_contexto()
 
 
+def _memberships_ativas(ctx: dict) -> list[dict]:
+    return [
+        membership
+        for membership in ctx.get("memberships") or []
+        if (membership.get("organizations") or {}).get("status") in (None, "active")
+    ]
+
+
+def _membership_atual(ctx: dict) -> dict | None:
+    """Associação ativa escolhida na sessão, sem aceitar organização fora do contexto."""
+    memberships = _memberships_ativas(ctx)
+    selecionada = st.session_state.get(ORGANIZACAO_SELECIONADA)
+    if selecionada is None:
+        return memberships[0] if memberships else None
+    return next((item for item in memberships if item.get("organization_id") == selecionada), None)
+
+
 def registrar_atividade(ctx: dict) -> None:
     if st.session_state.get("_euler_last_seen_registered"):
         return
@@ -425,18 +451,16 @@ def exigir_acesso() -> dict:
             st.rerun()
         st.stop()
 
-    if not ctx.get("is_superadmin") and ctx.get("memberships"):
-        org = ctx["memberships"][0].get("organizations") or {}
-        if org.get("status") != "active":
-            st.markdown("## Empresa temporariamente suspensa")
-            st.warning(
-                "O acesso desta organização está suspenso. "
-                "Entre em contato com a administração da EULER."
-            )
-            if st.button("Sair", key="sair-org-suspensa"):
-                sair()
-                st.rerun()
-            st.stop()
+    if not ctx.get("is_superadmin") and ctx.get("memberships") and not _memberships_ativas(ctx):
+        st.markdown("## Empresa temporariamente suspensa")
+        st.warning(
+            "O acesso desta organização está suspenso. "
+            "Entre em contato com a administração da EULER."
+        )
+        if st.button("Sair", key="sair-org-suspensa"):
+            sair()
+            st.rerun()
+        st.stop()
 
     registrar_atividade(ctx)
     return ctx
@@ -450,8 +474,7 @@ def painel_conta_sidebar(ctx: dict) -> None:
         inicial = nome.strip()[:1].upper() or "E"
         papel = "Administrador EULER" if ctx.get("is_superadmin") else "Usuário"
         organizacao = ""
-        if ctx["memberships"]:
-            membership = ctx["memberships"][0]
+        if membership := _membership_atual(ctx):
             org = membership.get("organizations") or {}
             if org:
                 organizacao = org.get("name", "Organização")
@@ -550,8 +573,8 @@ def enviar_feedback(tipo: str, mensagem: str, pagina: str = "") -> None:
     if not ctx:
         raise RuntimeError("Sessão não encontrada.")
 
-    memberships = ctx.get("memberships") or []
-    organization_id = memberships[0]["organization_id"] if memberships else None
+    membership = _membership_atual(ctx)
+    organization_id = membership["organization_id"] if membership else None
     _cliente_usuario().table("feedback").insert(
         {
             "user_id": ctx["user_id"],

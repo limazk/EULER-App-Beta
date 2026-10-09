@@ -3,6 +3,7 @@
 from html import escape
 
 import altair as alt
+import armazenamento as arm
 import estado
 import pandas as pd
 import streamlit as st
@@ -13,6 +14,7 @@ from componentes import (
     painel_intelligence_desativado,
     secao,
 )
+from dashboard_persistido import carregar_dashboard, filtrar_periodo, resumo_fechamento
 
 from euler.dia_a_dia import diario_por_dia
 from euler.formato import num
@@ -26,28 +28,52 @@ SERIES_DASHBOARD = {
 }
 
 
-def _contexto(pacote) -> dict[str, str]:
+def _periodo_pacote(pacote) -> str:
+    diario = pacote.dados("diario") if pacote is not None else None
+    if diario is None or diario.empty:
+        return "Sem período carregado"
+    instantes = diario.get("instante_observado", pd.Series(dtype="datetime64[ns]")).dropna()
+    if instantes.empty:
+        return "Sem período carregado"
+    return f"{instantes.min():%d/%m/%Y} a {instantes.max():%d/%m/%Y}"
+
+
+def _contexto(pacote, persistido=None, fechamento=None) -> dict[str, str]:
     """Contexto visível, sem confundir autenticação com conexão de sensores."""
     auth = st.session_state.get("_euler_auth_context") or {}
     memberships = auth.get("memberships") or []
+    org_atual = arm.organizacao_atual()
     org = (memberships[0].get("organizations") or {}) if memberships else {}
     persistencia = st.session_state.get("persistencia") or {}
     diario = pacote.dados("diario") if pacote is not None else None
 
     equipamento = "Não identificado"
-    periodo = "Sem período carregado"
-    if diario is not None and not diario.empty:
-        if "caldeira_id" in diario and diario["caldeira_id"].notna().any():
-            equipamento = str(diario["caldeira_id"].dropna().iloc[0])
-        instantes = diario.get("instante_observado", pd.Series(dtype="datetime64[ns]"))
-        instantes = instantes.dropna()
-        if not instantes.empty:
-            periodo = f"{instantes.min():%d/%m/%Y} a {instantes.max():%d/%m/%Y}"
+    periodo = _periodo_pacote(pacote)
+    if (
+        diario is not None
+        and not diario.empty
+        and "caldeira_id" in diario
+        and diario["caldeira_id"].notna().any()
+    ):
+        equipamento = str(diario["caldeira_id"].dropna().iloc[0])
+    if persistido is not None:
+        equipamento = persistido.equipamento["nome"]
+        if fechamento is not None:
+            inicio = pd.Timestamp(fechamento["inicio"])
+            fim = pd.Timestamp(fechamento["fim"])
+            periodo = f"{inicio:%d/%m/%Y} a {fim:%d/%m/%Y}"
     return {
-        "organizacao": str(org.get("name") or "Sem organização vinculada"),
-        "planta": str(persistencia.get("planta_nome") or "Nenhuma planta selecionada"),
+        "organizacao": str(
+            (org_atual or {}).get("nome") or org.get("name") or "Sem organização vinculada"
+        ),
+        "planta": str(
+            persistido.planta["nome"]
+            if persistido is not None
+            else persistencia.get("planta_nome") or "Nenhuma planta selecionada"
+        ),
         "equipamento": equipamento,
         "periodo": periodo,
+        "origem": persistido.origem if persistido is not None else estado.rotulo_dados(),
     }
 
 
@@ -65,39 +91,64 @@ def _cabecalho_dashboard(contexto: dict[str, str]) -> None:
                 ("planta", "Planta"),
                 ("equipamento", "Equipamento"),
                 ("periodo", "Período"),
+                ("origem", "Origem"),
             )
         )
         st.html(f'<div class="euler-contexto" aria-label="Contexto atual">{itens}</div>')
 
 
-def _indicadores(investigacao: dict | None) -> None:
+def _indicadores(investigacao: dict | None, fechamento: dict | None = None) -> None:
     custo = None
     consumo = None
     proxima = None
-    if investigacao:
+    resumo = resumo_fechamento(fechamento)
+    if resumo:
+        custo_atual = resumo["custo_brl_t_vapor"]
+        diferenca = resumo["desvio_brl_t_vapor"]
+        consumo_atual = resumo["consumo_especifico_t_t"]
+        proxima = resumo["proxima_verificacao"]
+        detalhe_custo = (
+            "Fechamento vigente · custo do combustível consumido dividido pelo vapor "
+            f"do período · política {resumo['politica_custo'] or 'não informada'}."
+        )
+        detalhe_diferenca = (
+            "Desvio ainda não explicado por tonelada de vapor; não é economia nem pagamento."
+            if diferenca is not None
+            else "Desvio indisponível no fechamento selecionado."
+        )
+        detalhe_consumo = (
+            "Fechamento vigente · combustível consumido por tonelada de vapor (t/t)."
+            if consumo_atual is not None
+            else "Consumo específico indisponível no fechamento selecionado."
+        )
+    elif investigacao:
         mudou = investigacao.get("o_que_mudou") or {}
         custo = mudou.get("custo_vapor")
         consumo = mudou.get("consumo_especifico") or {}
         proxima = (investigacao.get("proxima_verificacao") or {}).get("acao")
-
-    custo_atual = custo.get("comparacao") if custo else None
-    diferenca = custo.get("delta") if custo else None
-    consumo_atual = consumo.get("comparacao") if consumo else None
-    detalhe_custo = (
-        "Período de comparação da investigação · R$/t de vapor."
-        if custo_atual is not None
-        else "Dados insuficientes para calcular custo por tonelada de vapor."
-    )
-    detalhe_diferenca = (
-        "Comparação menos referência · R$/t de vapor."
-        if diferenca is not None
-        else "Diferença indisponível sem períodos e custos comparáveis."
-    )
-    detalhe_consumo = (
-        "Período de comparação · combustível por tonelada de vapor."
-        if consumo_atual is not None
-        else "Dados insuficientes para calcular o consumo específico."
-    )
+        custo_atual = custo.get("comparacao") if custo else None
+        diferenca = custo.get("delta") if custo else None
+        consumo_atual = consumo.get("comparacao") if consumo else None
+        detalhe_custo = (
+            "Período de comparação da investigação · R$/t de vapor."
+            if custo_atual is not None
+            else "Dados insuficientes para calcular custo por tonelada de vapor."
+        )
+        detalhe_diferenca = (
+            "Comparação menos referência · R$/t de vapor."
+            if diferenca is not None
+            else "Diferença indisponível sem períodos e custos comparáveis."
+        )
+        detalhe_consumo = (
+            "Período de comparação · combustível por tonelada de vapor."
+            if consumo_atual is not None
+            else "Dados insuficientes para calcular o consumo específico."
+        )
+    else:
+        custo_atual = diferenca = consumo_atual = None
+        detalhe_custo = "Dados insuficientes para calcular custo por tonelada de vapor."
+        detalhe_diferenca = "Diferença indisponível sem períodos e custos comparáveis."
+        detalhe_consumo = "Dados insuficientes para calcular o consumo específico."
 
     with st.container(key="dashboard-kpis"):
         colunas = st.columns(5)
@@ -146,7 +197,7 @@ def _indicadores(investigacao: dict | None) -> None:
             )
 
 
-def _grafico_historico(pacote) -> None:
+def _grafico_historico(pacote, *, periodo=None, origem=None) -> None:
     with cartao("historico-principal"):
         st.markdown("### Histórico operacional")
         if pacote is None:
@@ -154,6 +205,8 @@ def _grafico_historico(pacote) -> None:
             st.caption("Importe registros para visualizar uma série histórica.")
             return
         diario = diario_por_dia(pacote)
+        if periodo is not None:
+            diario = filtrar_periodo(diario, periodo["inicio"], periodo["fim"])
         disponiveis = [c for c in SERIES_DASHBOARD if c in diario and diario[c].notna().any()]
         if not disponiveis:
             chip_status("Dados insuficientes", "indisponivel")
@@ -185,13 +238,18 @@ def _grafico_historico(pacote) -> None:
             .properties(height=300)
         )
         st.altair_chart(grafico, width="stretch")
+        fonte = (
+            f"registros persistidos da planta · origem {origem}"
+            if origem
+            else "registros importados nesta sessão"
+        )
         st.caption(
-            "Fonte: registros importados nesta sessão. Lacunas permanecem interrompidas; "
+            f"Fonte: {fonte}. Unidade: {unidade}. Lacunas permanecem interrompidas; "
             "combustível recebido representa compras, não consumo."
         )
 
 
-def _situacao_equipamento(pacote) -> None:
+def _situacao_equipamento(pacote, persistido=None) -> None:
     with cartao("situacao-equipamento"):
         st.markdown("### Situação dos equipamentos")
         diario = pacote.dados("diario") if pacote is not None else None
@@ -205,8 +263,13 @@ def _situacao_equipamento(pacote) -> None:
         avisos = [a for a in pacote.avisos if a.gravidade in {"erro", "atencao"}]
         chip_status("Registros disponíveis", "atencao" if avisos else "neutro")
         st.metric("Última leitura registrada", ultima)
+        origem = (
+            f"{persistido.cobertura.get('importacoes', 0)} importação(ões) persistida(s)"
+            if persistido is not None
+            else f"{len(diario)} leitura(s) normalizada(s)"
+        )
         st.caption(
-            f"{len(diario)} leitura(s) normalizada(s) · {len(avisos)} aviso(s) de erro/atenção. "
+            f"{origem} · {len(diario)} leitura(s) · {len(avisos)} aviso(s) de erro/atenção. "
             "Disponibilidade de registros não significa conexão com sensores nem estado normal."
         )
         st.page_link("paginas/limites.py", label="Ver qualidade e limites", icon=":material/rule:")
@@ -264,21 +327,34 @@ def _central_investigacoes(investigacao: dict | None) -> None:
         )
 
 
-def _fechamento_e_importacao() -> None:
+def _fechamento_e_importacao(persistido=None, fechamento=None) -> None:
     a, b = st.columns(2)
     with a, cartao("fechamento-resumo"):
         st.markdown("### Fechamento mensal")
-        chip_status("Consultar situação", "neutro")
-        st.caption(
-            "O dashboard não presume cobertura ou aprovação. Consulte a versão vigente e o histórico."
-        )
+        if fechamento is None:
+            chip_status("Nenhum vigente no contexto", "indisponivel")
+            st.caption("Sem fechamento vigente para o equipamento e período selecionados.")
+        else:
+            chip_status("Versão vigente selecionada", "neutro")
+            st.caption(
+                f"Fechamento #{fechamento['id']} · revisão de dados "
+                f"{fechamento['revisao_dados']} · valores preservados no histórico."
+            )
         st.page_link(
             "paginas/fechamentos.py", label="Abrir fechamentos", icon=":material/arrow_forward:"
         )
     with b, cartao("ultima-importacao"):
         st.markdown("### Última importação")
         arquivos = st.session_state.get("arquivos") or ()
-        if not arquivos:
+        if persistido is not None and persistido.importacoes:
+            ultima = persistido.importacoes[0]
+            chip_status("Histórico persistido", "neutro")
+            st.metric("Importações do equipamento", len(persistido.importacoes))
+            st.caption(
+                f"Última importação: {pd.Timestamp(ultima['recebido_em']):%d/%m/%Y %H:%M} UTC · "
+                f"revisão {ultima['revisao']} · por {ultima['autor']}."
+            )
+        elif not arquivos:
             chip_status("Nenhuma nesta sessão", "indisponivel")
             st.caption("Nenhum arquivo está carregado nesta sessão.")
         else:
@@ -293,19 +369,129 @@ def _fechamento_e_importacao() -> None:
         )
 
 
-pacote = estado.pacote()
-investigacao, _ = estado.investigacao_atual() if pacote is not None else (None, "nenhuma")
-_cabecalho_dashboard(_contexto(pacote))
+def _seletor_persistido():
+    """Seleciona tenant/planta/equipamento e lê dados salvos sem misturar contextos."""
+    organizacoes = arm.organizacoes_autorizadas()
+    if len(organizacoes) > 1:
+        nomes = {org["id"]: org["nome"] for org in organizacoes}
+        st.selectbox(
+            "Organização",
+            list(nomes),
+            format_func=nomes.get,
+            key=arm.ORGANIZACAO_SELECIONADA,
+        )
+    arm.sincronizar_organizacao()
+    repo = arm.repositorio()
+    plantas = {planta["id"]: planta for planta in repo.listar_plantas()}
+    if not plantas:
+        st.info("Nenhuma planta persistida nesta organização. O dashboard permanece sem dados.")
+        return None, None
+
+    with st.expander("Contexto de dados persistidos", expanded=True):
+        planta_id = st.selectbox(
+            "Planta autorizada",
+            list(plantas),
+            format_func=lambda valor: plantas[valor]["nome"],
+            key="dashboard_planta",
+        )
+        planta = plantas[planta_id]
+        armazem = repo.armazem(planta_id)
+        try:
+            equipamentos = {item["id"]: item for item in armazem.equipamentos()}
+        finally:
+            armazem.fechar()
+        versoes = repo.listar_importacoes(planta_id)
+        if not equipamentos:
+            st.info("Esta planta ainda não tem equipamento associado aos registros persistidos.")
+            if versoes:
+                _abrir_versao(repo, planta, versoes)
+            return None, None
+
+        equipamento_id = st.selectbox(
+            "Equipamento associado",
+            list(equipamentos),
+            format_func=lambda valor: equipamentos[valor]["nome"],
+            key=f"dashboard_equipamento_{planta_id}",
+        )
+        persistido = carregar_dashboard(repo, planta_id, equipamento_id)
+        fechamentos = {item["id"]: item for item in persistido.fechamentos}
+        opcoes = list(reversed(fechamentos)) + ["serie_completa"]
+        periodo_id = st.selectbox(
+            "Período",
+            opcoes,
+            format_func=lambda valor: (
+                "Série persistida completa"
+                if valor == "serie_completa"
+                else (
+                    f"Fechamento vigente #{valor} · "
+                    f"{pd.Timestamp(fechamentos[valor]['inicio']):%d/%m/%Y} a "
+                    f"{pd.Timestamp(fechamentos[valor]['fim']):%d/%m/%Y}"
+                )
+            ),
+            key=f"dashboard_periodo_{planta_id}_{equipamento_id}",
+        )
+        fechamento = None if periodo_id == "serie_completa" else fechamentos[periodo_id]
+        st.caption(
+            f"Origem: {persistido.origem} · {len(persistido.importacoes)} importação(ões) "
+            "persistida(s) · leitura isolada desta planta e deste equipamento."
+        )
+        if persistido.importacoes:
+            with st.expander("Histórico de importações"):
+                st.dataframe(
+                    [
+                        {
+                            "Revisão": item["revisao"],
+                            "Recebida em": item["recebido_em"],
+                            "Responsável": item["autor"],
+                            "Registros novos": item["resumo"].get("novas", 0),
+                            "Conflitos": item["resumo"].get("conflitos_pendentes", 0),
+                        }
+                        for item in persistido.importacoes
+                    ],
+                    hide_index=True,
+                    width="stretch",
+                )
+        if versoes:
+            _abrir_versao(repo, planta, versoes)
+        return persistido, fechamento
+
+
+def _abrir_versao(repo, planta, versoes) -> None:
+    indice = st.selectbox(
+        "Versão arquivada para abrir na sessão",
+        range(len(versoes)),
+        format_func=lambda i: (
+            f"{versoes[i]['criado_em']} · {versoes[i]['rotulo']} · {versoes[i]['id'][:8]}"
+        ),
+        key=f"dashboard_versao_{planta['id']}_{len(versoes)}",
+    )
+    if st.button("Abrir versão persistida", key=f"dashboard_abrir_{planta['id']}"):
+        arm.abrir_importacao(planta, versoes[indice]["id"])
+        st.rerun()
+
+
+persistido, fechamento = _seletor_persistido()
+pacote = persistido.pacote if persistido is not None else estado.pacote()
+investigacao, _ = (
+    estado.investigacao_atual() if pacote is not None and persistido is None else (None, "nenhuma")
+)
+_cabecalho_dashboard(_contexto(pacote, persistido, fechamento))
 
 secao("Indicadores")
-_indicadores(investigacao)
+_indicadores(investigacao, fechamento)
 
 principal, lateral = st.columns([2.15, 1])
 with principal:
-    _grafico_historico(pacote)
+    _grafico_historico(
+        pacote,
+        periodo=None
+        if fechamento is None
+        else {"inicio": fechamento["inicio"], "fim": fechamento["fim"]},
+        origem=persistido.origem if persistido is not None else None,
+    )
 with lateral:
     painel_intelligence_desativado()
-    _situacao_equipamento(pacote)
+    _situacao_equipamento(pacote, persistido)
 
 execucao, atalhos = st.columns([1.45, 1])
 with execucao:
@@ -313,7 +499,7 @@ with execucao:
 with atalhos:
     _acoes_rapidas()
 
-_fechamento_e_importacao()
+_fechamento_e_importacao(persistido, fechamento)
 
 with cartao("inicio-evidencias"):
     st.markdown("**Testado com registros públicos de uma planta brasileira · 660 dias**")
