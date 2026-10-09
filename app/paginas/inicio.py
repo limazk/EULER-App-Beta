@@ -38,7 +38,7 @@ def _periodo_pacote(pacote) -> str:
     return f"{instantes.min():%d/%m/%Y} a {instantes.max():%d/%m/%Y}"
 
 
-def _contexto(pacote, persistido=None, fechamento=None) -> dict[str, str]:
+def _contexto(pacote, persistido=None, fechamento=None, planta_selecionada=None) -> dict[str, str]:
     """Contexto visível, sem confundir autenticação com conexão de sensores."""
     auth = st.session_state.get("_euler_auth_context") or {}
     memberships = auth.get("memberships") or []
@@ -69,11 +69,21 @@ def _contexto(pacote, persistido=None, fechamento=None) -> dict[str, str]:
         "planta": str(
             persistido.planta["nome"]
             if persistido is not None
-            else persistencia.get("planta_nome") or "Nenhuma planta selecionada"
+            else (
+                planta_selecionada["nome"]
+                if planta_selecionada is not None
+                else persistencia.get("planta_nome") or "Nenhuma planta selecionada"
+            )
         ),
         "equipamento": equipamento,
         "periodo": periodo,
-        "origem": persistido.origem if persistido is not None else estado.rotulo_dados(),
+        "origem": (
+            persistido.origem
+            if persistido is not None
+            else (
+                "Sem dados persistidos" if planta_selecionada is not None else estado.rotulo_dados()
+            )
+        ),
     }
 
 
@@ -327,7 +337,9 @@ def _central_investigacoes(investigacao: dict | None) -> None:
         )
 
 
-def _fechamento_e_importacao(persistido=None, fechamento=None) -> None:
+def _fechamento_e_importacao(
+    persistido=None, fechamento=None, *, selecao_persistida: bool = False
+) -> None:
     a, b = st.columns(2)
     with a, cartao("fechamento-resumo"):
         st.markdown("### Fechamento mensal")
@@ -354,6 +366,9 @@ def _fechamento_e_importacao(persistido=None, fechamento=None) -> None:
                 f"Última importação: {pd.Timestamp(ultima['recebido_em']):%d/%m/%Y %H:%M} UTC · "
                 f"revisão {ultima['revisao']} · por {ultima['autor']}."
             )
+        elif selecao_persistida:
+            chip_status("Nenhuma no contexto", "indisponivel")
+            st.caption("Nenhuma importação está disponível para o equipamento selecionado.")
         elif not arquivos:
             chip_status("Nenhuma nesta sessão", "indisponivel")
             st.caption("Nenhum arquivo está carregado nesta sessão.")
@@ -392,7 +407,7 @@ def _seletor_persistido():
             )
         else:
             st.info("Nenhuma planta persistida nesta organização. O dashboard permanece sem dados.")
-        return None, None
+        return None, None, None
 
     with st.expander("Contexto de dados persistidos", expanded=True):
         planta_id = st.selectbox(
@@ -409,11 +424,15 @@ def _seletor_persistido():
             armazem.fechar()
         versoes = repo.listar_importacoes(planta_id)
         if not equipamentos:
-            st.session_state.pop("dashboard_contexto_persistido", None)
+            st.session_state["dashboard_contexto_persistido"] = {
+                "planta_id": planta_id,
+                "equipamento_id": None,
+                "origem": "Sem dados persistidos",
+            }
             st.info("Esta planta ainda não tem equipamento associado aos registros persistidos.")
             if versoes:
                 _abrir_versao(repo, planta, versoes)
-            return None, None
+            return None, None, planta
 
         equipamento_id = st.selectbox(
             "Equipamento associado",
@@ -466,7 +485,7 @@ def _seletor_persistido():
                 )
         if versoes:
             _abrir_versao(repo, planta, versoes)
-        return persistido, fechamento
+        return persistido, fechamento, planta
 
 
 def _abrir_versao(repo, planta, versoes) -> None:
@@ -483,12 +502,19 @@ def _abrir_versao(repo, planta, versoes) -> None:
         st.rerun()
 
 
-persistido, fechamento = _seletor_persistido()
-pacote = persistido.pacote if persistido is not None else estado.pacote()
-investigacao, _ = (
-    estado.investigacao_atual() if pacote is not None and persistido is None else (None, "nenhuma")
+persistido, fechamento, planta_selecionada = _seletor_persistido()
+selecao_persistida = planta_selecionada is not None
+pacote = (
+    persistido.pacote
+    if selecao_persistida and persistido is not None
+    else (None if selecao_persistida else estado.pacote())
 )
-_cabecalho_dashboard(_contexto(pacote, persistido, fechamento))
+investigacao, _ = (
+    estado.investigacao_atual()
+    if pacote is not None and not selecao_persistida
+    else (None, "nenhuma")
+)
+_cabecalho_dashboard(_contexto(pacote, persistido, fechamento, planta_selecionada))
 
 secao("Indicadores")
 _indicadores(investigacao, fechamento)
@@ -512,7 +538,7 @@ with execucao:
 with atalhos:
     _acoes_rapidas()
 
-_fechamento_e_importacao(persistido, fechamento)
+_fechamento_e_importacao(persistido, fechamento, selecao_persistida=selecao_persistida)
 
 with cartao("inicio-evidencias"):
     st.markdown("**Testado com registros públicos de uma planta brasileira · 660 dias**")

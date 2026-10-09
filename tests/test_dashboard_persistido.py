@@ -114,3 +114,123 @@ def test_interface_exibe_dados_persistidos_com_origem_periodo_e_unidade(
     assert not any("sem dados carregados" in item.value for item in at.caption)
     assert any("dados persistidos selecionados" in item.value for item in at.caption)
     assert "arquivos" not in at.session_state
+
+
+def test_troca_para_planta_sem_equipamento_nao_reutiliza_dados_da_sessao(
+    dashboard_salvo, monkeypatch
+):
+    repo, planta, vazia, equipamento, _ = dashboard_salvo
+    monkeypatch.setenv("EULER_TEST_BYPASS_AUTH", "1")
+    monkeypatch.setenv("EULER_DADOS_DIR", str(repo.raiz))
+
+    at = AppTest.from_file(str(RAIZ / "app/main.py"), default_timeout=120).run()
+    at.switch_page("paginas/importar.py").run()
+    at.button(key="importar_ato1").click().run()
+    at.switch_page("paginas/inicio.py").run()
+    at.selectbox(key="dashboard_planta").set_value(planta["id"]).run()
+    assert at.selectbox(key=f"dashboard_equipamento_{planta['id']}").value == equipamento
+    assert {m.label: m.value for m in at.metric}["Custo energético"] != "—"
+
+    at.selectbox(key="dashboard_planta").set_value(vazia["id"]).run()
+
+    assert not at.exception, at.exception
+    valores = {metrica.label: metrica.value for metrica in at.metric}
+    for rotulo in ("Custo energético", "Custo esperado", "Diferença", "Consumo"):
+        assert valores[rotulo] == "—"
+    textos = " ".join(
+        str(item.value) for grupo in (at.caption, at.info, at.get("html")) for item in grupo
+    )
+    assert vazia["nome"] in textos
+    assert "Esta planta ainda não tem equipamento" in textos
+    assert "Demonstração sintética" not in textos
+
+
+def test_troca_de_equipamento_na_mesma_planta_nao_reutiliza_kpis(dashboard_salvo, monkeypatch):
+    repo, planta, _, equipamento, _ = dashboard_salvo
+    armazem = repo.armazem(planta["id"])
+    vazio = "CALD-SEM-DADOS"
+    armazem.criar_equipamento(
+        vazio,
+        "Caldeira sem dados",
+        vazio,
+        config={"altitude_m": 1000},
+        autor="Teste",
+    )
+    armazem.fechar()
+    monkeypatch.setenv("EULER_TEST_BYPASS_AUTH", "1")
+    monkeypatch.setenv("EULER_DADOS_DIR", str(repo.raiz))
+
+    at = AppTest.from_file(str(RAIZ / "app/main.py"), default_timeout=120).run()
+    at.selectbox(key="dashboard_planta").set_value(planta["id"]).run()
+    seletor = at.selectbox(key=f"dashboard_equipamento_{planta['id']}")
+    seletor.set_value(equipamento).run()
+    assert {m.label: m.value for m in at.metric}["Custo energético"] != "—"
+
+    at.selectbox(key=f"dashboard_equipamento_{planta['id']}").set_value(vazio).run()
+
+    assert not at.exception, at.exception
+    valores = {metrica.label: metrica.value for metrica in at.metric}
+    for rotulo in ("Custo energético", "Custo esperado", "Diferença", "Consumo"):
+        assert valores[rotulo] == "—"
+    textos = " ".join(str(item.value) for grupo in (at.caption, at.get("html")) for item in grupo)
+    assert "Caldeira sem dados" in textos
+    assert "Caldeira persistida" not in textos
+
+
+def test_planta_com_equipamento_sem_dados_permanece_vazia(dashboard_salvo, monkeypatch):
+    repo, _, planta, _, _ = dashboard_salvo
+    armazem = repo.armazem(planta["id"])
+    equipamento = "CALD-B-SEM-DADOS"
+    armazem.criar_equipamento(
+        equipamento,
+        "Caldeira B sem dados",
+        equipamento,
+        config={"altitude_m": 1000},
+        autor="Teste",
+    )
+    armazem.fechar()
+    monkeypatch.setenv("EULER_TEST_BYPASS_AUTH", "1")
+    monkeypatch.setenv("EULER_DADOS_DIR", str(repo.raiz))
+
+    at = AppTest.from_file(str(RAIZ / "app/main.py"), default_timeout=120).run()
+    at.selectbox(key="dashboard_planta").set_value(planta["id"]).run()
+
+    assert not at.exception, at.exception
+    assert at.selectbox(key=f"dashboard_equipamento_{planta['id']}").value == equipamento
+    valores = {metrica.label: metrica.value for metrica in at.metric}
+    assert valores["Custo energético"] == "—"
+    assert valores["Consumo"] == "—"
+    assert not at.get("vega_lite_chart")
+
+
+def test_serie_persistida_sem_fechamento_nao_inventa_kpis(dashboard_salvo, monkeypatch):
+    repo, _, planta, _, _ = dashboard_salvo
+    equipamento = "CALD-B-SEM-FECHAMENTO"
+    armazem = repo.armazem(planta["id"])
+    armazem.criar_equipamento(
+        equipamento,
+        "Caldeira B sem fechamento",
+        equipamento,
+        config={"altitude_m": 1000},
+        autor="Teste",
+    )
+    arquivos = {p.name: p.read_bytes() for p in (RAIZ / "demo/caso_demo_completo").glob("*.csv")}
+    armazem.confirmar(armazem.previa(equipamento, arquivos), autor="Teste")
+    armazem.fechar()
+    monkeypatch.setenv("EULER_TEST_BYPASS_AUTH", "1")
+    monkeypatch.setenv("EULER_DADOS_DIR", str(repo.raiz))
+
+    at = AppTest.from_file(str(RAIZ / "app/main.py"), default_timeout=120).run()
+    at.selectbox(key="dashboard_planta").set_value(planta["id"]).run()
+
+    assert not at.exception, at.exception
+    assert at.selectbox(key=f"dashboard_periodo_{planta['id']}_{equipamento}").value == (
+        "serie_completa"
+    )
+    valores = {metrica.label: metrica.value for metrica in at.metric}
+    assert valores["Custo energético"] == "—"
+    assert valores["Custo esperado"] == "—"
+    assert valores["Consumo"] == "—"
+    textos = " ".join(str(item.value) for grupo in (at.caption, at.get("html")) for item in grupo)
+    assert "Caldeira B sem fechamento" in textos
+    assert "Nenhum vigente no contexto" in textos
