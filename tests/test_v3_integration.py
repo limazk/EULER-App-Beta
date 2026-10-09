@@ -5,10 +5,11 @@ Não altera o motor científico nem requer provedor externo de IA ou de ML.
 
 from componentes import ESTILO
 from design_v3.tokens import ESCURO
+from navegacao import PRINCIPAIS, todas_as_paginas
+
 from euler_intelligence.contracts import PedidoExplicacao
 from euler_intelligence.gateway import explicar
 from euler_intelligence.ml.availability import disponibilidade
-from navegacao import PRINCIPAIS, todas_as_paginas
 
 
 def test_paleta_da_interface_e_da_fundacao_coincidem():
