@@ -56,6 +56,105 @@ def test_repositorio_beta_isola_biblioteca_por_organizacao(ambiente, monkeypatch
     assert raiz_b.name == "22222222-2222-2222-2222-222222222222"
 
 
+def test_repositorio_beta_respeita_organizacao_autorizada_selecionada(ambiente, monkeypatch):
+    _, arm, sessao = ambiente
+    monkeypatch.delenv("EULER_TEST_BYPASS_AUTH", raising=False)
+    auth = importlib.import_module("auth")
+    organizacoes = [
+        {
+            "organization_id": "11111111-1111-1111-1111-111111111111",
+            "organizations": {
+                "id": "11111111-1111-1111-1111-111111111111",
+                "name": "A",
+                "status": "active",
+            },
+        },
+        {
+            "organization_id": "22222222-2222-2222-2222-222222222222",
+            "organizations": {
+                "id": "22222222-2222-2222-2222-222222222222",
+                "name": "B",
+                "status": "active",
+            },
+        },
+    ]
+    monkeypatch.setattr(
+        auth,
+        "contexto_atual",
+        lambda: {"user_id": "usuario", "is_superadmin": False, "memberships": organizacoes},
+    )
+
+    sessao[arm.ORGANIZACAO_SELECIONADA] = organizacoes[1]["organization_id"]
+
+    assert arm.repositorio().raiz.name == organizacoes[1]["organization_id"]
+    assert arm.organizacao_atual()["nome"] == "B"
+
+
+def test_troca_de_organizacao_invalida_dados_e_seletores_do_tenant_anterior(ambiente, monkeypatch):
+    _, arm, sessao = ambiente
+    monkeypatch.delenv("EULER_TEST_BYPASS_AUTH", raising=False)
+    auth = importlib.import_module("auth")
+    organizacoes = [
+        {
+            "organization_id": "org-a",
+            "organizations": {"id": "org-a", "name": "A", "status": "active"},
+        },
+        {
+            "organization_id": "org-b",
+            "organizations": {"id": "org-b", "name": "B", "status": "active"},
+        },
+    ]
+    monkeypatch.setattr(
+        auth,
+        "contexto_atual",
+        lambda: {"user_id": "usuario", "is_superadmin": False, "memberships": organizacoes},
+    )
+    sessao.update(
+        {
+            arm.ORGANIZACAO_USUARIO: "usuario",
+            arm.ORGANIZACAO_ATIVA: "org-a",
+            arm.ORGANIZACAO_SELECIONADA: "org-b",
+            "arquivos": (("tenant-a.csv", b"privado"),),
+            "persistencia": {"planta_id": "planta-a"},
+            "dashboard_planta": "planta-a",
+            "acomp_equip_atual": "equip-a",
+            "biblioteca_planta": "planta-a",
+        }
+    )
+
+    assert arm.sincronizar_organizacao()["id"] == "org-b"
+    assert "arquivos" not in sessao
+    assert "persistencia" not in sessao
+    assert "dashboard_planta" not in sessao
+    assert "acomp_equip_atual" not in sessao
+    assert "biblioteca_planta" not in sessao
+    assert sessao[arm.ORGANIZACAO_ATIVA] == "org-b"
+
+
+def test_repositorio_beta_recusa_organizacao_fora_das_associacoes(ambiente, monkeypatch):
+    _, arm, sessao = ambiente
+    monkeypatch.delenv("EULER_TEST_BYPASS_AUTH", raising=False)
+    auth = importlib.import_module("auth")
+    monkeypatch.setattr(
+        auth,
+        "contexto_atual",
+        lambda: {
+            "user_id": "usuario",
+            "is_superadmin": False,
+            "memberships": [
+                {
+                    "organization_id": "11111111-1111-1111-1111-111111111111",
+                    "organizations": {"name": "A", "status": "active"},
+                }
+            ],
+        },
+    )
+    sessao[arm.ORGANIZACAO_SELECIONADA] = "22222222-2222-2222-2222-222222222222"
+
+    with pytest.raises(ValueError, match="não autorizada"):
+        arm.repositorio()
+
+
 def test_repositorio_beta_recusa_usuario_sem_organizacao(ambiente, monkeypatch):
     _, arm, _ = ambiente
     monkeypatch.delenv("EULER_TEST_BYPASS_AUTH", raising=False)

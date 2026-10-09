@@ -5,6 +5,8 @@ import sys
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
+
 APP = Path(__file__).resolve().parents[1] / "app"
 sys.path.insert(0, str(APP))
 
@@ -128,6 +130,150 @@ def test_limpar_sessao_remove_timestamp_do_contexto(monkeypatch):
     assert sessao == {"outra_chave": "preservar"}
 
 
+def test_logout_remove_dados_operacionais_do_usuario_anterior(monkeypatch):
+    auth = importlib.import_module("auth")
+    sessao = {
+        auth.TOKEN_ACCESS: "access-a",
+        auth.TOKEN_REFRESH: "refresh-a",
+        auth.CTX: {"user_id": "usuario-a"},
+        auth.SESSION_USER_ID: "usuario-a",
+        "arquivos": (("dados-a.csv", b"segredo-a"),),
+        "persistencia": {"planta_id": "planta-a"},
+        "investigacao": {"json": {"usuario": "a"}},
+        "dashboard_planta": "planta-a",
+        "acomp_planta_atual": "planta-a",
+        "biblioteca_planta": "planta-a",
+        "euler_tema": "dark",
+    }
+    cliente = SimpleNamespace(auth=SimpleNamespace(sign_out=lambda: None))
+    monkeypatch.setattr(auth.st, "session_state", sessao)
+    monkeypatch.setattr(auth, "_cliente_usuario", lambda: cliente)
+
+    auth.sair()
+
+    assert sessao == {"euler_tema": "dark"}
+
+    auth._guardar_sessao(
+        SimpleNamespace(
+            access_token="access-b",
+            refresh_token="refresh-b",
+            user=SimpleNamespace(id="usuario-b"),
+        )
+    )
+    assert "arquivos" not in sessao
+    assert "investigacao" not in sessao
+    assert sessao[auth.SESSION_USER_ID] == "usuario-b"
+
+
+def test_expiracao_remove_dados_antes_de_nova_autenticacao(monkeypatch):
+    auth = importlib.import_module("auth")
+    sessao = {
+        auth.TOKEN_ACCESS: "access-expirado",
+        auth.TOKEN_REFRESH: "refresh-expirado",
+        auth.SESSION_USER_ID: "usuario-a",
+        "arquivos": (("dados-a.csv", b"segredo-a"),),
+        "dashboard_planta": "planta-a",
+    }
+    cliente = SimpleNamespace(
+        auth=SimpleNamespace(get_user=lambda _token: (_ for _ in ()).throw(RuntimeError()))
+    )
+    monkeypatch.setattr(auth.st, "session_state", sessao)
+    monkeypatch.setattr(auth, "_cliente_usuario", lambda: cliente)
+
+    assert auth._usuario_validado() is None
+    assert "arquivos" not in sessao
+    assert "dashboard_planta" not in sessao
+    assert auth.TOKEN_ACCESS not in sessao
+
+
+def test_renovacao_de_token_do_mesmo_usuario_preserva_trabalho(monkeypatch):
+    auth = importlib.import_module("auth")
+    sessao = {
+        auth.TOKEN_ACCESS: "access-antigo",
+        auth.TOKEN_REFRESH: "refresh-antigo",
+        auth.SESSION_USER_ID: "usuario-a",
+        "arquivos": (("dados-a.csv", b"trabalho"),),
+        "investigacao": {"json": {"preservar": True}},
+        "dashboard_planta": "planta-a",
+    }
+    monkeypatch.setattr(auth.st, "session_state", sessao)
+    renovada = SimpleNamespace(
+        access_token="access-novo",
+        refresh_token="refresh-novo",
+        user=SimpleNamespace(id="usuario-a"),
+    )
+
+    auth._guardar_sessao(renovada)
+
+    assert sessao["arquivos"][0][1] == b"trabalho"
+    assert sessao["investigacao"]["json"] == {"preservar": True}
+    assert sessao["dashboard_planta"] == "planta-a"
+    assert sessao[auth.TOKEN_ACCESS] == "access-novo"
+
+
+def test_troca_direta_de_identidade_descarta_trabalho_anterior(monkeypatch):
+    auth = importlib.import_module("auth")
+    sessao = {
+        auth.TOKEN_ACCESS: "access-a",
+        auth.TOKEN_REFRESH: "refresh-a",
+        auth.SESSION_USER_ID: "usuario-a",
+        auth.CTX: {"user_id": "usuario-a"},
+        "arquivos": (("dados-a.csv", b"segredo-a"),),
+        "persistencia": {"planta_id": "planta-a"},
+        "dashboard_planta": "planta-a",
+    }
+    monkeypatch.setattr(auth.st, "session_state", sessao)
+    nova = SimpleNamespace(
+        access_token="access-b",
+        refresh_token="refresh-b",
+        user=SimpleNamespace(id="usuario-b"),
+    )
+
+    auth._guardar_sessao(nova)
+
+    assert sessao[auth.SESSION_USER_ID] == "usuario-b"
+    assert sessao[auth.TOKEN_ACCESS] == "access-b"
+    assert "arquivos" not in sessao
+    assert "persistencia" not in sessao
+    assert "dashboard_planta" not in sessao
+
+
+def test_membership_atual_acompanha_organizacao_ativa_selecionada(monkeypatch):
+    auth = importlib.import_module("auth")
+    ctx = {
+        "memberships": [
+            {
+                "organization_id": "org-a",
+                "role": "viewer",
+                "organizations": {"name": "A", "status": "active"},
+            },
+            {
+                "organization_id": "org-b",
+                "role": "operator",
+                "organizations": {"name": "B", "status": "active"},
+            },
+        ]
+    }
+    monkeypatch.setattr(auth.st, "session_state", {auth.ORGANIZACAO_SELECIONADA: "org-b"})
+
+    assert auth._membership_atual(ctx)["organization_id"] == "org-b"
+
+
+def test_membership_atual_nao_aceita_organizacao_suspensa_ou_ausente(monkeypatch):
+    auth = importlib.import_module("auth")
+    ctx = {
+        "memberships": [
+            {
+                "organization_id": "org-suspensa",
+                "organizations": {"name": "Suspensa", "status": "suspended"},
+            }
+        ]
+    }
+    monkeypatch.setattr(auth.st, "session_state", {auth.ORGANIZACAO_SELECIONADA: "org-suspensa"})
+
+    assert auth._membership_atual(ctx) is None
+
+
 def test_exigir_acesso_nao_revalida_em_todo_rerun(monkeypatch):
     auth = importlib.import_module("auth")
     ctx = {
@@ -154,3 +300,68 @@ def test_exigir_superadmin_forca_revalidacao(monkeypatch):
     monkeypatch.setattr(auth, "contexto_atual", lambda **kwargs: chamadas.append(kwargs) or ctx)
     assert auth.exigir_superadmin() is ctx
     assert chamadas == [{"recarregar": True}]
+
+
+@pytest.mark.parametrize(
+    "ctx",
+    [
+        {
+            "user_id": "u1",
+            "email": "u@example.com",
+            "profile": {"status": "suspended"},
+            "memberships": [],
+            "is_superadmin": False,
+        },
+        {
+            "user_id": "u1",
+            "email": "u@example.com",
+            "profile": {"status": "active"},
+            "memberships": [],
+            "is_superadmin": False,
+        },
+        {
+            "user_id": "u1",
+            "email": "u@example.com",
+            "profile": {"status": "active"},
+            "memberships": [
+                {
+                    "organization_id": "org-suspensa",
+                    "status": "active",
+                    "organizations": {"id": "org-suspensa", "status": "suspended"},
+                }
+            ],
+            "is_superadmin": False,
+        },
+    ],
+    ids=["usuario-suspenso", "sem-organizacao", "organizacao-suspensa"],
+)
+def test_acesso_sem_autorizacao_descarta_contexto_operacional(ctx, monkeypatch):
+    auth = importlib.import_module("auth")
+
+    class InterrompeuAcesso(Exception):
+        pass
+
+    sessao = {
+        auth.TOKEN_ACCESS: "access",
+        auth.SESSION_USER_ID: "u1",
+        "arquivos": (("dados.csv", b"privado"),),
+        "dashboard_planta": "planta-anterior",
+    }
+    monkeypatch.setattr(auth.st, "session_state", sessao)
+    monkeypatch.setattr(auth, "_modo_teste", lambda: False)
+    monkeypatch.setattr(auth, "configurado", lambda: True)
+    monkeypatch.setattr(auth, "contexto_atual", lambda **_kwargs: ctx)
+    for nome in ("markdown", "info", "warning", "error", "caption"):
+        monkeypatch.setattr(auth.st, nome, lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(auth.st, "button", lambda *_args, **_kwargs: False)
+    monkeypatch.setattr(
+        auth.st,
+        "stop",
+        lambda: (_ for _ in ()).throw(InterrompeuAcesso()),
+    )
+
+    with pytest.raises(InterrompeuAcesso):
+        auth.exigir_acesso()
+
+    assert "arquivos" not in sessao
+    assert "dashboard_planta" not in sessao

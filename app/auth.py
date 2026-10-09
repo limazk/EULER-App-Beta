@@ -20,6 +20,8 @@ TOKEN_REFRESH = "_euler_refresh_token"
 CTX = "_euler_auth_context"
 CTX_VALIDATED_AT = "_euler_auth_context_validated_at"
 AUTH_CONTEXT_TTL_SECONDS = 45.0
+ORGANIZACAO_SELECIONADA = "_euler_organization_id"
+SESSION_USER_ID = "_euler_session_user_id"
 
 
 def _modo_teste() -> bool:
@@ -101,14 +103,56 @@ def _invalidar_contexto() -> None:
     st.session_state.pop(CTX_VALIDATED_AT, None)
 
 
+def _id_usuario_da_sessao(sessao) -> str | None:
+    usuario = getattr(sessao, "user", None)
+    identificador = usuario.get("id") if isinstance(usuario, dict) else getattr(usuario, "id", None)
+    return str(identificador) if identificador is not None else None
+
+
+def _limpar_dados_operacionais() -> None:
+    """Remove somente memória operacional; nunca toca nos arquivos persistidos."""
+    import estado
+
+    estado.limpar_contexto_operacional(reiniciar_controles=False)
+    for chave in (
+        "_euler_last_seen_registered",
+        "_euler_last_seen_failed",
+    ):
+        st.session_state.pop(chave, None)
+
+
+def _identidade_anterior() -> str | None:
+    identificador = st.session_state.get(SESSION_USER_ID)
+    if identificador is None:
+        identificador = (st.session_state.get(CTX) or {}).get("user_id")
+    return str(identificador) if identificador is not None else None
+
+
 def _guardar_sessao(sessao) -> None:
+    nova_identidade = _id_usuario_da_sessao(sessao)
+    identidade_anterior = _identidade_anterior()
+    if nova_identidade is not None and identidade_anterior != nova_identidade:
+        _limpar_dados_operacionais()
     st.session_state[TOKEN_ACCESS] = sessao.access_token
     st.session_state[TOKEN_REFRESH] = sessao.refresh_token
+    if nova_identidade is not None:
+        st.session_state[SESSION_USER_ID] = nova_identidade
     _invalidar_contexto()
 
 
 def limpar_sessao() -> None:
-    for chave in (TOKEN_ACCESS, TOKEN_REFRESH, CTX, CTX_VALIDATED_AT):
+    _limpar_dados_operacionais()
+    for chave in (
+        TOKEN_ACCESS,
+        TOKEN_REFRESH,
+        CTX,
+        CTX_VALIDATED_AT,
+        "_euler_organization_id",
+        "_euler_active_organization_id",
+        "_euler_organization_user_id",
+        SESSION_USER_ID,
+        "_euler_password_recovery",
+    ):
         st.session_state.pop(chave, None)
 
 
@@ -248,6 +292,11 @@ def _carregar_contexto() -> dict | None:
         "memberships": membros_resp.data or [],
         "is_superadmin": bool(perfil.get("is_superadmin")),
     }
+    usuario_id = ctx["user_id"]
+    identidade_anterior = _identidade_anterior()
+    if identidade_anterior != usuario_id:
+        _limpar_dados_operacionais()
+    st.session_state[SESSION_USER_ID] = usuario_id
     st.session_state[CTX] = ctx
     st.session_state[CTX_VALIDATED_AT] = time.monotonic()
     return ctx
@@ -270,6 +319,23 @@ def contexto_atual(*, recarregar: bool = False) -> dict | None:
     if not recarregar and dentro_do_ttl:
         return ctx
     return _carregar_contexto()
+
+
+def _memberships_ativas(ctx: dict) -> list[dict]:
+    return [
+        membership
+        for membership in ctx.get("memberships") or []
+        if (membership.get("organizations") or {}).get("status") in (None, "active")
+    ]
+
+
+def _membership_atual(ctx: dict) -> dict | None:
+    """Associação ativa escolhida na sessão, sem aceitar organização fora do contexto."""
+    memberships = _memberships_ativas(ctx)
+    selecionada = st.session_state.get(ORGANIZACAO_SELECIONADA)
+    if selecionada is None:
+        return memberships[0] if memberships else None
+    return next((item for item in memberships if item.get("organization_id") == selecionada), None)
 
 
 def registrar_atividade(ctx: dict) -> None:
@@ -399,6 +465,7 @@ def exigir_acesso() -> dict:
 
     status = ctx["profile"].get("status", "pending")
     if status != "active":
+        _limpar_dados_operacionais()
         st.markdown("## Conta aguardando liberação")
         if status == "pending":
             st.info(
@@ -415,6 +482,7 @@ def exigir_acesso() -> dict:
         st.stop()
 
     if not ctx.get("is_superadmin") and not ctx.get("memberships"):
+        _limpar_dados_operacionais()
         st.markdown("## Conta aprovada")
         st.info(
             "Seu acesso foi aprovado. Falta um administrador vincular sua conta "
@@ -425,18 +493,17 @@ def exigir_acesso() -> dict:
             st.rerun()
         st.stop()
 
-    if not ctx.get("is_superadmin") and ctx.get("memberships"):
-        org = ctx["memberships"][0].get("organizations") or {}
-        if org.get("status") != "active":
-            st.markdown("## Empresa temporariamente suspensa")
-            st.warning(
-                "O acesso desta organização está suspenso. "
-                "Entre em contato com a administração da EULER."
-            )
-            if st.button("Sair", key="sair-org-suspensa"):
-                sair()
-                st.rerun()
-            st.stop()
+    if not ctx.get("is_superadmin") and ctx.get("memberships") and not _memberships_ativas(ctx):
+        _limpar_dados_operacionais()
+        st.markdown("## Empresa temporariamente suspensa")
+        st.warning(
+            "O acesso desta organização está suspenso. "
+            "Entre em contato com a administração da EULER."
+        )
+        if st.button("Sair", key="sair-org-suspensa"):
+            sair()
+            st.rerun()
+        st.stop()
 
     registrar_atividade(ctx)
     return ctx
@@ -450,8 +517,7 @@ def painel_conta_sidebar(ctx: dict) -> None:
         inicial = nome.strip()[:1].upper() or "E"
         papel = "Administrador EULER" if ctx.get("is_superadmin") else "Usuário"
         organizacao = ""
-        if ctx["memberships"]:
-            membership = ctx["memberships"][0]
+        if membership := _membership_atual(ctx):
             org = membership.get("organizations") or {}
             if org:
                 organizacao = org.get("name", "Organização")
@@ -550,8 +616,8 @@ def enviar_feedback(tipo: str, mensagem: str, pagina: str = "") -> None:
     if not ctx:
         raise RuntimeError("Sessão não encontrada.")
 
-    memberships = ctx.get("memberships") or []
-    organization_id = memberships[0]["organization_id"] if memberships else None
+    membership = _membership_atual(ctx)
+    organization_id = membership["organization_id"] if membership else None
     _cliente_usuario().table("feedback").insert(
         {
             "user_id": ctx["user_id"],
