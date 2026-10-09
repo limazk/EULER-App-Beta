@@ -90,6 +90,47 @@ def test_repositorio_beta_respeita_organizacao_autorizada_selecionada(ambiente, 
     assert arm.organizacao_atual()["nome"] == "B"
 
 
+def test_troca_de_organizacao_invalida_dados_e_seletores_do_tenant_anterior(ambiente, monkeypatch):
+    _, arm, sessao = ambiente
+    monkeypatch.delenv("EULER_TEST_BYPASS_AUTH", raising=False)
+    auth = importlib.import_module("auth")
+    organizacoes = [
+        {
+            "organization_id": "org-a",
+            "organizations": {"id": "org-a", "name": "A", "status": "active"},
+        },
+        {
+            "organization_id": "org-b",
+            "organizations": {"id": "org-b", "name": "B", "status": "active"},
+        },
+    ]
+    monkeypatch.setattr(
+        auth,
+        "contexto_atual",
+        lambda: {"user_id": "usuario", "is_superadmin": False, "memberships": organizacoes},
+    )
+    sessao.update(
+        {
+            arm.ORGANIZACAO_USUARIO: "usuario",
+            arm.ORGANIZACAO_ATIVA: "org-a",
+            arm.ORGANIZACAO_SELECIONADA: "org-b",
+            "arquivos": (("tenant-a.csv", b"privado"),),
+            "persistencia": {"planta_id": "planta-a"},
+            "dashboard_planta": "planta-a",
+            "acomp_equip_atual": "equip-a",
+            "biblioteca_planta": "planta-a",
+        }
+    )
+
+    assert arm.sincronizar_organizacao()["id"] == "org-b"
+    assert "arquivos" not in sessao
+    assert "persistencia" not in sessao
+    assert "dashboard_planta" not in sessao
+    assert "acomp_equip_atual" not in sessao
+    assert "biblioteca_planta" not in sessao
+    assert sessao[arm.ORGANIZACAO_ATIVA] == "org-b"
+
+
 def test_repositorio_beta_recusa_organizacao_fora_das_associacoes(ambiente, monkeypatch):
     _, arm, sessao = ambiente
     monkeypatch.delenv("EULER_TEST_BYPASS_AUTH", raising=False)

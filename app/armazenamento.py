@@ -80,10 +80,7 @@ def sincronizar_organizacao() -> dict[str, str] | None:
     if anterior is not None and anterior != nova:
         import estado
 
-        estado.limpar_dados()
-        for chave in list(st.session_state):
-            if chave.startswith(("dashboard_", "acomp_")):
-                st.session_state.pop(chave, None)
+        estado.limpar_contexto_operacional()
     st.session_state[ORGANIZACAO_ATIVA] = nova
     return organizacao
 

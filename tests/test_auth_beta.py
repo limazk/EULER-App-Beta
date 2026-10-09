@@ -128,6 +128,103 @@ def test_limpar_sessao_remove_timestamp_do_contexto(monkeypatch):
     assert sessao == {"outra_chave": "preservar"}
 
 
+def test_logout_remove_dados_operacionais_do_usuario_anterior(monkeypatch):
+    auth = importlib.import_module("auth")
+    sessao = {
+        auth.TOKEN_ACCESS: "access-a",
+        auth.TOKEN_REFRESH: "refresh-a",
+        auth.CTX: {"user_id": "usuario-a"},
+        auth.SESSION_USER_ID: "usuario-a",
+        "arquivos": (("dados-a.csv", b"segredo-a"),),
+        "persistencia": {"planta_id": "planta-a"},
+        "investigacao": {"json": {"usuario": "a"}},
+        "dashboard_planta": "planta-a",
+        "acomp_planta_atual": "planta-a",
+        "biblioteca_planta": "planta-a",
+        "euler_tema": "dark",
+    }
+    cliente = SimpleNamespace(auth=SimpleNamespace(sign_out=lambda: None))
+    monkeypatch.setattr(auth.st, "session_state", sessao)
+    monkeypatch.setattr(auth, "_cliente_usuario", lambda: cliente)
+
+    auth.sair()
+
+    assert sessao == {"euler_tema": "dark"}
+
+
+def test_expiracao_remove_dados_antes_de_nova_autenticacao(monkeypatch):
+    auth = importlib.import_module("auth")
+    sessao = {
+        auth.TOKEN_ACCESS: "access-expirado",
+        auth.TOKEN_REFRESH: "refresh-expirado",
+        auth.SESSION_USER_ID: "usuario-a",
+        "arquivos": (("dados-a.csv", b"segredo-a"),),
+        "dashboard_planta": "planta-a",
+    }
+    cliente = SimpleNamespace(
+        auth=SimpleNamespace(get_user=lambda _token: (_ for _ in ()).throw(RuntimeError()))
+    )
+    monkeypatch.setattr(auth.st, "session_state", sessao)
+    monkeypatch.setattr(auth, "_cliente_usuario", lambda: cliente)
+
+    assert auth._usuario_validado() is None
+    assert "arquivos" not in sessao
+    assert "dashboard_planta" not in sessao
+    assert auth.TOKEN_ACCESS not in sessao
+
+
+def test_renovacao_de_token_do_mesmo_usuario_preserva_trabalho(monkeypatch):
+    auth = importlib.import_module("auth")
+    sessao = {
+        auth.TOKEN_ACCESS: "access-antigo",
+        auth.TOKEN_REFRESH: "refresh-antigo",
+        auth.SESSION_USER_ID: "usuario-a",
+        "arquivos": (("dados-a.csv", b"trabalho"),),
+        "investigacao": {"json": {"preservar": True}},
+        "dashboard_planta": "planta-a",
+    }
+    monkeypatch.setattr(auth.st, "session_state", sessao)
+    renovada = SimpleNamespace(
+        access_token="access-novo",
+        refresh_token="refresh-novo",
+        user=SimpleNamespace(id="usuario-a"),
+    )
+
+    auth._guardar_sessao(renovada)
+
+    assert sessao["arquivos"][0][1] == b"trabalho"
+    assert sessao["investigacao"]["json"] == {"preservar": True}
+    assert sessao["dashboard_planta"] == "planta-a"
+    assert sessao[auth.TOKEN_ACCESS] == "access-novo"
+
+
+def test_troca_direta_de_identidade_descarta_trabalho_anterior(monkeypatch):
+    auth = importlib.import_module("auth")
+    sessao = {
+        auth.TOKEN_ACCESS: "access-a",
+        auth.TOKEN_REFRESH: "refresh-a",
+        auth.SESSION_USER_ID: "usuario-a",
+        auth.CTX: {"user_id": "usuario-a"},
+        "arquivos": (("dados-a.csv", b"segredo-a"),),
+        "persistencia": {"planta_id": "planta-a"},
+        "dashboard_planta": "planta-a",
+    }
+    monkeypatch.setattr(auth.st, "session_state", sessao)
+    nova = SimpleNamespace(
+        access_token="access-b",
+        refresh_token="refresh-b",
+        user=SimpleNamespace(id="usuario-b"),
+    )
+
+    auth._guardar_sessao(nova)
+
+    assert sessao[auth.SESSION_USER_ID] == "usuario-b"
+    assert sessao[auth.TOKEN_ACCESS] == "access-b"
+    assert "arquivos" not in sessao
+    assert "persistencia" not in sessao
+    assert "dashboard_planta" not in sessao
+
+
 def test_membership_atual_acompanha_organizacao_ativa_selecionada(monkeypatch):
     auth = importlib.import_module("auth")
     ctx = {
