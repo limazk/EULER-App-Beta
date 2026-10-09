@@ -273,18 +273,28 @@ def _carregar_contexto() -> dict | None:
     usuario = _usuario_validado()
     if not usuario:
         return None
-    cliente = _cliente_usuario()
-    perfil_resp = cliente.table("profiles").select("*").eq("id", str(usuario.id)).limit(1).execute()
+    try:
+        cliente = _cliente_usuario()
+        perfil_resp = (
+            cliente.table("profiles").select("*").eq("id", str(usuario.id)).limit(1).execute()
+        )
+        membros_resp = (
+            cliente.table("memberships")
+            .select("organization_id,role,status,organizations(id,name,slug,status)")
+            .eq("user_id", str(usuario.id))
+            .eq("status", "active")
+            .execute()
+        )
+    except Exception:  # noqa: BLE001
+        # A identidade sem o contexto de autorização não é suficiente para
+        # manter dados operacionais em memória. Falhe fechado também quando a
+        # indisponibilidade ocorrer depois da validação do token.
+        limpar_sessao()
+        return None
     if not perfil_resp.data:
+        limpar_sessao()
         return None
     perfil = perfil_resp.data[0]
-    membros_resp = (
-        cliente.table("memberships")
-        .select("organization_id,role,status,organizations(id,name,slug,status)")
-        .eq("user_id", str(usuario.id))
-        .eq("status", "active")
-        .execute()
-    )
     ctx = {
         "user_id": str(usuario.id),
         "email": getattr(usuario, "email", None) or perfil.get("email"),
