@@ -4,6 +4,7 @@ import re
 
 import pytest
 from design_v3.tokens import ESCURO, cor_do_estado
+
 from euler_intelligence.contracts import PedidoExplicacao
 from euler_intelligence.gateway import explicar
 from euler_intelligence.ml.availability import disponibilidade
