@@ -213,6 +213,85 @@ def test_falha_ao_carregar_autorizacao_descarta_sessao_e_dados(monkeypatch):
     assert sessao == {}
 
 
+def test_falha_em_memberships_descarta_sessao_e_dados(monkeypatch):
+    auth = importlib.import_module("auth")
+    sessao = {
+        auth.TOKEN_ACCESS: "access-valido",
+        auth.TOKEN_REFRESH: "refresh-valido",
+        auth.SESSION_USER_ID: "usuario-a",
+        "arquivos": (("dados-a.csv", b"segredo-a"),),
+        "dashboard_planta": "planta-a",
+    }
+
+    class Consulta:
+        def __init__(self, falhar=False):
+            self.falhar = falhar
+
+        def select(self, *_args):
+            return self
+
+        def eq(self, *_args):
+            return self
+
+        def limit(self, *_args):
+            return self
+
+        def execute(self):
+            if self.falhar:
+                raise RuntimeError("falha de memberships simulada")
+            return SimpleNamespace(data=[{"id": "usuario-a", "status": "active"}])
+
+    cliente = SimpleNamespace(table=lambda nome: Consulta(falhar=nome == "memberships"))
+    monkeypatch.setattr(auth.st, "session_state", sessao)
+    monkeypatch.setattr(
+        auth,
+        "_usuario_validado",
+        lambda: SimpleNamespace(id="usuario-a", email="a@example.invalid"),
+    )
+    monkeypatch.setattr(auth, "_cliente_usuario", lambda: cliente)
+
+    assert auth._carregar_contexto() is None
+    assert sessao == {}
+
+
+def test_perfil_removido_descarta_sessao_e_dados(monkeypatch):
+    auth = importlib.import_module("auth")
+    sessao = {
+        auth.TOKEN_ACCESS: "access-valido",
+        auth.TOKEN_REFRESH: "refresh-valido",
+        auth.SESSION_USER_ID: "usuario-a",
+        "arquivos": (("dados-a.csv", b"segredo-a"),),
+    }
+
+    class Consulta:
+        def __init__(self, dados):
+            self.dados = dados
+
+        def select(self, *_args):
+            return self
+
+        def eq(self, *_args):
+            return self
+
+        def limit(self, *_args):
+            return self
+
+        def execute(self):
+            return SimpleNamespace(data=self.dados)
+
+    cliente = SimpleNamespace(table=lambda _nome: Consulta([]))
+    monkeypatch.setattr(auth.st, "session_state", sessao)
+    monkeypatch.setattr(
+        auth,
+        "_usuario_validado",
+        lambda: SimpleNamespace(id="usuario-a", email="a@example.invalid"),
+    )
+    monkeypatch.setattr(auth, "_cliente_usuario", lambda: cliente)
+
+    assert auth._carregar_contexto() is None
+    assert sessao == {}
+
+
 def test_renovacao_de_token_do_mesmo_usuario_preserva_trabalho(monkeypatch):
     auth = importlib.import_module("auth")
     sessao = {
