@@ -20,6 +20,30 @@ RAIZ = Path(__file__).resolve().parents[1]
 ARQUIVOS_HASH = "_euler_arquivos_hash"
 ASSINATURA_CACHE = "_euler_assinatura_cache"
 
+CHAVES_OPERACIONAIS = {
+    "acoes_inv_sel",
+    "backup_biblioteca",
+    "biblioteca_planta",
+    "biblioteca_restaurada",
+    "fech_previa_mes",
+    "importar_previa_guiada",
+    "salvar_importacao_banco",
+}
+PREFIXOS_OPERACIONAIS = (
+    "acomp_",
+    "acoes_",
+    "altitude_envio_",
+    "backup_",
+    "biblioteca_",
+    "dashboard_",
+    "envio_",
+    "fech_",
+    "fin_recuperacao_",
+    "importacao_avulsa_",
+    "importar_",
+    "salvar_",
+)
+
 
 @st.cache_data(show_spinner="Importando…")
 def _importar(arquivos: tuple[tuple[str, bytes], ...], p_atm_bar: float | None) -> Pacote:
@@ -85,12 +109,13 @@ def definir_arquivos(arquivos: dict[str, bytes], rotulo: str, sinteticos: bool =
             st.session_state.pop(chave, None)
 
 
-def limpar_dados() -> None:
+def limpar_dados(*, reiniciar_controles: bool = True) -> None:
     """Esvazia só esta sessão. Não apaga arquivos do PC nem de outras sessões.
 
     O contador recria os controles de envio e altitude para não recuperar entradas antigas.
     Caches internos não são uma exclusão segura: reinicie o app para encerrar sua memória.
     """
+    geracao = st.session_state.get("importacao_geracao", 0)
     for chave in list(st.session_state):
         if chave in (
             "arquivos",
@@ -110,7 +135,18 @@ def limpar_dados() -> None:
             ASSINATURA_CACHE,
         ) or chave.startswith(("fin_recuperacao_", "envio_", "altitude_envio_")):
             st.session_state.pop(chave, None)
-    st.session_state["importacao_geracao"] = st.session_state.get("importacao_geracao", 0) + 1
+    if reiniciar_controles:
+        st.session_state["importacao_geracao"] = geracao + 1
+    else:
+        st.session_state.pop("importacao_geracao", None)
+
+
+def limpar_contexto_operacional(*, reiniciar_controles: bool = False) -> None:
+    """Invalida todo contexto de usuário/tenant sem apagar conteúdo persistido."""
+    limpar_dados(reiniciar_controles=reiniciar_controles)
+    for chave in list(st.session_state):
+        if chave in CHAVES_OPERACIONAIS or chave.startswith(PREFIXOS_OPERACIONAIS):
+            st.session_state.pop(chave, None)
 
 
 def importar_novos(arquivos: dict[str, bytes], altitude: float | None) -> None:

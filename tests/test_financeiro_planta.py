@@ -1,10 +1,12 @@
 """Financeiro persistido usa o fechamento escolhido, sem misturar dados da sessão."""
 
+from contextlib import contextmanager
 from pathlib import Path
 
 import pytest
 from streamlit.testing.v1 import AppTest
 
+from euler.armazem import ORIGEM_DA_CLASSE
 from euler.fechamento import criar_referencia, produzir_fechamento, registrar_preco
 from euler.periodos import periodos_entre_estoques
 from euler.persistencia import Repositorio
@@ -87,6 +89,81 @@ def test_mudar_preco_na_config_nao_reescreve_fechamento(planta_financeira):
     textos = " ".join(str(x.value) for g in (at.markdown, at.caption) for x in g)
     assert f["resultado"]["nucleo"]["politica_custo"]["descricao"] in textos
     assert "Valores preservados" in textos
+
+
+def test_financeiro_exibe_somente_revisao_vigente(planta_financeira, monkeypatch):
+    from blocos import financeiro_planta
+
+    a, eq, original = planta_financeira
+    revisao = produzir_fechamento(
+        a,
+        eq,
+        "Teste",
+        revisa=original["id"],
+        motivo="Correção dos dados do período",
+    )
+    selecionados = {}
+
+    @contextmanager
+    def contexto(*, passo):
+        assert passo == ("conta",)
+        yield None, {"id": a.info["planta_id"], "classe": "sintetico"}, a, {"id": eq}
+
+    def selecionar(_rotulo, opcoes, **_kwargs):
+        selecionados["opcoes"] = opcoes
+        return opcoes[0]
+
+    def mostrar_conta(f, origem):
+        selecionados.update(fechamento=f, origem=origem)
+
+    monkeypatch.setattr(financeiro_planta, "planta_e_equipamento", contexto)
+    monkeypatch.setattr(financeiro_planta.st, "selectbox", selecionar)
+    monkeypatch.setattr(financeiro_planta.st, "divider", lambda: None)
+    monkeypatch.setattr(financeiro_planta.st, "markdown", lambda *args, **kwargs: None)
+    monkeypatch.setattr(financeiro_planta.st, "caption", lambda *args, **kwargs: None)
+    monkeypatch.setattr(financeiro_planta.st, "metric", lambda *args, **kwargs: None)
+    monkeypatch.setattr(financeiro_planta.st, "page_link", lambda *args, **kwargs: None)
+    monkeypatch.setattr(financeiro_planta, "renderizar_linha_do_tempo", lambda *args: None)
+    monkeypatch.setattr(financeiro_planta, "renderizar_entrega", lambda *args: None)
+    monkeypatch.setattr(financeiro_planta, "conta_salva", mostrar_conta)
+    monkeypatch.setattr(
+        financeiro_planta,
+        "painel",
+        lambda *args: {
+            "verificado": {
+                "total_brl": None,
+                "nota": "Sem avaliações.",
+                "excluidas_por_sobreposicao": False,
+                "itens": [],
+            }
+        },
+    )
+
+    financeiro_planta.mostrar()
+
+    assert selecionados["opcoes"] == [revisao["id"]]
+    assert selecionados["fechamento"]["id"] == revisao["id"]
+    assert selecionados["fechamento"]["id"] != original["id"]
+    assert selecionados["origem"] == "sintetico"
+
+
+def test_conta_salva_fornece_fallback_de_origem(planta_financeira, monkeypatch):
+    from blocos import financeiro_planta
+
+    _, _, fechamento = planta_financeira
+    fechamento["resultado"].pop("origem_dados", None)
+    recebido = {}
+
+    def texto_com_origem(f, origem):
+        recebido.update(fechamento=f, origem=origem)
+        return "relatório"
+
+    monkeypatch.setattr(financeiro_planta, "texto_fechamento", texto_com_origem)
+    monkeypatch.setattr(financeiro_planta.st, "download_button", lambda *args, **kwargs: None)
+
+    financeiro_planta.conta_salva(fechamento, ORIGEM_DA_CLASSE["sintetico"])
+
+    assert recebido == {"fechamento": fechamento, "origem": "sintetico"}
 
 
 def test_financeiro_sem_planta_indica_cadastro(tmp_path, monkeypatch):

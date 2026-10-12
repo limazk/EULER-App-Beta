@@ -21,14 +21,14 @@ ICONE = IMAGENS / "euler_icone.svg"
 
 TEMAS = {
     "dark": {
-        "fundo": "#05070B",
-        "lateral": "#080B11",
-        "cartao": "#0D121B",
-        "cartao_secundario": "#111722",
-        "linha": "#202733",
-        "hover": "#171E29",
-        "texto": "#F5F7FA",
-        "suave": "#9BA6B5",
+        "fundo": "#080C0E",
+        "lateral": "#090D0F",
+        "cartao": "#141A1C",
+        "cartao_secundario": "#1D2528",
+        "linha": "#293136",
+        "hover": "#1D2528",
+        "texto": "#F2F5F3",
+        "suave": "#9AA6A1",
         "sombra": "rgba(0, 0, 0, .32)",
     },
     "light": {
@@ -44,30 +44,38 @@ TEMAS = {
     },
 }
 
-# Cores dos dois períodos comparados (as mesmas nas faixas do gráfico e na linha do tempo):
-# referência em azul-ardósia, comparação em âmbar, as duas escuras para o fundo grafite.
-COR_REFERENCIA = "#2A3646"
-COR_COMPARACAO = "#45321F"
+# Cores dos dois períodos comparados (as mesmas nas faixas do gráfico e na linha do tempo).
+# A referência usa verde escuro e a comparação, âmbar escuro: ambos pertencem à paleta v3.
+COR_REFERENCIA = "#173A28"
+COR_COMPARACAO = "#463719"
 
 ESTILO = f"""<style>
 :root {{
-  --euler-fundo: #212121;
-  --euler-cartao: #262626;
-  --euler-lateral: #171717;
-  --euler-texto: #ECECEC;
-  --euler-suave: #A3A3A3;
-  --euler-fraco: #A3A3A3;
-  --euler-linha: #363636;
+  --euler-fundo: #080C0E;
+  --euler-cartao: #141A1C;
+  --euler-hover: #1D2528;
+  --euler-lateral: #090D0F;
+  --euler-texto: #F2F5F3;
+  --euler-suave: #9AA6A1;
+  --euler-fraco: #9AA6A1;
+  --euler-linha: #293136;
+  --euler-verde: #31D877;
+  --euler-vermelho: #EB4B56;
+  --euler-ambar: #E8B33D;
   --euler-ref: {COR_REFERENCIA};
-  --euler-ref-texto: #C7D5EA;
-  --euler-ref-borda: #3E4E66;
+  --euler-ref-texto: #87E7AD;
+  --euler-ref-borda: #2C7048;
   --euler-comp: {COR_COMPARACAO};
-  --euler-comp-texto: #F2C08F;
-  --euler-comp-borda: #6A4A2C;
+  --euler-comp-texto: #F0CA70;
+  --euler-comp-borda: #765E27;
 }}
-header[data-testid="stHeader"] {{ background: transparent; pointer-events: none; }}
+html, body, [data-testid="stAppViewContainer"], [data-testid="stMain"] {{
+  background: var(--euler-fundo);
+}}
+header[data-testid="stHeader"] {{ background: rgba(8, 12, 14, .92); pointer-events: none; }}
 header[data-testid="stHeader"] button {{ pointer-events: auto; }}
-.stMainBlockContainer {{ max-width: 1200px; padding-top: 2.4rem; padding-bottom: 3rem; }}
+[data-testid="stSidebar"] {{ background: var(--euler-lateral); border-right: 1px solid var(--euler-linha); }}
+.stMainBlockContainer {{ max-width: 1440px; padding-top: 1.8rem; padding-bottom: 3rem; }}
 /* Hierarquia compacta; informações complementares ficam em expansores. */
 .stMainBlockContainer h2 {{ font-size: 1.35rem; letter-spacing: -.015em; }}
 [data-testid="stMetricValue"] {{ font-variant-numeric: tabular-nums; }}
@@ -75,8 +83,8 @@ header[data-testid="stHeader"] button {{ pointer-events: auto; }}
 .st-key-cartao-saude-selo [data-testid="stMetric"] {{ background: transparent; }}
 .st-key-cartao-saude-selo [data-testid="stMetricValue"] {{ font-size: 1.55rem; }}
 [data-testid="stExpander"] details {{ background: transparent; }}
-a:focus-visible, button:focus-visible, input:focus-visible {{
-  outline: 2px solid var(--euler-ref-texto); outline-offset: 3px; }}
+a:focus-visible, button:focus-visible, input:focus-visible, [tabindex]:focus-visible {{
+  outline: 2px solid var(--euler-verde); outline-offset: 3px; }}
 @media(max-width:640px) {{
   .stMainBlockContainer {{ padding: 1.25rem 1rem 2rem; }}
   .st-key-cartao-saude-selo {{ padding: 1rem; }}
@@ -87,12 +95,17 @@ a:focus-visible, button:focus-visible, input:focus-visible {{
 }}
 [data-testid="stSidebarContent"] [data-testid="stCaptionContainer"] {{ color: var(--euler-fraco); }}
 
-/* Botões: o principal é claro com texto escuro (o Streamlit pintaria o texto de branco) */
-[data-testid="stBaseButton-primary"] {{ color: #171717; font-weight: 600; }}
-[data-testid="stBaseButton-primary"]:hover {{ background: #FFFFFF; border-color: #FFFFFF;
-  color: #000000; }}
+/* Botões: ação primária verde, sem brilho ou gradiente. */
+[data-testid="stBaseButton-primary"] {{ background: var(--euler-verde); border-color: var(--euler-verde);
+  color: #07110B; font-weight: 700; }}
+[data-testid="stBaseButton-primary"]:hover {{ background: #54E58D; border-color: #54E58D;
+  color: #07110B; }}
 [data-testid="stBaseButton-primary"] p {{ color: inherit; }}
-[data-testid="stBaseButton-secondary"]:hover {{ border-color: #6B6B6B; color: #FFFFFF; }}
+[data-testid="stBaseButton-secondary"]:hover {{ border-color: var(--euler-verde);
+  color: var(--euler-texto); }}
+[data-testid="stPageLink"] a {{ border-radius: 7px; transition: background 150ms ease,
+  border-color 150ms ease; }}
+[data-testid="stPageLink"] a:hover {{ background: var(--euler-hover); }}
 
 /* Cabeçalho de cada tela */
 .st-key-euler-cabecalho {{ gap: .2rem; padding-bottom: 1rem; margin-bottom: .35rem;
@@ -105,6 +118,8 @@ a:focus-visible, button:focus-visible, input:focus-visible {{
 
 /* Cartões (contêineres com key "cartao-…") e indicadores */
 [class*="st-key-cartao"] {{ background: var(--euler-cartao); }}
+[class*="st-key-cartao"] {{ border-color: var(--euler-linha); border-radius: 10px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .12); }}
 /* cartões lado a lado com a mesma altura (indicadores, passos, estágios) */
 [data-testid="stColumn"] > [data-testid="stVerticalBlock"] {{ height: 100%; }}
 [data-testid="stLayoutWrapper"]:has(> [class*="st-key-cartao-kpi"]),
@@ -121,11 +136,10 @@ a:focus-visible, button:focus-visible, input:focus-visible {{
 
 /* Abertura da tela inicial */
 .st-key-euler-abertura {{ background:
-  radial-gradient(120% 140% at 0% 0%, rgba(168, 199, 250, .07) 0%, rgba(168, 199, 250, 0) 55%),
-  var(--euler-lateral); border: 1px solid #2C2C2C; border-radius: 14px;
-  padding: 2.4rem 2.6rem 2.2rem; gap: .6rem; }}
-.st-key-euler-abertura h1 {{ color: #FFFFFF; font-size: 2.9rem; font-weight: 500;
-  letter-spacing: .2em; padding: 0; }}
+  var(--euler-lateral); border: 1px solid var(--euler-linha); border-radius: 10px;
+  padding: 1.4rem 1.6rem 1.35rem; gap: .35rem; }}
+.st-key-euler-abertura h1 {{ color: #FFFFFF; font-size: 1rem; font-weight: 750;
+  letter-spacing: .18em; padding: 0; }}
 .st-key-euler-abertura h3 {{ color: var(--euler-texto); font-weight: 500; max-width: 46rem; }}
 .st-key-euler-abertura p, .st-key-euler-abertura li {{ color: var(--euler-suave);
   font-size: 1.05rem; max-width: 50rem; }}
@@ -136,6 +150,32 @@ a:focus-visible, button:focus-visible, input:focus-visible {{
 .st-key-euler-abertura [data-testid="stPageLink"] a p,
 .st-key-euler-abertura [data-testid="stPageLink"] a span {{ color: var(--euler-texto);
   font-size: 1rem; }}
+
+/* Dashboard v3 */
+.euler-dashboard-title {{ color: var(--euler-texto); font-size: clamp(1.8rem, 4vw, 2.55rem);
+  line-height: 1.08; letter-spacing: -.035em; font-weight: 680; margin: .15rem 0 .3rem; }}
+.euler-contexto {{ display: flex; flex-wrap: wrap; gap: .45rem; margin-top: .4rem; }}
+.euler-contexto span {{ display: inline-flex; align-items: center; min-height: 1.8rem;
+  padding: .25rem .58rem; border-radius: 999px; border: 1px solid var(--euler-linha);
+  background: var(--euler-cartao); color: var(--euler-suave); font-size: .78rem; }}
+.euler-contexto strong {{ color: var(--euler-texto); font-weight: 600; margin-left: .3rem; }}
+.euler-chip {{ display: inline-flex; align-items: center; gap: .38rem; width: fit-content;
+  border: 1px solid var(--euler-linha); border-radius: 999px; padding: .22rem .52rem;
+  color: var(--euler-suave); background: #101618; font-size: .76rem; font-weight: 600; }}
+.euler-chip::before {{ content: ""; width: .42rem; height: .42rem; border-radius: 50%;
+  background: var(--euler-suave); }}
+.euler-chip--positivo {{ color: #87E7AD; border-color: #28583B; }}
+.euler-chip--positivo::before {{ background: var(--euler-verde); }}
+.euler-chip--atencao {{ color: #F0CA70; border-color: #6C5728; }}
+.euler-chip--atencao::before {{ background: var(--euler-ambar); }}
+.euler-chip--alerta {{ color: #F39AA1; border-color: #6D3036; }}
+.euler-chip--alerta::before {{ background: var(--euler-vermelho); }}
+.euler-chip--indisponivel::before {{ background: #69736F; }}
+.st-key-cartao-intelligence {{ border-style: dashed; }}
+.st-key-cartao-intelligence h3 {{ margin-bottom: .15rem; }}
+.st-key-cartao-intelligence [data-testid="stButton"] button {{ width: 100%; }}
+.st-key-dashboard-kpis [data-testid="stMetricValue"] {{ font-size: clamp(1.35rem, 2.3vw, 2rem); }}
+.st-key-dashboard-kpis [data-testid="stMetric"] {{ min-height: 8.8rem; }}
 
 /* Botão "Próximo passo" no fim das telas do fluxo */
 .st-key-euler-proximo [data-testid="stPageLink"] a {{ border: 1px solid #4A4A4A;
@@ -249,6 +289,9 @@ a:focus-visible, button:focus-visible, input:focus-visible {{
   .euler-loading-head {{ align-items: flex-start; }}
   .euler-loading-live {{ font-size: .72rem; }}
   .euler-loading-details {{ gap: .35rem; }}
+  .euler-contexto {{ display: grid; grid-template-columns: 1fr; }}
+  .euler-contexto span {{ width: 100%; }}
+  .st-key-dashboard-kpis [data-testid="stMetric"] {{ min-height: auto; }}
 }}
 </style>"""
 
@@ -397,6 +440,11 @@ p, label, [data-testid="stMarkdownContainer"], [data-testid="stMetricValue"] {{
   .st-key-euler-topbar {{ min-height: 44px; }}
   [data-testid="stHorizontalBlock"] {{ flex-wrap: wrap; }}
 }}
+/* O Streamlit translada a lateral recolhida; retire também sua largura do fluxo. */
+[data-testid="stAppViewContainer"]:has([data-testid="stExpandSidebarButton"])
+  [data-testid="stSidebar"] {{
+  min-width: 0; max-width: 0; width: 0 !important; flex-basis: 0 !important; border-right: 0;
+}}
 </style>"""
 
 
@@ -442,8 +490,49 @@ def cabecalho(titulo: str, resumo: str = "", sobrelinha: str = "") -> None:
 
 
 def cartao(chave: str):
-    """Contêiner com borda e fundo branco (chave única na tela)."""
+    """Contêiner grafite com borda discreta (chave única na tela)."""
     return st.container(border=True, key=f"cartao-{chave}")
+
+
+def chip_status(texto: str, estado: str = "neutro") -> None:
+    """Selo textual acessível; a situação nunca depende somente da cor."""
+    estados = {"neutro", "positivo", "atencao", "alerta", "indisponivel"}
+    if estado not in estados:
+        raise ValueError(f"Estado visual desconhecido: {estado}")
+    st.html(f'<span class="euler-chip euler-chip--{estado}" role="status">{escape(texto)}</span>')
+
+
+def cartao_indicador(
+    chave: str,
+    titulo: str,
+    valor: str | None,
+    *,
+    detalhe: str,
+    estado: str = "neutro",
+    ajuda: str | None = None,
+) -> None:
+    """KPI v3 com origem/limite explícito e estado vazio padronizado."""
+    with cartao(f"kpi-{chave}"):
+        st.metric(titulo, valor if valor not in (None, "") else "—", help=ajuda)
+        chip_status("Dados insuficientes" if valor in (None, "") else "Dado apurado", estado)
+        st.caption(detalhe)
+
+
+def painel_intelligence_desativado() -> None:
+    """Entrada visual da IA, bloqueada e sem qualquer chamada externa."""
+    with cartao("intelligence"):
+        chip_status("Não configurado", "indisponivel")
+        st.markdown("### EULER Intelligence")
+        st.caption(
+            "IA aguardando escolha de provedor. As análises científicas continuam "
+            "disponíveis e independentes deste recurso."
+        )
+        st.button(
+            "Assistente indisponível",
+            disabled=True,
+            icon=":material/lock:",
+            key="intelligence-desativada",
+        )
 
 
 def secao(texto: str) -> None:

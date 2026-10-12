@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
+import re
 import sqlite3
 
 import streamlit as st
@@ -16,11 +16,82 @@ import streamlit as st
 from euler.persistencia import Repositorio, raiz_padrao
 
 ERROS = (ValueError, OSError, sqlite3.Error)
+ORGANIZACAO_SELECIONADA = "_euler_organization_id"
+ORGANIZACAO_ATIVA = "_euler_active_organization_id"
+ORGANIZACAO_USUARIO = "_euler_organization_user_id"
+
+
+def organizacoes_autorizadas() -> list[dict[str, str]]:
+    """Organizações ativas presentes no contexto autenticado, sem ampliar permissões."""
+    from auth import _modo_teste
+
+    if _modo_teste():
+        return []
+    try:
+        from auth import contexto_atual
+
+        ctx = contexto_atual()
+    except ImportError:
+        ctx = None
+    organizacoes = []
+    for membership in (ctx or {}).get("memberships") or []:
+        org = membership.get("organizations") or {}
+        if org.get("status") not in (None, "active"):
+            continue
+        organizacao_id = membership.get("organization_id") or org.get("id")
+        if organizacao_id:
+            organizacoes.append(
+                {
+                    "id": str(organizacao_id),
+                    "nome": str(org.get("name") or organizacao_id),
+                    "papel": str(membership.get("role") or ""),
+                }
+            )
+    return sorted(organizacoes, key=lambda item: item["nome"].casefold())
+
+
+def organizacao_atual() -> dict[str, str] | None:
+    """Resolve a organização escolhida somente dentro das associações autorizadas."""
+    from auth import contexto_atual
+
+    ctx = contexto_atual() or {}
+    usuario = ctx.get("user_id")
+    usuario_anterior = st.session_state.get(ORGANIZACAO_USUARIO)
+    if usuario_anterior is not None and usuario_anterior != usuario:
+        st.session_state.pop(ORGANIZACAO_SELECIONADA, None)
+        st.session_state.pop(ORGANIZACAO_ATIVA, None)
+    st.session_state[ORGANIZACAO_USUARIO] = usuario
+    organizacoes = organizacoes_autorizadas()
+    if not organizacoes:
+        return None
+    por_id = {org["id"]: org for org in organizacoes}
+    selecionada = st.session_state.get(ORGANIZACAO_SELECIONADA)
+    if selecionada is None:
+        selecionada = organizacoes[0]["id"]
+        st.session_state[ORGANIZACAO_SELECIONADA] = selecionada
+    if selecionada not in por_id:
+        raise ValueError("Organização selecionada não autorizada para este usuário.")
+    return por_id[selecionada]
+
+
+def sincronizar_organizacao() -> dict[str, str] | None:
+    """Invalida dados da sessão quando o usuário troca de tenant autorizado."""
+    organizacao = organizacao_atual()
+    nova = organizacao["id"] if organizacao else None
+    anterior = st.session_state.get(ORGANIZACAO_ATIVA)
+    if anterior is not None and anterior != nova:
+        import estado
+
+        estado.limpar_contexto_operacional()
+    st.session_state[ORGANIZACAO_ATIVA] = nova
+    return organizacao
 
 
 def repositorio() -> Repositorio:
     """Isola a biblioteca local por organização durante o beta multiusuário."""
-    if os.environ.get("EULER_TEST_BYPASS_AUTH") == "1":
+    from auth import _modo_teste
+
+    if _modo_teste():
         return Repositorio()
 
     try:
@@ -31,16 +102,21 @@ def repositorio() -> Repositorio:
         ctx = None
 
     if not ctx:
-        return Repositorio()
+        raise ValueError("Autorização válida é obrigatória para acessar o armazenamento.")
 
     memberships = ctx.get("memberships") or []
     if memberships:
-        tenant_id = memberships[0]["organization_id"]
+        organizacao = sincronizar_organizacao()
+        if organizacao is None:
+            raise ValueError("Usuário autenticado ainda não possui organização ativa.")
+        tenant_id = organizacao["id"]
     elif ctx.get("is_superadmin"):
         tenant_id = f"admin-{ctx['user_id']}"
     else:
         raise ValueError("Usuário autenticado ainda não possui organização.")
 
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,127}", tenant_id):
+        raise ValueError("Identificador de organização inválido para o armazenamento.")
     return Repositorio(raiz_padrao() / "tenants" / tenant_id)
 
 
