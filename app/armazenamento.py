@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
+import re
 import sqlite3
 
 import streamlit as st
@@ -23,7 +23,9 @@ ORGANIZACAO_USUARIO = "_euler_organization_user_id"
 
 def organizacoes_autorizadas() -> list[dict[str, str]]:
     """Organizações ativas presentes no contexto autenticado, sem ampliar permissões."""
-    if os.environ.get("EULER_TEST_BYPASS_AUTH") == "1":
+    from auth import _modo_teste
+
+    if _modo_teste():
         return []
     try:
         from auth import contexto_atual
@@ -87,7 +89,9 @@ def sincronizar_organizacao() -> dict[str, str] | None:
 
 def repositorio() -> Repositorio:
     """Isola a biblioteca local por organização durante o beta multiusuário."""
-    if os.environ.get("EULER_TEST_BYPASS_AUTH") == "1":
+    from auth import _modo_teste
+
+    if _modo_teste():
         return Repositorio()
 
     try:
@@ -98,7 +102,7 @@ def repositorio() -> Repositorio:
         ctx = None
 
     if not ctx:
-        return Repositorio()
+        raise ValueError("Autorização válida é obrigatória para acessar o armazenamento.")
 
     memberships = ctx.get("memberships") or []
     if memberships:
@@ -111,6 +115,8 @@ def repositorio() -> Repositorio:
     else:
         raise ValueError("Usuário autenticado ainda não possui organização.")
 
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,127}", tenant_id):
+        raise ValueError("Identificador de organização inválido para o armazenamento.")
     return Repositorio(raiz_padrao() / "tenants" / tenant_id)
 
 

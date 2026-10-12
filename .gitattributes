@@ -1,3 +1,5 @@
 *.cmd text eol=crlf
 # Recorte auditado por SHA-256: preservar bytes entre Windows e Linux.
 validation/public/ensaio_horario/ingredion_2023q1.csv -text
+# Hash público de validação: não normalizar finais de linha no Windows.
+validation/public/cervejaria_rs/diario.csv -text

@@ -25,7 +25,25 @@ SESSION_USER_ID = "_euler_session_user_id"
 
 
 def _modo_teste() -> bool:
-    return os.environ.get("EULER_TEST_BYPASS_AUTH") == "1"
+    """Libera identidade fictícia apenas dentro de uma execução isolada do pytest."""
+    if os.environ.get("EULER_TEST_BYPASS_AUTH") != "1":
+        return False
+    if not os.environ.get("PYTEST_CURRENT_TEST"):
+        return False
+    if any(
+        valor and (nome == "RENDER" or nome.startswith("RENDER_"))
+        for nome, valor in os.environ.items()
+    ):
+        return False
+
+    ambientes_locais = {"local", "test", "testing", "dev", "development"}
+    for nome in ("EULER_ENV", "ENVIRONMENT", "APP_ENV"):
+        valor = os.environ.get(nome)
+        if valor and valor.strip().casefold() not in ambientes_locais:
+            return False
+
+    # Qualquer configuração, mesmo parcial, pode apontar para um projeto real.
+    return not any(configuracao().values())
 
 
 def _contexto_teste() -> dict:

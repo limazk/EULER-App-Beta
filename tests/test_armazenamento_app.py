@@ -168,6 +168,44 @@ def test_repositorio_beta_recusa_usuario_sem_organizacao(ambiente, monkeypatch):
         arm.repositorio()
 
 
+def test_repositorio_beta_recusa_contexto_de_autorizacao_ausente(ambiente, monkeypatch):
+    _, arm, _ = ambiente
+    monkeypatch.delenv("EULER_TEST_BYPASS_AUTH", raising=False)
+    auth = importlib.import_module("auth")
+    monkeypatch.setattr(auth, "contexto_atual", lambda: None)
+
+    with pytest.raises(ValueError, match="Autorização"):
+        arm.repositorio()
+
+
+@pytest.mark.parametrize(
+    "organizacao_id", ["../compartilhado", "/tmp/fora", "org/a", "org\\a", "."]
+)
+def test_repositorio_beta_recusa_identificador_de_tenant_malformado(
+    ambiente, monkeypatch, organizacao_id
+):
+    _, arm, _ = ambiente
+    monkeypatch.delenv("EULER_TEST_BYPASS_AUTH", raising=False)
+    auth = importlib.import_module("auth")
+    monkeypatch.setattr(
+        auth,
+        "contexto_atual",
+        lambda: {
+            "user_id": "usuario",
+            "is_superadmin": False,
+            "memberships": [
+                {
+                    "organization_id": organizacao_id,
+                    "organizations": {"id": organizacao_id, "name": "Inválida", "status": "active"},
+                }
+            ],
+        },
+    )
+
+    with pytest.raises(ValueError, match="Identificador de organização inválido"):
+        arm.repositorio()
+
+
 def test_reabrir_apos_sessao_nova_preserva_original_altitude_e_sintetico(ambiente):
     estado, arm, sessao = ambiente
     planta = arm.repositorio().criar_planta("Planta A")
