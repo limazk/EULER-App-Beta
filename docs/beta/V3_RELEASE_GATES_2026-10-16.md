@@ -95,3 +95,12 @@
 - Relatório consolidado: https://github.com/limazk/EULER-App-Beta/pull/34.
 - **G3 segue PARCIAL:** a falha offline [issue #36](https://github.com/limazk/EULER-App-Beta/issues/36), Windows GUI interativa, login real Supabase, interface 3.0 servida em ambiente adequado e teste físico permanecem pendentes. Os testes em runners nativos **não** equivalem à homologação funcional de clientes.
 - Sem merge ou deploy da candidata, sem alterações em Render ou Supabase.
+
+## Atualização — screenshot da Beta hospedada em Windows e Linux (16/10/2026)
+
+- [Run Windows #38996524546](https://github.com/limazk/EULER-App-Beta/actions/runs/38996524546): **success**, janela Win32 `EULER` detectada e captura real do formulário de login; NSIS instalou/abriu/desinstalou.
+- [Run Linux #38996524551](https://github.com/limazk/EULER-App-Beta/actions/runs/38996524551): **success**, `.deb` instalou, abriu janela Streamlit em Xvfb e desinstalou; captura real do mesmo formulário.
+- PNGs preservados na Library privada em `/EULER/QA/2026-10-16/euler-windows-native-login.png` e `euler-linux-deb-native-login.png`; veja documentação PR #34.
+- Issue UX #38 registrada: https://github.com/limazk/EULER-App-Beta/issues/38 — botão de login branco sem texto legível em ambos os SOs; verificar na candidata 3.0 antes da liberação.
+- Os dados e telas acessados eram a Beta atual do Render (`42e28e8`), **não a EULER 3.0**; testes de autenticação real continuam bloqueados pelo Supabase `INACTIVE`.
+- **G3 segue PARCIAL, porém instalação nativa, janela e login visual (sem autenticação) estão comprovados no Windows e Linux.** Sem deploy, merge ou modificação de credenciais.
