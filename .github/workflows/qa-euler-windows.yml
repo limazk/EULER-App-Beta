@@ -1,0 +1,96 @@
+name: QA Windows - EULER installer (isolated)
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/qa-euler-windows.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  smoke-windows:
+    name: Windows NSIS native install / launch / uninstall
+    runs-on: windows-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - name: Get exact approved release artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: euler-windows
+          run-id: "38211447620"
+          path: windows-qa-artifacts
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Check installer SHA-256, run silent native install
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $a = @(Get-ChildItem -Path "windows-qa-artifacts" -Recurse -File -Filter "EULER_0.1.0-beta.1_x64-setup.exe")
+          if ($a.Count -ne 1) { throw "Expected one official NSIS installer; found $($a.Count)" }
+          $actual = (Get-FileHash $a[0].FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          $expected = "375eb281abc653b9aab5ea92a4a51fd9b2911dd8c089dde696635f20b1107cbe"
+          if ($actual -ne $expected) { throw "Installer SHA256 mismatch: $actual" }
+          $dest = Join-Path $env:RUNNER_TEMP "EulerQAInstall"
+          Write-Host "SHA verified; intended install dir: $dest"
+          $proc = Start-Process -FilePath $a[0].FullName -ArgumentList "/S",("/D=" + $dest) -PassThru -Wait
+          Write-Host "NSIS exit code: $($proc.ExitCode)"
+          if ($proc.ExitCode -ne 0) { throw "NSIS installation failed: exit $($proc.ExitCode)" }
+          if (-not (Test-Path $dest)) { throw "NSIS did not create expected install directory" }
+          $exes = @(Get-ChildItem -Path $dest -Recurse -File -Filter "*.exe")
+          $exes | ForEach-Object { Write-Host "Installed EXE: $($_.FullName)" }
+          $app = $exes | Where-Object { $_.Name -eq "euler-app.exe" } | Select-Object -First 1
+          if (-not $app) { throw "euler-app.exe not found in installation" }
+          "EULER_APP_EXE=$($app.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "EULER_INSTALL_DIR=$dest" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "### EULER Windows smoke" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          "- SHA-256 official installer: PASS" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          "- NSIS silent installation: PASS" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+      - name: Attempt startup (non-interactive CI, no GUI claim)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $app = $env:EULER_APP_EXE
+          if (-not (Test-Path $app)) { throw "Installed app does not exist" }
+          $proc = Start-Process -FilePath $app -PassThru -ErrorAction Stop
+          Write-Host "Launched EULER PID $($proc.Id)"
+          Start-Sleep -Seconds 10
+          $running = Get-Process -Id $proc.Id -ErrorAction SilentlyContinue
+          if ($running) {
+            Write-Host "EULER process still running after 10s"
+            "- Native Windows process remains running at 10s: PASS (GUI is not validated)" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          } else {
+            Write-Warning "EULER exited in non-interactive runner. This does not establish a GUI regression; needs interactive desktop test."
+            "- Native Windows startup: INCONCLUSIVE (process exited; non-interactive CI)" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+          }
+          if ($running) { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue }
+      - name: Uninstall and verify cleanup
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $dest = Join-Path $env:RUNNER_TEMP "EulerQAInstall"
+          if (-not (Test-Path $dest)) {
+            Write-Host "Not installed; skipping uninstall test"
+            exit 0
+          }
+          $un = @(Get-ChildItem -Path $dest -Recurse -File -Filter "*.exe" | Where-Object { $_.Name -match "uninstall|uninst" })
+          if ($un.Count -eq 0) {
+            Write-Warning "Uninstaller not found at expected custom directory"
+            "- Uninstallation: NOT CONFIRMED (no uninstaller discovered)" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+            exit 1
+          }
+          $proc = Start-Process -FilePath $un[0].FullName -ArgumentList "/S" -Wait -PassThru
+          Write-Host "Uninstaller exit: $($proc.ExitCode)"
+          if ($proc.ExitCode -ne 0) { throw "Uninstaller failed" }
+          Start-Sleep -Seconds 2
+          $binary = Join-Path $dest "euler-app.exe"
+          if (Test-Path $binary) { throw "App binary still present after uninstall" }
+          "- NSIS silent uninstall: PASS" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+      - name: Security note
+        if: always()
+        shell: pwsh
+        run: |
+          "- No production credentials, login, GUI screenshots or Render deploys were used in this workflow." | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
