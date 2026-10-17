@@ -65,7 +65,35 @@ jobs:
             Write-Warning "EULER exited in non-interactive runner. This does not establish a GUI regression; needs interactive desktop test."
             "- Native Windows startup: INCONCLUSIVE (process exited; non-interactive CI)" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
           }
-          if ($running) { Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue }
+          if ($running) {
+            $ui = Get-Process -Id $proc.Id -ErrorAction SilentlyContinue
+            Write-Host "Window handle: $($ui.MainWindowHandle); title: $($ui.MainWindowTitle)"
+            if ($ui.MainWindowHandle -ne 0) {
+              "- Win32 main window handle: DETECTED (not a functional UI/login test)" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+            } else {
+              "- Win32 main window handle: NOT DETECTED in CI session (inconclusive)" | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+            }
+            try {
+              Add-Type -AssemblyName System.Windows.Forms
+              Add-Type -AssemblyName System.Drawing
+              $bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+              $bmp = New-Object System.Drawing.Bitmap($bounds.Width,$bounds.Height)
+              $gfx = [System.Drawing.Graphics]::FromImage($bmp)
+              $gfx.CopyFromScreen(0,0,0,0,$bmp.Size)
+              $bmp.Save("windows-qa-screenshot.png",[System.Drawing.Imaging.ImageFormat]::Png)
+              $gfx.Dispose(); $bmp.Dispose()
+              Write-Host "Screenshot saved (inspect for blank/interactive state)"
+            } catch { Write-Warning "Screenshot unavailable on non-interactive runner: $($_.Exception.Message)" }
+            Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+          }
+      - name: Export screenshot if Windows runner permits
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-windows-window-capture
+          path: windows-qa-screenshot.png
+          if-no-files-found: ignore
+          retention-days: 3
       - name: Uninstall and verify cleanup
         if: always()
         shell: pwsh
