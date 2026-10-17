@@ -76,3 +76,12 @@
 - Consulta complementar ao GitHub confirma que ambos os builds do Tauri passaram e que o arquivo versionado `tauri.conf.json` prevê as dimensões relatadas. Digests dos artefatos ZIP de workflow conferidos na API GitHub, **não** hashes de instaladores individuais.
 - **G3 continua PARCIAL:** Windows e instalação completa do .deb ainda não foram executados/documentados; execução de aplicação 3.0 e autenticação reais seguem pendentes. Testes relatados pelo agente não são auditoria independente sem logs.
 - Nenhum merge, alteração de infraestrutura ou publicação foram efetuados.
+
+## Atualização de QA independente — 16/10/2026
+
+- No **PR #34** (https://github.com/limazk/EULER-App-Beta/pull/34), a documentação agora inclui execução independente do AppImage oficial em Debian 13/x86_64 usando Xvfb/Openbox, com screenshot real da splash e processo/janela EULER detectados; o .deb teve estrutura validada, 5/5 MD5 internos corretos; o instalador NSIS do Windows teve formato e SHA-256 conferidos.
+- ZIPs GitHub Actions e três binários individuais tiveram os SHA-256 calculados e registrados no PR #34.
+- A execução Linux com DNS inacessível resultou em tela branca de erro WebKit, em vez de fallback amigável de offline/retry; houve reprodução visual e issue https://github.com/limazk/EULER-App-Beta/issues/36 registrada.
+- Os screenshots de 1s e 9s foram salvos na Library privada do solicitante em /EULER/QA/2026-10-16/.
+- Faltam instalação nativa .deb, Windows, teste real de reconexão, sessão autenticada, demonstração da interface v3 no shell.
+- **G3 continua PARCIAL e não autoriza merge/deploy**; o PR #29, a main e os ambientes Render/Supabase não foram alterados.
