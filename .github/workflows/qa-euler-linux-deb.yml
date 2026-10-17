@@ -1,0 +1,77 @@
+name: QA Linux - EULER deb native (isolated)
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/qa-euler-linux-deb.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  smoke-linux-deb:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Get exact approved Linux artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: euler-linux
+          run-id: "38211447620"
+          path: linux-qa-artifacts
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Verify deb and install dependencies natively
+        shell: bash
+        run: |
+          set -euo pipefail
+          file="linux-qa-artifacts/deb/EULER_0.1.0-beta.1_amd64.deb"
+          test -f "$file"
+          echo "1bed3e232ada0d08da48dd456857a3f992f43f175affadd2e2421cbe83c101c5  $file" | sha256sum -c -
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq xvfb openbox wmctrl dbus-x11 "$PWD/$file"
+          dpkg-query -W -f="${Status} ${Version}\n" euler
+          command -v euler-app
+          test -x /usr/bin/euler-app
+          echo "- Native .deb install on Ubuntu 22.04: PASS" >> "$GITHUB_STEP_SUMMARY"
+      - name: Native launch with Xvfb and splash/window detection
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/smoke-euler.sh <<'SH'
+          #!/bin/bash
+          set -euo pipefail
+          openbox --sm-disable >/tmp/euler-qa-openbox.log 2>&1 &
+          wm=$!
+          euler-app >/tmp/euler-qa-runtime.log 2>&1 &
+          pid=$!
+          sleep 12
+          wmctrl -lGpx || true
+          if ! kill -0 "$pid" 2>/dev/null; then
+            echo "euler-app exited early"; cat /tmp/euler-qa-runtime.log; kill "$wm" || true; exit 1
+          fi
+          wmctrl -l | grep -qi "EULER" || { echo "EULER window missing"; kill "$pid" || true; kill "$wm" || true; exit 1; }
+          echo "EULER GUI process and window confirmed via Xvfb"
+          kill "$pid" || true
+          kill "$wm" || true
+          wait "$pid" || true
+          SH
+          chmod +x /tmp/smoke-euler.sh
+          xvfb-run -a -s "-screen 0 1600x1000x24" dbus-run-session -- /tmp/smoke-euler.sh
+          echo "- Native .deb binary startup & EULER window on Xvfb: PASS (remote UI not validated)" >> "$GITHUB_STEP_SUMMARY"
+      - name: Remove package and verify binary cleanup
+        if: always()
+        shell: bash
+        run: |
+          if dpkg-query -W euler >/dev/null 2>&1; then
+            sudo DEBIAN_FRONTEND=noninteractive apt-get remove -y -qq euler
+            test ! -e /usr/bin/euler-app
+            echo "- Native .deb package removal: PASS" >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Scope note
+        if: always()
+        shell: bash
+        run: |
+          echo "- Runner is a clean Ubuntu 22.04 CI VM; screenshot, physical GUI, backend authentication and Windows UI are not validated." >> "$GITHUB_STEP_SUMMARY"
