@@ -11,6 +11,128 @@ APP = Path(__file__).resolve().parents[1] / "app"
 sys.path.insert(0, str(APP))
 
 
+def test_cadastro_normaliza_identidade_e_guarda_sessao(monkeypatch):
+    auth = importlib.import_module("auth")
+    chamadas = []
+    sessao_supabase = SimpleNamespace(
+        access_token="access-novo",
+        refresh_token="refresh-novo",
+        user=SimpleNamespace(id="usuario-novo"),
+    )
+    cliente = SimpleNamespace(
+        auth=SimpleNamespace(
+            sign_up=lambda dados: chamadas.append(dados) or SimpleNamespace(session=sessao_supabase)
+        )
+    )
+    sessao = {}
+    monkeypatch.setattr(auth, "_cliente_usuario", lambda: cliente)
+    monkeypatch.setattr(auth.st, "session_state", sessao)
+
+    ok, mensagem = auth.cadastrar("  Pessoa Teste  ", "  Pessoa@Example.com ", "senha-segura")
+
+    assert ok is True
+    assert "aguardando aprovação" in mensagem
+    assert chamadas == [
+        {
+            "email": "pessoa@example.com",
+            "password": "senha-segura",
+            "options": {"data": {"full_name": "Pessoa Teste"}},
+        }
+    ]
+    assert sessao[auth.SESSION_USER_ID] == "usuario-novo"
+    assert sessao[auth.TOKEN_ACCESS] == "access-novo"
+
+
+def test_login_valido_guarda_sessao_sem_expor_credenciais(monkeypatch):
+    auth = importlib.import_module("auth")
+    chamadas = []
+    sessao_supabase = SimpleNamespace(
+        access_token="access-valido",
+        refresh_token="refresh-valido",
+        user=SimpleNamespace(id="usuario-autorizado"),
+    )
+    cliente = SimpleNamespace(
+        auth=SimpleNamespace(
+            sign_in_with_password=lambda dados: (
+                chamadas.append(dados) or SimpleNamespace(session=sessao_supabase)
+            )
+        )
+    )
+    sessao = {}
+    monkeypatch.setattr(auth, "_cliente_usuario", lambda: cliente)
+    monkeypatch.setattr(auth.st, "session_state", sessao)
+
+    assert auth.entrar("  Autorizado@Example.com ", "segredo-de-teste") == (True, "")
+    assert chamadas == [{"email": "autorizado@example.com", "password": "segredo-de-teste"}]
+    assert sessao[auth.SESSION_USER_ID] == "usuario-autorizado"
+    assert sessao[auth.TOKEN_REFRESH] == "refresh-valido"
+
+
+def test_login_sem_sessao_valida_falha_fechado(monkeypatch):
+    auth = importlib.import_module("auth")
+    cliente = SimpleNamespace(
+        auth=SimpleNamespace(sign_in_with_password=lambda _dados: SimpleNamespace(session=None))
+    )
+    monkeypatch.setattr(auth, "_cliente_usuario", lambda: cliente)
+
+    assert auth.entrar("pessoa@example.com", "senha-segura") == (
+        False,
+        "Login não retornou uma sessão válida.",
+    )
+
+
+def test_usuario_ativo_carrega_perfil_e_membership_autorizada(monkeypatch):
+    auth = importlib.import_module("auth")
+    perfil = {
+        "id": "usuario-autorizado",
+        "email": "autorizado@example.com",
+        "status": "active",
+        "is_superadmin": False,
+    }
+    membership = {
+        "organization_id": "org-a",
+        "role": "operator",
+        "status": "active",
+        "organizations": {"id": "org-a", "name": "Empresa A", "status": "active"},
+    }
+
+    class Consulta:
+        def __init__(self, dados):
+            self.dados = dados
+
+        def select(self, *_args):
+            return self
+
+        def eq(self, *_args):
+            return self
+
+        def limit(self, *_args):
+            return self
+
+        def execute(self):
+            return SimpleNamespace(data=self.dados)
+
+    cliente = SimpleNamespace(
+        table=lambda nome: Consulta([perfil] if nome == "profiles" else [membership])
+    )
+    sessao = {auth.SESSION_USER_ID: "usuario-autorizado"}
+    monkeypatch.setattr(auth.st, "session_state", sessao)
+    monkeypatch.setattr(
+        auth,
+        "_usuario_validado",
+        lambda: SimpleNamespace(id="usuario-autorizado", email="autorizado@example.com"),
+    )
+    monkeypatch.setattr(auth, "_cliente_usuario", lambda: cliente)
+    monkeypatch.setattr(auth.time, "monotonic", lambda: 500.0)
+
+    contexto = auth._carregar_contexto()
+
+    assert contexto["profile"]["status"] == "active"
+    assert contexto["memberships"] == [membership]
+    assert contexto["is_superadmin"] is False
+    assert sessao[auth.CTX_VALIDATED_AT] == 500.0
+
+
 def test_recuperacao_normaliza_email_e_nao_enumera_usuario(monkeypatch):
     auth = importlib.import_module("auth")
     chamadas = []
@@ -184,6 +306,29 @@ def test_expiracao_remove_dados_antes_de_nova_autenticacao(monkeypatch):
     assert "arquivos" not in sessao
     assert "dashboard_planta" not in sessao
     assert auth.TOKEN_ACCESS not in sessao
+
+
+def test_sessao_revogada_durante_restauracao_descarta_contexto(monkeypatch):
+    auth = importlib.import_module("auth")
+    sessao = {
+        auth.TOKEN_ACCESS: "access-revogado",
+        auth.TOKEN_REFRESH: "refresh-revogado",
+        auth.SESSION_USER_ID: "usuario-a",
+        "arquivos": (("dados-a.csv", b"segredo-a"),),
+        "persistencia": {"planta_id": "planta-a"},
+    }
+
+    class AuthRevogada:
+        def set_session(self, _access, _refresh):
+            raise RuntimeError("sessão revogada simulada")
+
+    cliente = SimpleNamespace(auth=AuthRevogada())
+    monkeypatch.setattr(auth.st, "session_state", sessao)
+    monkeypatch.setattr(auth, "configuracao", lambda: {"url": "u", "public_key": "k"})
+    monkeypatch.setattr(auth, "create_client", lambda _url, _key: cliente)
+
+    assert auth._cliente_usuario() is cliente
+    assert sessao == {}
 
 
 def test_falha_ao_carregar_autorizacao_descarta_sessao_e_dados(monkeypatch):

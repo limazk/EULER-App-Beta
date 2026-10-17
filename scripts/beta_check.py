@@ -21,6 +21,7 @@ VARIAVEIS = (
     "SUPABASE_PUBLISHABLE_KEY",
     "SUPABASE_SECRET_KEY",
     "EULER_DADOS_DIR",
+    "EULER_REQUIRE_PERSISTENT_STORAGE",
 )
 TABELAS = ("profiles", "organizations", "memberships", "feedback")
 
@@ -48,14 +49,34 @@ def checar_ambiente(env: dict[str, str]) -> list[str]:
         problemas.append("SUPABASE_URL inválida")
 
     dados = env.get("EULER_DADOS_DIR", "")
+    dados_ok = False
     if dados:
-        pasta = Path(dados)
-        if not pasta.is_dir():
+        pasta = Path(dados).expanduser()
+        if not pasta.is_absolute():
+            print("EULER_DADOS_DIR: caminho não é absoluto")
+            problemas.append("EULER_DADOS_DIR não absoluto")
+        elif pasta.is_symlink():
+            print("EULER_DADOS_DIR: link simbólico não permitido")
+            problemas.append("EULER_DADOS_DIR é link simbólico")
+        elif not pasta.is_dir():
             print("EULER_DADOS_DIR: diretório não existe")
             problemas.append("EULER_DADOS_DIR inexistente")
         elif not os.access(pasta, os.W_OK):
             print("EULER_DADOS_DIR: sem permissão de escrita")
             problemas.append("EULER_DADOS_DIR sem escrita")
+        else:
+            dados_ok = True
+
+    persistencia = env.get("EULER_REQUIRE_PERSISTENT_STORAGE", "").strip().casefold()
+    if persistencia not in {"1", "true"}:
+        print("Persistência: NÃO CONFIRMADA")
+        problemas.append("persistência não exigida")
+    elif not dados:
+        print("Persistência: sem diretório configurado")
+    elif not dados_ok:
+        print("Persistência: configuração de diretório inválida")
+    else:
+        print("Persistência: contrato local OK; confirme o disco no provedor")
     return problemas
 
 

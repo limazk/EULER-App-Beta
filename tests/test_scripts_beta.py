@@ -33,6 +33,7 @@ def test_beta_check_nunca_imprime_segredos(tmp_path, capsys):
         "SUPABASE_PUBLISHABLE_KEY": "pub-VALOR-SECRETO-1",
         "SUPABASE_SECRET_KEY": "sec-VALOR-SECRETO-2",
         "EULER_DADOS_DIR": str(tmp_path),
+        "EULER_REQUIRE_PERSISTENT_STORAGE": "1",
     }
     assert beta_check.checar_ambiente(env) == []
     saida = capsys.readouterr().out
@@ -47,6 +48,35 @@ def test_beta_check_aponta_ausentes_e_url_invalida(capsys):
     assert "SUPABASE_SECRET_KEY: AUSENTE" in saida
     assert "SUPABASE_URL inválida" in problemas
     assert "SUPABASE_SECRET_KEY ausente" not in problemas  # opcional
+
+
+def test_beta_check_recusa_diretorio_relativo_e_persistencia_nao_declarada(capsys):
+    env = {
+        "SUPABASE_URL": "https://abc.supabase.co",
+        "SUPABASE_PUBLISHABLE_KEY": "publica",
+        "EULER_DADOS_DIR": "dados",
+        "EULER_REQUIRE_PERSISTENT_STORAGE": "0",
+    }
+
+    problemas = beta_check.checar_ambiente(env)
+
+    assert "EULER_DADOS_DIR não absoluto" in problemas
+    assert "persistência não exigida" in problemas
+    assert "Persistência: NÃO CONFIRMADA" in capsys.readouterr().out
+
+
+def test_beta_check_nao_aprova_contrato_com_diretorio_invalido(capsys):
+    env = {
+        "SUPABASE_URL": "https://abc.supabase.co",
+        "SUPABASE_PUBLISHABLE_KEY": "publica",
+        "EULER_DADOS_DIR": "dados",
+        "EULER_REQUIRE_PERSISTENT_STORAGE": "1",
+    }
+
+    assert "EULER_DADOS_DIR não absoluto" in beta_check.checar_ambiente(env)
+    saida = capsys.readouterr().out
+    assert "configuração de diretório inválida" in saida
+    assert "contrato local OK" not in saida
 
 
 PUBLICA = "sb_publishable_NAO_IMPRIMIR"

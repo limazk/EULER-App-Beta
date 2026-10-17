@@ -131,6 +131,59 @@ def test_troca_de_organizacao_invalida_dados_e_seletores_do_tenant_anterior(ambi
     assert sessao[arm.ORGANIZACAO_ATIVA] == "org-b"
 
 
+def test_persistencia_backup_e_restauracao_permanecem_isolados_por_tenant(ambiente, monkeypatch):
+    _, arm, sessao = ambiente
+    monkeypatch.delenv("EULER_TEST_BYPASS_AUTH", raising=False)
+    auth = importlib.import_module("auth")
+    organizacoes = [
+        {
+            "organization_id": "org-a",
+            "organizations": {"id": "org-a", "name": "A", "status": "active"},
+        },
+        {
+            "organization_id": "org-b",
+            "organizations": {"id": "org-b", "name": "B", "status": "active"},
+        },
+    ]
+    monkeypatch.setattr(
+        auth,
+        "contexto_atual",
+        lambda: {"user_id": "usuario", "is_superadmin": False, "memberships": organizacoes},
+    )
+
+    sessao[arm.ORGANIZACAO_SELECIONADA] = "org-a"
+    repo_a = arm.repositorio()
+    planta_a = repo_a.criar_planta("Planta A")
+    versao_a = repo_a.salvar_importacao(
+        planta_a["id"],
+        {"diario.csv": b"instante,valor\n2026-10-16T00:00:00Z,1\n"},
+        altitude=100.0,
+        rotulo="Validação",
+        sinteticos=False,
+        autor="Teste autorizado",
+        motivo="Homologação local",
+    )
+    backup = repo_a.exportar_backup(planta_a["id"])
+
+    sessao[arm.ORGANIZACAO_SELECIONADA] = "org-b"
+    repo_b = arm.repositorio()
+    assert repo_b.listar_plantas() == []
+    with pytest.raises(ValueError, match="Planta não encontrada"):
+        repo_b.carregar_importacao(planta_a["id"], versao_a["id"])
+
+    sessao[arm.ORGANIZACAO_SELECIONADA] = "org-a"
+    repo_a_reaberto = arm.repositorio()
+    assert repo_a_reaberto.carregar_importacao(planta_a["id"], versao_a["id"])["arquivos"] == {
+        "diario.csv": b"instante,valor\n2026-10-16T00:00:00Z,1\n"
+    }
+    restaurada = repo_a_reaberto.restaurar_backup(backup)
+    assert restaurada["id"] != planta_a["id"]
+    assert repo_a_reaberto.carregar_importacao(restaurada["id"], versao_a["id"])["arquivos"] == {
+        "diario.csv": b"instante,valor\n2026-10-16T00:00:00Z,1\n"
+    }
+    assert repo_b.listar_plantas() == []
+
+
 def test_repositorio_beta_recusa_organizacao_fora_das_associacoes(ambiente, monkeypatch):
     _, arm, sessao = ambiente
     monkeypatch.delenv("EULER_TEST_BYPASS_AUTH", raising=False)
@@ -176,6 +229,95 @@ def test_repositorio_beta_recusa_contexto_de_autorizacao_ausente(ambiente, monke
 
     with pytest.raises(ValueError, match="Autorização"):
         arm.repositorio()
+
+
+def test_render_recusa_fallback_para_filesystem_efemero(ambiente, monkeypatch):
+    _, arm, _ = ambiente
+    monkeypatch.setenv("RENDER_SERVICE_ID", "srv-teste")
+    monkeypatch.delenv(arm.PERSISTENCIA_EXIGIDA, raising=False)
+
+    with pytest.raises(ValueError, match="Render exige"):
+        arm._raiz_armazenamento()
+
+
+@pytest.mark.parametrize("valor", ["sim", "required", "2"])
+def test_declaracao_de_persistencia_invalida_falha_fechado(ambiente, monkeypatch, valor):
+    _, arm, _ = ambiente
+    monkeypatch.setenv(arm.PERSISTENCIA_EXIGIDA, valor)
+
+    with pytest.raises(ValueError, match="deve ser 1 ou 0"):
+        arm._raiz_armazenamento()
+
+
+def test_persistencia_exigida_requer_diretorio_absoluto_existente(ambiente, monkeypatch):
+    _, arm, _ = ambiente
+    monkeypatch.setenv(arm.PERSISTENCIA_EXIGIDA, "1")
+    monkeypatch.delenv("EULER_DADOS_DIR", raising=False)
+    with pytest.raises(ValueError, match="obrigatório"):
+        arm._raiz_armazenamento()
+
+    monkeypatch.setenv("EULER_DADOS_DIR", "dados-relativos")
+    with pytest.raises(ValueError, match="absoluto"):
+        arm._raiz_armazenamento()
+
+
+def test_persistencia_exigida_aceita_diretorio_gravavel(ambiente, monkeypatch, tmp_path):
+    _, arm, _ = ambiente
+    disco = tmp_path / "disco-persistente"
+    disco.mkdir()
+    monkeypatch.setenv(arm.PERSISTENCIA_EXIGIDA, "true")
+    monkeypatch.setenv("EULER_DADOS_DIR", str(disco))
+
+    assert arm._raiz_armazenamento() == disco.resolve()
+
+
+def test_persistencia_exigida_recusa_raiz_simbolica(ambiente, monkeypatch, tmp_path):
+    _, arm, _ = ambiente
+    destino = tmp_path / "destino"
+    destino.mkdir()
+    atalho = tmp_path / "atalho"
+    atalho.symlink_to(destino, target_is_directory=True)
+    monkeypatch.setenv(arm.PERSISTENCIA_EXIGIDA, "1")
+    monkeypatch.setenv("EULER_DADOS_DIR", str(atalho))
+
+    with pytest.raises(ValueError, match="não ser link simbólico"):
+        arm._raiz_armazenamento()
+
+
+@pytest.mark.parametrize("alvo", ["tenant", "tenants"])
+def test_repositorio_beta_recusa_escape_por_link_simbolico(ambiente, monkeypatch, tmp_path, alvo):
+    _, arm, _ = ambiente
+    monkeypatch.delenv("EULER_TEST_BYPASS_AUTH", raising=False)
+    auth = importlib.import_module("auth")
+    tenant_id = "org-a"
+    monkeypatch.setattr(
+        auth,
+        "contexto_atual",
+        lambda: {
+            "user_id": "usuario",
+            "is_superadmin": False,
+            "memberships": [
+                {
+                    "organization_id": tenant_id,
+                    "organizations": {"id": tenant_id, "name": "A", "status": "active"},
+                }
+            ],
+        },
+    )
+    raiz = tmp_path / "plantas"
+    fora = tmp_path / "fora"
+    fora.mkdir()
+    if alvo == "tenants":
+        raiz.mkdir()
+        (raiz / "tenants").symlink_to(fora, target_is_directory=True)
+    else:
+        (raiz / "tenants").mkdir(parents=True)
+        (raiz / "tenants" / tenant_id).symlink_to(fora, target_is_directory=True)
+
+    with pytest.raises(ValueError, match="Caminho de organização inválido"):
+        arm.repositorio()
+
+    assert list(fora.iterdir()) == []
 
 
 @pytest.mark.parametrize(

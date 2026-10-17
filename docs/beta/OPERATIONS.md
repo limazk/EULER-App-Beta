@@ -8,6 +8,7 @@
 | `SUPABASE_PUBLISHABLE_KEY` | chave pública (login/cadastro) |
 | `SUPABASE_SECRET_KEY` | chave secreta (só servidor e scripts de admin) |
 | `EULER_DADOS_DIR` | pasta gravável dos dados locais |
+| `EULER_REQUIRE_PERSISTENT_STORAGE` | `1` no Render; bloqueia fallback efêmero |
 
 Os scripts leem **somente** variáveis de ambiente (não leem `.streamlit/secrets.toml`).
 Exemplo numa sessão: `export SUPABASE_URL=...` (não grave isso em arquivo versionado).
