@@ -246,3 +246,22 @@ Nas duas capturas, o botão de envio do formulário de login aparece como um ret
 **PENDENTE/BLOQUEADO:** login real, dashboard 3.0, validação Supabase, UX offline/retry após falha de DNS (issue #36), testes em máquinas físicas de usuários e confirmação do botão de login legível (issue #38).
 
 **G3 = PARCIAL / PENDENTE**, não autoriza merge/deploy.
+
+---
+
+## 11. Teste visual interativo seguro no runner Windows (16/10/2026)
+
+- **Run oficial:** https://github.com/limazk/EULER-App-Beta/actions/runs/38996800115 — `success`, artifact `qa-windows-window-capture`.
+- **Método:** instalação NSIS oficial em runner Windows Server 2025; detectado Win32 MainWindowHandle; simulação de clique do mouse somente em *Claro/Escuro* e na aba *Criar conta*; nenhuma entrada de dados nem submissão de formulário.
+- **Alteração para tema Claro: PASS** — a UI trocou a aparência, exibiu botão `Escuro` e o botão de login passou a mostrar claramente o texto `Entrar`.
+- **Navegação para Criar conta: PASS** — a aba abriu e exibiu os campos *Nome completo*, *E-mail* e *Senha*.
+- **Interação com login/cadastro real: NÃO EXECUTADA** — nenhuma conta de teste, senha ou solicitação de cadastro criada.
+- **Instalação/inicialização/desinstalação NSIS: PASS** novamente ao final do teste.
+
+**Capturas persistidas na Library privada:**
+- `/EULER/QA/2026-10-16/euler-windows-light-theme.png`, SHA-256 `afaad558e261776921665f302c64642caa551c1acbf38b83c4ba2ad419ef00ce`.
+- `/EULER/QA/2026-10-16/euler-windows-signup-tab.png`, SHA-256 `fb9fc813836829a2a923a5ef43d58a92a2e8933c061d22688775151c9939c21b`.
+
+A issue #38 foi complementada: https://github.com/limazk/EULER-App-Beta/issues/38. Como o texto "Entrar" é legível no tema **Claro**, mas ilegível no tema **Escuro**, o defeito observado parece ligado ao **contraste e estilo do botão no tema escuro**. Essa inferência precisa de revisão CSS; não há correção neste PR documental.
+
+**Parecer:** navegação visual sem credenciais da versão **antiga** hospedada está validada no Windows, com evidências reais. Ainda sem login real, EULER 3.0, teste físico de usuário e resiliência offline amigável (issue #36). Gate G3 permanece **PARCIAL**.
