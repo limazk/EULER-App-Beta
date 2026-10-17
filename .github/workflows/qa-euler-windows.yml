@@ -83,6 +83,39 @@ jobs:
               $bmp.Save("windows-qa-screenshot.png",[System.Drawing.Imaging.ImageFormat]::Png)
               $gfx.Dispose(); $bmp.Dispose()
               Write-Host "Screenshot saved (inspect for blank/interactive state)"
+              if ($bounds.Width -ge 1024 -and $bounds.Height -ge 768) {
+                Add-Type -TypeDefinition @"
+using System;
+using System.Runtime.InteropServices;
+public static class EulerQAMouse {
+  [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);
+  [DllImport("user32.dll")] public static extern bool SetCursorPos(int X, int Y);
+  [DllImport("user32.dll")] public static extern void mouse_event(uint flags, uint dx, uint dy, uint dwData, IntPtr extraInfo);
+}
+"@
+                [EulerQAMouse]::SetForegroundWindow([IntPtr]$ui.MainWindowHandle) | Out-Null
+                Start-Sleep -Milliseconds 300
+                [EulerQAMouse]::SetCursorPos(847,110) | Out-Null
+                [EulerQAMouse]::mouse_event(2,0,0,0,[IntPtr]::Zero)
+                [EulerQAMouse]::mouse_event(4,0,0,0,[IntPtr]::Zero)
+                Start-Sleep -Seconds 2
+                $b = New-Object System.Drawing.Bitmap($bounds.Width,$bounds.Height)
+                $g = [System.Drawing.Graphics]::FromImage($b)
+                $g.CopyFromScreen(0,0,0,0,$b.Size)
+                $b.Save("windows-qa-light-toggle.png",[System.Drawing.Imaging.ImageFormat]::Png)
+                $g.Dispose(); $b.Dispose()
+                Write-Host "Captured theme toggle screenshot"
+                [EulerQAMouse]::SetCursorPos(407,415) | Out-Null
+                [EulerQAMouse]::mouse_event(2,0,0,0,[IntPtr]::Zero)
+                [EulerQAMouse]::mouse_event(4,0,0,0,[IntPtr]::Zero)
+                Start-Sleep -Seconds 2
+                $b = New-Object System.Drawing.Bitmap($bounds.Width,$bounds.Height)
+                $g = [System.Drawing.Graphics]::FromImage($b)
+                $g.CopyFromScreen(0,0,0,0,$b.Size)
+                $b.Save("windows-qa-signup-tab.png",[System.Drawing.Imaging.ImageFormat]::Png)
+                $g.Dispose(); $b.Dispose()
+                Write-Host "Captured signup tab screenshot (navigation only, no form submission)"
+              }
             } catch { Write-Warning "Screenshot unavailable on non-interactive runner: $($_.Exception.Message)" }
             Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
           }
@@ -91,7 +124,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: qa-windows-window-capture
-          path: windows-qa-screenshot.png
+          path: windows-qa-*.png
           if-no-files-found: ignore
           retention-days: 3
       - name: Uninstall and verify cleanup
