@@ -131,6 +131,59 @@ def test_troca_de_organizacao_invalida_dados_e_seletores_do_tenant_anterior(ambi
     assert sessao[arm.ORGANIZACAO_ATIVA] == "org-b"
 
 
+def test_persistencia_backup_e_restauracao_permanecem_isolados_por_tenant(ambiente, monkeypatch):
+    _, arm, sessao = ambiente
+    monkeypatch.delenv("EULER_TEST_BYPASS_AUTH", raising=False)
+    auth = importlib.import_module("auth")
+    organizacoes = [
+        {
+            "organization_id": "org-a",
+            "organizations": {"id": "org-a", "name": "A", "status": "active"},
+        },
+        {
+            "organization_id": "org-b",
+            "organizations": {"id": "org-b", "name": "B", "status": "active"},
+        },
+    ]
+    monkeypatch.setattr(
+        auth,
+        "contexto_atual",
+        lambda: {"user_id": "usuario", "is_superadmin": False, "memberships": organizacoes},
+    )
+
+    sessao[arm.ORGANIZACAO_SELECIONADA] = "org-a"
+    repo_a = arm.repositorio()
+    planta_a = repo_a.criar_planta("Planta A")
+    versao_a = repo_a.salvar_importacao(
+        planta_a["id"],
+        {"diario.csv": b"instante,valor\n2026-10-16T00:00:00Z,1\n"},
+        altitude=100.0,
+        rotulo="Validação",
+        sinteticos=False,
+        autor="Teste autorizado",
+        motivo="Homologação local",
+    )
+    backup = repo_a.exportar_backup(planta_a["id"])
+
+    sessao[arm.ORGANIZACAO_SELECIONADA] = "org-b"
+    repo_b = arm.repositorio()
+    assert repo_b.listar_plantas() == []
+    with pytest.raises(ValueError, match="Planta não encontrada"):
+        repo_b.carregar_importacao(planta_a["id"], versao_a["id"])
+
+    sessao[arm.ORGANIZACAO_SELECIONADA] = "org-a"
+    repo_a_reaberto = arm.repositorio()
+    assert repo_a_reaberto.carregar_importacao(planta_a["id"], versao_a["id"])["arquivos"] == {
+        "diario.csv": b"instante,valor\n2026-10-16T00:00:00Z,1\n"
+    }
+    restaurada = repo_a_reaberto.restaurar_backup(backup)
+    assert restaurada["id"] != planta_a["id"]
+    assert repo_a_reaberto.carregar_importacao(restaurada["id"], versao_a["id"])["arquivos"] == {
+        "diario.csv": b"instante,valor\n2026-10-16T00:00:00Z,1\n"
+    }
+    assert repo_b.listar_plantas() == []
+
+
 def test_repositorio_beta_recusa_organizacao_fora_das_associacoes(ambiente, monkeypatch):
     _, arm, sessao = ambiente
     monkeypatch.delenv("EULER_TEST_BYPASS_AUTH", raising=False)
@@ -176,6 +229,42 @@ def test_repositorio_beta_recusa_contexto_de_autorizacao_ausente(ambiente, monke
 
     with pytest.raises(ValueError, match="Autorização"):
         arm.repositorio()
+
+
+@pytest.mark.parametrize("alvo", ["tenant", "tenants"])
+def test_repositorio_beta_recusa_escape_por_link_simbolico(ambiente, monkeypatch, tmp_path, alvo):
+    _, arm, _ = ambiente
+    monkeypatch.delenv("EULER_TEST_BYPASS_AUTH", raising=False)
+    auth = importlib.import_module("auth")
+    tenant_id = "org-a"
+    monkeypatch.setattr(
+        auth,
+        "contexto_atual",
+        lambda: {
+            "user_id": "usuario",
+            "is_superadmin": False,
+            "memberships": [
+                {
+                    "organization_id": tenant_id,
+                    "organizations": {"id": tenant_id, "name": "A", "status": "active"},
+                }
+            ],
+        },
+    )
+    raiz = tmp_path / "plantas"
+    fora = tmp_path / "fora"
+    fora.mkdir()
+    if alvo == "tenants":
+        raiz.mkdir()
+        (raiz / "tenants").symlink_to(fora, target_is_directory=True)
+    else:
+        (raiz / "tenants").mkdir(parents=True)
+        (raiz / "tenants" / tenant_id).symlink_to(fora, target_is_directory=True)
+
+    with pytest.raises(ValueError, match="Caminho de organização inválido"):
+        arm.repositorio()
+
+    assert list(fora.iterdir()) == []
 
 
 @pytest.mark.parametrize(
