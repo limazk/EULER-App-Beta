@@ -104,3 +104,12 @@
 - Issue UX #38 registrada: https://github.com/limazk/EULER-App-Beta/issues/38 — botão de login branco sem texto legível em ambos os SOs; verificar na candidata 3.0 antes da liberação.
 - Os dados e telas acessados eram a Beta atual do Render (`42e28e8`), **não a EULER 3.0**; testes de autenticação real continuam bloqueados pelo Supabase `INACTIVE`.
 - **G3 segue PARCIAL, porém instalação nativa, janela e login visual (sem autenticação) estão comprovados no Windows e Linux.** Sem deploy, merge ou modificação de credenciais.
+
+## QA visual de navegação — Windows, 16/10/2026
+
+- [Run #38996800115](https://github.com/limazk/EULER-App-Beta/actions/runs/38996800115) aprovou instalação/execução/desinstalação NSIS, detecção de janela Win32 e cliques seguros em **Claro** e **Criar conta**, gerando 3 screenshots.
+- Tema Claro: **PASS** — UI alternou cores e o botão `Entrar` tornou-se legível.
+- Aba Criar conta: **PASS** — campos Nome completo, E-mail e Senha visíveis; nenhum dado submetido.
+- Screenshots salvos na Library `/EULER/QA/2026-10-16/euler-windows-light-theme.png` e `euler-windows-signup-tab.png`.
+- A [issue #38](https://github.com/limazk/EULER-App-Beta/issues/38) foi refinada para um problema provável de **contraste do botão no tema escuro** na Beta hospedada.
+- **G3 permanece PARCIAL**: sem autenticação Supabase autorizada, teste físico de usuário ou UI de produção EULER 3.0; a [issue #36](https://github.com/limazk/EULER-App-Beta/issues/36) de fallback offline continua aberta.
