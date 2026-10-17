@@ -113,3 +113,17 @@
 - Screenshots salvos na Library `/EULER/QA/2026-10-16/euler-windows-light-theme.png` e `euler-windows-signup-tab.png`.
 - A [issue #38](https://github.com/limazk/EULER-App-Beta/issues/38) foi refinada para um problema provável de **contraste do botão no tema escuro** na Beta hospedada.
 - **G3 permanece PARCIAL**: sem autenticação Supabase autorizada, teste físico de usuário ou UI de produção EULER 3.0; a [issue #36](https://github.com/limazk/EULER-App-Beta/issues/36) de fallback offline continua aberta.
+
+## Revisão da entrega Codex PR #35 — 16/10/2026
+
+**Validação independente pelo coordenador via conector GitHub:**
+
+- PR [#35](https://github.com/limazk/EULER-App-Beta/pull/35) permanece `open`, `draft=true`, `mergeable=true`; branch `hardening/v3-release-validation-codex`, HEAD `939569d28c44bed54d9496f62441a508503a9336`, base `integration/v3-beta-release-candidate` em `8d89de9395f9a0fcfdc829e3b88280202982ec28`.
+- `compare` da base contra o HEAD #35: **1 commit à frente, 0 atrás** e exatamente 4 arquivos alterados: `app/armazenamento.py`, `tests/test_auth_beta.py`, `tests/test_armazenamento_app.py`, `docs/v3/CODEX_RELEASE_VALIDATION.md`. Nenhum diff em motor científico ou testes golden.
+- [CI Python oficial no SHA de #35](https://github.com/limazk/EULER-App-Beta/actions/runs/38995055922): **success**, `ruff check`, `ruff format --check`, `pytest -q`; log confirma **937 passed, 7 warnings**, sem falhas.
+- Testes locais e matriz de casos detalhados em `docs/v3/CODEX_RELEASE_VALIDATION.md` são **relato do Codex**; CI confirma o conjunto geral independente, não a autenticação Supabase real.
+- Fix de link simbólico do caminho `tenants/` e `tenants/<tenant_id>` verificado no patch, com testes explícitos para os dois casos. **Ressalva:** validação com `is_symlink` e `resolve` antecede a abertura efetiva do banco; em um filesystem sob controle adversarial, uma troca concorrente de symlink (TOCTOU) ainda mereceria avaliação de segurança. Não foi demonstrado ataque; exigir modelo de ameaça e, se aplicável, proteção de permissões/diretórios para mitigar.
+- Backup/restauração **local** passou em testes offline; esse resultado **não comprova** persistência no Render Free. A aplicação mantém dados em SQLite no filesystem efêmero. Backup JSON usa SHA-256 para integridade, **não criptografia**.
+- Consulta ao Supabase `EULER` continuou indicando `INACTIVE` na revisão; o Render ainda indicou deploy `live` no SHA `42e28e8` da `main`, sem publicação da v3.
+- **G1 (real): BLOQUEADO; G2 (local): APROVADO OFFLINE; G2 (persistência hospedada): REPROVADO no plano Free; G3: PARCIAL; G4/G5: NÃO APROVADOS.**
+- O código do #35 **ainda não faz parte do PR #29**. Não marcar como homologada a candidata `8d89de9` com base em alterações ainda segregadas do PR #35. Não mesclar #35, #29, nem alterar Render ou Supabase sem aprovação e solução de persistência/backup.
