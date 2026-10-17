@@ -85,14 +85,14 @@ jobs:
               Write-Host "Screenshot saved (inspect for blank/interactive state)"
               if ($bounds.Width -ge 1024 -and $bounds.Height -ge 768) {
                 Add-Type -TypeDefinition @"
-using System;
-using System.Runtime.InteropServices;
-public static class EulerQAMouse {
-  [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);
-  [DllImport("user32.dll")] public static extern bool SetCursorPos(int X, int Y);
-  [DllImport("user32.dll")] public static extern void mouse_event(uint flags, uint dx, uint dy, uint dwData, IntPtr extraInfo);
-}
-"@
+          using System;
+          using System.Runtime.InteropServices;
+          public static class EulerQAMouse {
+            [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd);
+            [DllImport("user32.dll")] public static extern bool SetCursorPos(int X, int Y);
+            [DllImport("user32.dll")] public static extern void mouse_event(uint flags, uint dx, uint dy, uint dwData, IntPtr extraInfo);
+          }
+          "@
                 [EulerQAMouse]::SetForegroundWindow([IntPtr]$ui.MainWindowHandle) | Out-Null
                 Start-Sleep -Milliseconds 300
                 [EulerQAMouse]::SetCursorPos(847,110) | Out-Null
