@@ -32,7 +32,7 @@ jobs:
           echo "1bed3e232ada0d08da48dd456857a3f992f43f175affadd2e2421cbe83c101c5  $file" | sha256sum -c -
           sudo apt-get update -qq
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq xvfb openbox wmctrl dbus-x11 "$PWD/$file"
-          dpkg-query -W -f="${Status} ${Version}\n" euler
+          dpkg-query -s euler | grep -E '^(Status|Version):'
           command -v euler-app
           test -x /usr/bin/euler-app
           echo "- Native .deb install on Ubuntu 22.04: PASS" >> "$GITHUB_STEP_SUMMARY"
