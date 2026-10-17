@@ -85,3 +85,13 @@
 - Os screenshots de 1s e 9s foram salvos na Library privada do solicitante em /EULER/QA/2026-10-16/.
 - Faltam instalação nativa .deb, Windows, teste real de reconexão, sessão autenticada, demonstração da interface v3 no shell.
 - **G3 continua PARCIAL e não autoriza merge/deploy**; o PR #29, a main e os ambientes Render/Supabase não foram alterados.
+
+## Gates de instalação — atualização após QA nativo (16/10/2026)
+
+- PR de workflows de QA isolados: https://github.com/limazk/EULER-App-Beta/pull/37 (draft).
+- Windows Server 2025 NSIS: [run #38996138723](https://github.com/limazk/EULER-App-Beta/actions/runs/38996138723), **success**. SHA-256 verificado; instalação, lançamento do processo ainda ativo aos 10s e desinstalação **aprovados**.
+- Ubuntu 22.04 .deb: [run #38996327626](https://github.com/limazk/EULER-App-Beta/actions/runs/38996327626), **success**. Instalação nativa com dependências, execução/Janela EULER 1440×900 via Xvfb, remoção **aprovados**.
+- Debian 13 AppImage: evento de fechamento de janela WM_DELETE_WINDOW testado; exit code 0 e desaparecimento da janela. Instalação física via FUSE não testada.
+- Relatório consolidado: https://github.com/limazk/EULER-App-Beta/pull/34.
+- **G3 segue PARCIAL:** a falha offline [issue #36](https://github.com/limazk/EULER-App-Beta/issues/36), Windows GUI interativa, login real Supabase, interface 3.0 servida em ambiente adequado e teste físico permanecem pendentes. Os testes em runners nativos **não** equivalem à homologação funcional de clientes.
+- Sem merge ou deploy da candidata, sem alterações em Render ou Supabase.
