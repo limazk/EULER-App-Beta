@@ -51,7 +51,28 @@ nomes antigos como fallback.
 A chave secreta é usada somente pelo servidor para aprovar/suspender usuários,
 criar organizações e vínculos. Ela não deve aparecer em frontend, APK ou navegador.
 
-## 4. Teste mínimo
+## 4. Reativação e homologação do projeto existente
+
+Se o projeto estiver `INACTIVE`, não crie outro projeto nem reaplique migrations sem
+aprovação. O responsável pelo workspace deve:
+
+1. reativar o projeto pelo painel e confirmar que o project ref/URL corresponde ao
+   inventário autorizado da EULER;
+2. conferir Auth, Redirect URLs, template de recuperação, migrations aplicadas, tabelas
+   e políticas RLS antes de liberar contas;
+3. configurar as chaves somente no servidor e executar `python scripts/beta_check.py`;
+4. usar duas contas de teste autorizadas, vinculadas separadamente às empresas A e B;
+5. validar cadastro pendente, aprovação, login, refresh, logout, suspensão, perfil
+   removido, associação revogada e tentativas de acesso cruzado A/B;
+6. revogar uma sessão e repetir o acesso depois do TTL de autorização de 45 segundos;
+7. registrar apenas horário, resultado, usuário mascarado e IDs não sensíveis. Nunca
+   copiar tokens, senhas ou a chave administrativa para relatório ou navegador.
+
+Se qualquer consulta de perfil/membership falhar, o aplicativo deve descartar a sessão
+e os dados operacionais em memória. A homologação real continua bloqueada até esses
+casos serem executados no projeto autorizado.
+
+## 5. Teste mínimo
 
 1. Entre com a conta superadmin.
 2. Crie uma segunda conta.

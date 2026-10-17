@@ -8,8 +8,10 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import re
 import sqlite3
+from pathlib import Path
 
 import streamlit as st
 
@@ -19,6 +21,41 @@ ERROS = (ValueError, OSError, sqlite3.Error)
 ORGANIZACAO_SELECIONADA = "_euler_organization_id"
 ORGANIZACAO_ATIVA = "_euler_active_organization_id"
 ORGANIZACAO_USUARIO = "_euler_organization_user_id"
+PERSISTENCIA_EXIGIDA = "EULER_REQUIRE_PERSISTENT_STORAGE"
+
+
+def _em_render() -> bool:
+    return any(
+        valor and (nome == "RENDER" or nome.startswith("RENDER_"))
+        for nome, valor in os.environ.items()
+    )
+
+
+def _raiz_armazenamento() -> Path:
+    """Valida o contrato de disco sem fingir que a infraestrutura foi homologada."""
+    declaracao = os.environ.get(PERSISTENCIA_EXIGIDA, "").strip().casefold()
+    if declaracao not in {"", "0", "1", "false", "true"}:
+        raise ValueError(f"{PERSISTENCIA_EXIGIDA} deve ser 1 ou 0.")
+    exigida = declaracao in {"1", "true"}
+    if _em_render() and not exigida:
+        raise ValueError(
+            "O Render exige EULER_REQUIRE_PERSISTENT_STORAGE=1 e um disco persistente."
+        )
+
+    configurada = os.environ.get("EULER_DADOS_DIR", "").strip()
+    if exigida and not configurada:
+        raise ValueError("EULER_DADOS_DIR é obrigatório para armazenamento persistente.")
+    if configurada:
+        informada = Path(configurada).expanduser()
+        if not informada.is_absolute():
+            raise ValueError("EULER_DADOS_DIR deve ser um caminho absoluto.")
+        if exigida and (
+            informada.is_symlink() or not informada.is_dir() or not os.access(informada, os.W_OK)
+        ):
+            raise ValueError(
+                "EULER_DADOS_DIR persistente deve existir, ser gravável e não ser link simbólico."
+            )
+    return raiz_padrao().expanduser().resolve()
 
 
 def organizacoes_autorizadas() -> list[dict[str, str]]:
@@ -117,7 +154,7 @@ def repositorio() -> Repositorio:
 
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,127}", tenant_id):
         raise ValueError("Identificador de organização inválido para o armazenamento.")
-    raiz = raiz_padrao().expanduser().resolve()
+    raiz = _raiz_armazenamento()
     tenants = raiz / "tenants"
     destino = tenants / tenant_id
     if tenants.is_symlink() or destino.is_symlink():

@@ -199,3 +199,40 @@ atual informa expiração e ausência de backups no plano gratuito.
 Conclusão: a candidata pode avançar nos gates **offline**, mas a aprovação técnica final
 continua condicionada a Supabase real autorizado, armazenamento persistente configurado,
 ensaio controlado de backup/restore/rollback e aprovação humana.
+
+## Atualização de integração final — 17/10/2026
+
+- O commit do PR #35 (`939569d28c44bed54d9496f62441a508503a9336`) foi incorporado
+  por merge explícito, sem duplicação, na branch
+  `integration/v3-final-homologation-codex`, baseada na candidata `8d89de9`.
+- O runtime agora recusa armazenamento no Render se
+  `EULER_REQUIRE_PERSISTENT_STORAGE=1` não estiver configurado. Quando exigida, a raiz
+  precisa ser absoluta, existir, permitir escrita e não ser link simbólico.
+- `scripts/beta_check.py` aplica o mesmo contrato sem imprimir valores de segredos. A
+  validação local não prova que o caminho é um disco do provedor; o mount ainda deve ser
+  confirmado no painel do Render.
+- O endpoint público do Render respondeu HTTP 200, Streamlit e health `OK` em smoke
+  somente leitura. A aplicação não expõe versão, portanto esse teste não comprova o SHA
+  implantado nem persistência.
+- Não havia configuração Supabase no ambiente, secrets/variables do repositório ou CLI
+  autenticada disponível. O status `INACTIVE` informado anteriormente não pôde ser
+  revalidado diretamente no provedor; a homologação real segue bloqueada.
+- Os artefatos Tauri do run `38211447620` foram construídos em `32ed4e8`, cuja árvore é
+  idêntica à candidata `8d89de9`. PR #37 comprovou instalação/inicialização/desinstalação
+  do `.deb` no Ubuntu 22.04 e do NSIS no Windows Server 2025, com hashes individuais.
+  AppImage abriu e tratou fechamento em ambiente gráfico virtual. Isso não equivale a
+  teste físico humano, login real ou execução do dashboard 3.0.
+- Permanecem abertas a UX offline/retry do shell (issue #36) e a revisão de contraste da
+  Beta hospedada antiga (issue #38). Nenhuma correção Tauri concorrente foi incorporada.
+
+### Checklist antes de publicação
+
+- [ ] CI Python 3.11 verde no SHA final desta integração.
+- [ ] Builds Linux/Windows vinculados ao mesmo SHA final ou equivalência de árvore
+      registrada.
+- [ ] Projeto Supabase autorizado ativo e matriz real A/B aprovada.
+- [ ] Persistent Disk visível no Render, montado exatamente no `EULER_DADOS_DIR`.
+- [ ] Backup externo íntegro de cada planta e restauração ensaiada fora da produção.
+- [ ] SHA do deploy registrado; smoke de autenticação e persistência pós-deploy aprovado.
+- [ ] Procedimento de rollback revisado; auto-deploy controlado durante a janela.
+- [ ] Aprovação humana explícita. Nenhum item bloqueado pode ser presumido como aprovado.

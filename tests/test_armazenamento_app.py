@@ -231,6 +231,59 @@ def test_repositorio_beta_recusa_contexto_de_autorizacao_ausente(ambiente, monke
         arm.repositorio()
 
 
+def test_render_recusa_fallback_para_filesystem_efemero(ambiente, monkeypatch):
+    _, arm, _ = ambiente
+    monkeypatch.setenv("RENDER_SERVICE_ID", "srv-teste")
+    monkeypatch.delenv(arm.PERSISTENCIA_EXIGIDA, raising=False)
+
+    with pytest.raises(ValueError, match="Render exige"):
+        arm._raiz_armazenamento()
+
+
+@pytest.mark.parametrize("valor", ["sim", "required", "2"])
+def test_declaracao_de_persistencia_invalida_falha_fechado(ambiente, monkeypatch, valor):
+    _, arm, _ = ambiente
+    monkeypatch.setenv(arm.PERSISTENCIA_EXIGIDA, valor)
+
+    with pytest.raises(ValueError, match="deve ser 1 ou 0"):
+        arm._raiz_armazenamento()
+
+
+def test_persistencia_exigida_requer_diretorio_absoluto_existente(ambiente, monkeypatch):
+    _, arm, _ = ambiente
+    monkeypatch.setenv(arm.PERSISTENCIA_EXIGIDA, "1")
+    monkeypatch.delenv("EULER_DADOS_DIR", raising=False)
+    with pytest.raises(ValueError, match="obrigatório"):
+        arm._raiz_armazenamento()
+
+    monkeypatch.setenv("EULER_DADOS_DIR", "dados-relativos")
+    with pytest.raises(ValueError, match="absoluto"):
+        arm._raiz_armazenamento()
+
+
+def test_persistencia_exigida_aceita_diretorio_gravavel(ambiente, monkeypatch, tmp_path):
+    _, arm, _ = ambiente
+    disco = tmp_path / "disco-persistente"
+    disco.mkdir()
+    monkeypatch.setenv(arm.PERSISTENCIA_EXIGIDA, "true")
+    monkeypatch.setenv("EULER_DADOS_DIR", str(disco))
+
+    assert arm._raiz_armazenamento() == disco.resolve()
+
+
+def test_persistencia_exigida_recusa_raiz_simbolica(ambiente, monkeypatch, tmp_path):
+    _, arm, _ = ambiente
+    destino = tmp_path / "destino"
+    destino.mkdir()
+    atalho = tmp_path / "atalho"
+    atalho.symlink_to(destino, target_is_directory=True)
+    monkeypatch.setenv(arm.PERSISTENCIA_EXIGIDA, "1")
+    monkeypatch.setenv("EULER_DADOS_DIR", str(atalho))
+
+    with pytest.raises(ValueError, match="não ser link simbólico"):
+        arm._raiz_armazenamento()
+
+
 @pytest.mark.parametrize("alvo", ["tenant", "tenants"])
 def test_repositorio_beta_recusa_escape_por_link_simbolico(ambiente, monkeypatch, tmp_path, alvo):
     _, arm, _ = ambiente

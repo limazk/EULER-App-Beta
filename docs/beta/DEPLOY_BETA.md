@@ -12,6 +12,7 @@ SUPABASE_URL=...
 SUPABASE_PUBLISHABLE_KEY=...
 SUPABASE_SECRET_KEY=...
 EULER_DADOS_DIR=/var/data/euler
+EULER_REQUIRE_PERSISTENT_STORAGE=1
 ```
 
 **Nunca** configure `EULER_TEST_BYPASS_AUTH=1` no servidor público.
@@ -26,17 +27,24 @@ streamlit run app/main.py --server.address 0.0.0.0 --server.port $PORT --server.
 ## Persistência
 
 A versão beta ainda preserva os bancos científicos em SQLite. Portanto, o diretório
-apontado por `EULER_DADOS_DIR` precisa estar em um **volume/disco persistente**.
+apontado por `EULER_DADOS_DIR` precisa ser o **ponto de montagem existente** de um
+volume/disco persistente. O runtime recusa o fallback local no Render e também recusa
+caminho relativo, inexistente, sem escrita ou link simbólico quando
+`EULER_REQUIRE_PERSISTENT_STORAGE=1`.
 
 Sem volume persistente, um redeploy pode apagar os bancos locais. Em Render, por
-exemplo, o filesystem padrão é efêmero; use um Persistent Disk e monte-o em
-`/var/data`. Um serviço com Persistent Disk fica limitado a uma instância, o que é
+exemplo, o filesystem padrão é efêmero; use um Persistent Disk e monte-o exatamente em
+`/var/data/euler`. Um serviço com Persistent Disk fica limitado a uma instância, o que é
 aceitável para este beta fechado.
+
+Essa validação confirma somente o contrato visto pelo processo. Antes do deploy, confira
+no painel do provedor que `/var/data/euler` é realmente um Persistent Disk; uma pasta
+comum com o mesmo nome não oferece durabilidade.
 
 Estrutura no volume:
 
 ```text
-/var/data/euler/
+/var/data/euler/  # mount do Persistent Disk
 └── tenants/
     ├── <organization-id-A>/
     └── <organization-id-B>/
