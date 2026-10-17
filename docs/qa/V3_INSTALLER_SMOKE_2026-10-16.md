@@ -214,3 +214,35 @@ Após assumir definitivamente o trabalho interrompido do Antigravity, foram cria
 | Teste humano em máquina física Windows/Linux | **NÃO TESTADO** |
 
 **Parecer atualizado:** a etapa de **instalação/inicialização/desinstalação dos pacotes Linux (.deb) e Windows (NSIS) foi aprovada em runners nativos**, junto com a inicialização/fechamento AppImage. O gate geral G3 permanece **PARCIAL** pela UX offline, falta de testes GUI/usuários reais e necessidade de EULER 3.0 em ambiente de homologação. Nenhum merge, alteração do app nem deploy foram realizados.
+
+---
+
+## 10. Capturas cross-platform reais da tela hospedada (16/10/2026)
+
+**Novas execuções oficiais GitHub Actions:**
+- Windows Server 2025 — https://github.com/limazk/EULER-App-Beta/actions/runs/38996524546, artefato `qa-windows-window-capture`.
+- Ubuntu 22.04 .deb — https://github.com/limazk/EULER-App-Beta/actions/runs/38996524551, artefato `qa-linux-deb-window-capture`.
+
+Ambos os workflows **passaram** nas etapas de instalação, inicialização do processo, captura/identificação da janela e desinstalação. O Windows retornou **Win32 MainWindowHandle = 66094**, **MainWindowTitle = EULER** e gerou captura de tela efetiva; a instalação Linux mostrou a interface do Streamlit dentro da janela EULER.
+
+Nas capturas é possível observar **o formulário de login com e-mail, senha, tabs Entrar/Criar conta, e Esqueci minha senha**, em ambos os SOs. Nenhuma conta de teste foi autenticada, nem dados reais submetidos. O conteúdo remoto é a Beta atual servida pelo Render no SHA `42e28e8`, **não** a candidata EULER 3.0.
+
+**Evidências persistidas na Library privada do usuário:**
+- `/EULER/QA/2026-10-16/euler-windows-native-login.png`, SHA-256 `aea1ec5d10c552cc22ab421b489f5cc82079a44b9651ea1c8f52a930040ea411`.
+- `/EULER/QA/2026-10-16/euler-linux-deb-native-login.png`, SHA-256 `221ae35dd1a329a54253a72083fc36dacd5388ba086bdf76f9d022a11d4afe3e`.
+
+Os PNG também estão disponíveis como artifacts nos runs de teste acima (retenção temporária), e **não foram commitados** na branch.
+
+### Achado visual cross-platform
+
+Issue registrada: https://github.com/limazk/EULER-App-Beta/issues/38
+
+Nas duas capturas, o botão de envio do formulário de login aparece como um retângulo branco sem rótulo legível. Necessário revisar cor do texto/contraste e estados do botão na Beta atual e confirmar se o problema existe na 3.0. **Não corrigir o CSS diretamente nesta branch de QA** nem interferir com o Codex no módulo de autenticação.
+
+### Estado atualizado
+
+**PASS:** carregamento visual da **tela de login da Beta atualmente publicada** em Windows e Linux, sem autenticação; instalação e desinstalação nativas em ambos.
+
+**PENDENTE/BLOQUEADO:** login real, dashboard 3.0, validação Supabase, UX offline/retry após falha de DNS (issue #36), testes em máquinas físicas de usuários e confirmação do botão de login legível (issue #38).
+
+**G3 = PARCIAL / PENDENTE**, não autoriza merge/deploy.
