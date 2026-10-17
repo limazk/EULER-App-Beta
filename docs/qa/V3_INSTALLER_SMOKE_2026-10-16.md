@@ -98,3 +98,71 @@ Capturar logs (sem incluir senhas, tokens ou dados empresariais); preservar a id
 ## 7. Isolamento e rastreabilidade
 
 Documento produzido em branch `qa/v3-installers-antigravity-20261016` derivada da `main` para preservar o trabalho interrompido por limite de uso. Nenhum arquivo da aplicação, shell Tauri, pipeline ou branch de integração foi alterado. Ao retomar Antigravity, sincronizar primeiro com esta branch remota para evitar commits divergentes; completar aqui as evidências faltantes em commits adicionais.
+
+---
+
+## 8. Validação independente de QA — ChatGPT, 16/10/2026
+
+Esta seção **complementa** os testes relatados pelo Antigravity com execuções **novas** sobre os próprios artefatos oficiais GitHub Actions. Os testes de Windows, instalação nativa .deb, login real e interface EULER 3.0 **não** foram realizados.
+
+### Ambiente
+
+- Debian GNU/Linux 13 (trixie), x86_64; kernel Linux 6.18.55; container isolado.
+- Xvfb 1600×1000, Openbox, WebKitGTK, sessão D-Bus e renderização GL por software.
+- Sem /dev/fuse: AppImage executado via APPIMAGE_EXTRACT_AND_RUN=1 e --appimage-extract-and-run. Isto testa o conteúdo oficial, **não** a montagem FUSE em desktop físico.
+- Shell Tauri configurado com https://euler-app-beta.onrender.com (verificado no arquivo versionado tauri.conf.json).
+- Artefatos recuperados diretamente do run https://github.com/limazk/EULER-App-Beta/actions/runs/38211447620.
+
+Os ZIPs oficiais tiveram SHA-256 calculado e coincidente com o digest anunciado pelo GitHub:
+
+- Linux ZIP: c494cd3a810f3f0538dc4878300949e7ae415a0aead925558cf3cf4222bcb438.
+- Windows ZIP: eebf5a9474f114b0e29cfefd92925bf690ab07dc707da1312207803ef5e93ce1.
+
+### SHA-256 dos instaladores individuais (novo)
+
+| Binário extraído do ZIP oficial | SHA-256 calculado |
+| --- | --- |
+| EULER_0.1.0-beta.1_amd64.AppImage | 666944f428c3cbe34657b080366c5f2db123d243677e9537480e66fdfecc6b78 |
+| EULER_0.1.0-beta.1_amd64.deb | 1bed3e232ada0d08da48dd456857a3f992f43f175affadd2e2421cbe83c101c5 |
+| EULER_0.1.0-beta.1_x64-setup.exe | 375eb281abc653b9aab5ea92a4a51fd9b2911dd8c089dde696635f20b1107cbe |
+
+Estes são hashes individuais, **diferentes** dos ZIPs do workflow.
+
+### Matriz de testes reproduzidos
+
+| Teste | Resultado verificado |
+| --- | --- |
+| AppImage abre em display virtual | PASS — processo ELF iniciado e ativo por pelo menos 13s; janela EULER detectada por wmctrl |
+| Splash local | PASS — captura de 1s mostra logo, animação de espera e texto “Conectando à EULER...” |
+| Carregamento remoto | BLOQUEADO — após ~9s, o WebKit exibiu “Error resolving ‘euler-app-beta.onrender.com’: Temporary failure in name resolution” |
+| Encerramento de processo | PASS limitado — SIGTERM controlado pelo executor; **não** é prova de fechamento pelo botão da janela |
+| Pacote .deb: metadados | PASS — versão 0.1.0-beta.1, arquitetura amd64; depende de libwebkit2gtk-4.1-0 e libgtk-3-0 |
+| Pacote .deb: integridade interna | PASS — extração via dpkg-deb e **5 checksums MD5 válidos / 0 divergências** |
+| Pacote .deb: instalação e execução reais | NÃO EXECUTADO — bibliotecas libwebkit2gtk-4.1.so.0 e libjavascriptcoregtk-4.1.so.0 ausentes neste ambiente, não se alterou o sistema |
+| Instalador Windows | PASS estático — executável NSIS PE, integridade hash; **execução Windows NÃO EXECUTADA** |
+| Offline/retry com serviço acessível | NÃO APROVADO — indisponibilidade de DNS impediu reconexão no teste, não há teste do servidor remoto |
+| Login e dashboard v3 | NÃO EXECUTADO — o shell aponta para Render na main antiga; Supabase real não validado |
+
+### Evidências visuais
+
+Foram produzidas novas capturas reais de tela PNG (1600×1000) da execução Linux:
+- 1s — splash EULER “Conectando à EULER...” — SHA-256 b3380ce52f69e1bc6cbee39fadf2558e51e0f21dec5e2e5b30660381582e0f18.
+- 9s — página WebKit branca com erro DNS — SHA-256 cf4741daede92986b2543ec7f5753473076d3bef75d942b65f3ade7e8692567e.
+
+Essas imagens foram salvas na Library privada do solicitante, respectivamente:
+- /EULER/QA/2026-10-16/euler-appimage-splash-linux.png
+- /EULER/QA/2026-10-16/euler-appimage-dns-error-linux.png
+
+As capturas NÃO foram commitadas neste PR; as imagens não são públicas no GitHub.
+
+### Achado reproduzível: fallback de erro DNS
+
+Issue: https://github.com/limazk/EULER-App-Beta/issues/36
+
+No ambiente sem DNS, a splash inicial é substituída pela página de erro WebKit. A inspeção do código apps/euler-shell/src-tauri/src/lib.rs revela que PageLoadEvent::Finished exibe a janela principal e esconde a splash sem checar explicitamente sucesso da carga remota. O arquivo apps/euler-shell/dist/startup.js contém estados amigáveis offline e retry, mas não são mantidos visíveis nesse erro reproduzido.
+
+Causa provável, **não comprovada por debugging interno**. Não alteramos o código Tauri nesta branch documental. Recomendado corrigir em PR de código separado, reconstruir artefatos e repetir o teste offline.
+
+### Parecer G3 atualizado
+
+**PARCIAL / PENDENTE.** O AppImage oficial abriu e exibiu splash numa execução independente; os três instaladores tiveram integridade verificada, e o .deb tem manifesto interno íntegro. Porém testes físicos, instalação .deb, Windows, reconexão amigável, autenticação e dashboard v3 continuam pendentes. **Não autoriza merge do PR #29 nem deploy.**
