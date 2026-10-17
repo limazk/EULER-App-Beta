@@ -68,3 +68,11 @@
 ## Critério de saída
 
 **APROVADO PARA LIBERAÇÃO** somente se os cinco gates tiverem evidência linkável, a revisão de segurança final passar, o responsável humano consentir com a publicação e existir rollback ensaiado. Até lá: **PRONTO PARA REVISÃO / NÃO LIBERADO**.
+
+## Atualização da coordenação: 16/10 — resgate de QA interrompido por cota
+
+- PR documental de QA: https://github.com/limazk/EULER-App-Beta/pull/34, branch `qa/v3-installers-antigravity-20261016`, criado em `draft` a partir da `main`.
+- Evidência original: transcrição enviada pelo usuário da sessão Antigravity. O agente relatou abertura bem-sucedida do AppImage Linux com Xvfb/xdotool; detecção de splash 620×420 e janela principal 1440×900; inspeção do .deb; execução de testes offline, mas os logs brutos não foram anexados.
+- Consulta complementar ao GitHub confirma que ambos os builds do Tauri passaram e que o arquivo versionado `tauri.conf.json` prevê as dimensões relatadas. Digests dos artefatos ZIP de workflow conferidos na API GitHub, **não** hashes de instaladores individuais.
+- **G3 continua PARCIAL:** Windows e instalação completa do .deb ainda não foram executados/documentados; execução de aplicação 3.0 e autenticação reais seguem pendentes. Testes relatados pelo agente não são auditoria independente sem logs.
+- Nenhum merge, alteração de infraestrutura ou publicação foram efetuados.
