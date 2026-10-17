@@ -117,7 +117,14 @@ def repositorio() -> Repositorio:
 
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_-]{0,127}", tenant_id):
         raise ValueError("Identificador de organização inválido para o armazenamento.")
-    return Repositorio(raiz_padrao() / "tenants" / tenant_id)
+    raiz = raiz_padrao().expanduser().resolve()
+    tenants = raiz / "tenants"
+    destino = tenants / tenant_id
+    if tenants.is_symlink() or destino.is_symlink():
+        raise ValueError("Caminho de organização inválido para o armazenamento.")
+    if not destino.resolve().is_relative_to(tenants.resolve()):
+        raise ValueError("Caminho de organização inválido para o armazenamento.")
+    return Repositorio(destino)
 
 
 def contexto() -> dict | None:
