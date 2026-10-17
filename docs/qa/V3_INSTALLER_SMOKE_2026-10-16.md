@@ -166,3 +166,51 @@ Causa provável, **não comprovada por debugging interno**. Não alteramos o có
 ### Parecer G3 atualizado
 
 **PARCIAL / PENDENTE.** O AppImage oficial abriu e exibiu splash numa execução independente; os três instaladores tiveram integridade verificada, e o .deb tem manifesto interno íntegro. Porém testes físicos, instalação .deb, Windows, reconexão amigável, autenticação e dashboard v3 continuam pendentes. **Não autoriza merge do PR #29 nem deploy.**
+
+---
+
+## 9. Execuções adicionais nativas de instalação — 16/10/2026
+
+Após assumir definitivamente o trabalho interrompido do Antigravity, foram criados workflows isolados no **PR #37**: https://github.com/limazk/EULER-App-Beta/pull/37. Nenhum workflow executa deploy ou conecta credenciais de usuário.
+
+### 9.1 Windows Server 2025 — testes realmente executados
+
+- **Run aprovado:** https://github.com/limazk/EULER-App-Beta/actions/runs/38996138723
+- Sistema do runner: Windows Server 2025 hospedado pelo GitHub Actions; artefato: `euler-windows` do run 38211447620.
+- SHA-256 do NSIS `EULER_0.1.0-beta.1_x64-setup.exe` conferido: `375eb281abc653b9aab5ea92a4a51fd9b2911dd8c089dde696635f20b1107cbe`.
+- **Instalação NSIS silenciosa: PASS**, exit code 0. Diretório temporário criado e `euler-app.exe` encontrado.
+- **Inicialização nativa do processo: PASS**, PID 4488, observado em execução após 10 segundos. A interface gráfica **não** foi inspecionada nem houve login.
+- **Desinstalação NSIS silenciosa: PASS**, exit code 0 e executável instalado ausente após a remoção.
+- Workflow verificado com todos os jobs/steps em `success`; nenhuma falha ocultada pela matriz final.
+
+### 9.2 Ubuntu 22.04 — testes nativos do .deb
+
+- **Run final aprovado:** https://github.com/limazk/EULER-App-Beta/actions/runs/38996327626
+- Sistema do runner: Ubuntu 22.04; artefato `euler-linux` do run 38211447620; SHA-256 individual do .deb conferido: `1bed3e232ada0d08da48dd456857a3f992f43f175affadd2e2421cbe83c101c5`.
+- **Instalação .deb com dependências nativas: PASS**, `dpkg-query` retornou `Status: install ok installed` e `Version: 0.1.0-beta.1`; `/usr/bin/euler-app` presente e executável.
+- **Execução GUI nativa via Xvfb/Openbox: PASS**, após 12 segundos processo ativo e `wmctrl` detectou janela `EULER`, 1440×900, PID 3433.
+- **Desinstalação via apt: PASS**, `euler` removido e `/usr/bin/euler-app` ausente.
+- A primeira tentativa https://github.com/limazk/EULER-App-Beta/actions/runs/38996260378 falhou apenas por erro de expansão `$Status` no *script de QA*, **depois da instalação bem-sucedida**. Corrigido no workflow; nova execução passou em todos os steps. Não há evidência de falha no pacote EULER decorrente desse incidente.
+
+### 9.3 Linux AppImage — fechamento da janela
+
+- Novo teste independente local em Debian 13 com AppImage oficial + Xvfb/Openbox.
+- Processo iniciou, janela EULER detectada; foi enviado evento `WM_DELETE_WINDOW` via `wmctrl -ic`.
+- **Fechamento por solicitação do gerenciador de janelas: PASS**, aplicativo encerrou com exit code **0**; nenhuma janela EULER permaneceu visível.
+- Teste **não** equivale a clicar fisicamente no botão no desktop, mas demonstra tratamento correto do evento gráfico de fechamento.
+
+### 9.4 Situação dos gates, após as execuções adicionais
+
+| Subitem desktop | Estado |
+| --- | --- |
+| AppImage inicia e exibe splash Linux | PASS no ambiente de teste |
+| AppImage trata evento de fechamento de janela | PASS |
+| .deb instalado, executado e removido em Ubuntu 22.04 nativo | PASS |
+| NSIS instalado, processo iniciado e desinstalado em Windows Server 2025 | PASS |
+| Windows GUI interativa, splash visual e janelas via mouse | **NÃO TESTADO** |
+| Render remoto exibe aplicação 3.0 ao shell Tauri | **NÃO TESTADO / Render atualmente main antiga** |
+| Real login Supabase, isolamento, suspensão e expiração em desktop | **BLOQUEADO** — em escopo do Codex |
+| Offline e retry amigável após falha de DNS | **REPROVADO EM AMBIENTE DE TESTE** — issue #36 aberta |
+| Teste humano em máquina física Windows/Linux | **NÃO TESTADO** |
+
+**Parecer atualizado:** a etapa de **instalação/inicialização/desinstalação dos pacotes Linux (.deb) e Windows (NSIS) foi aprovada em runners nativos**, junto com a inicialização/fechamento AppImage. O gate geral G3 permanece **PARCIAL** pela UX offline, falta de testes GUI/usuários reais e necessidade de EULER 3.0 em ambiente de homologação. Nenhum merge, alteração do app nem deploy foram realizados.
